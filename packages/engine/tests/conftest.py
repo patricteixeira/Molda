@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pymupdf
 import pytest
+from fontTools.fontBuilder import FontBuilder
+from fontTools.ttLib.tables._g_l_y_f import Glyph
 
 _PARAGRAPH = (
     "A marca ACME existe para simplificar o dia a dia de quem cria. "
@@ -52,3 +54,24 @@ def brand_pdf(tmp_path_factory) -> Path:
         )
         doc.save(pdf_path)
     return pdf_path
+
+
+@pytest.fixture(scope="session")
+def fixture_font(tmp_path_factory) -> Path:
+    """TTF mínima gerada com fontTools.fontBuilder — nenhum binário commitado.
+
+    Família "Fixture Sans", estilo "Bold", usWeightClass=700; glifos vazios
+    (".notdef" e "A") apenas para o arquivo ser uma fonte válida.
+    """
+    fb = FontBuilder(1000)
+    fb.setupGlyphOrder([".notdef", "A"])
+    fb.setupCharacterMap({65: "A"})
+    fb.setupGlyf({".notdef": Glyph(), "A": Glyph()})
+    fb.setupHorizontalMetrics({".notdef": (500, 0), "A": (600, 0)})
+    fb.setupHorizontalHeader(ascent=800, descent=-200)
+    fb.setupNameTable({"familyName": "Fixture Sans", "styleName": "Bold"})
+    fb.setupOS2(usWeightClass=700)
+    fb.setupPost()
+    font_path = tmp_path_factory.mktemp("fixture-font") / "fixture-sans-bold.ttf"
+    fb.save(font_path)
+    return font_path
