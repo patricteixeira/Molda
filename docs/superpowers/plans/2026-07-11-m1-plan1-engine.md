@@ -946,7 +946,7 @@ def test_schemas_exported(tmp_path):
 
 **Interfaces:**
 - Produces: `generate_kit(ir: BrandIR) -> list[LayoutSpec]` — 10 layouts: arquétipos `statement`, `quote`, `announce` × perfis `post-1x1`, `post-4x5`, `story-9x16`, mais `one-pager` × `doc-a4`. IDs: `"{arquétipo}-{profile}"`.
-- Tabela normativa (adaptação por perfil, não resize — spec §5.5). Coordenadas em px `(x, y, w, h)`; `S` = safe area do perfil; `W,H` = canvas. Logo em todos: slot `logo`, kind `logo`, `fit="fixed"`, `w = max(ir.assets["logo.primary"].min_width_px, round(W * 0.12))`, `h = w`, posição canto inferior direito: `(W - S - w, H - S - h, w, h)`.
+- Tabela normativa (adaptação por perfil, não resize — spec §5.5). Coordenadas em px `(x, y, w, h)`; `S` = safe area do perfil; `W,H` = canvas. Logo em todos: slot `logo`, kind `logo`, `fit="fixed"`, `w = max(ir.assets["logo.primary"].min_width_px, round(W * 0.12))`, `h = w`, posição canto inferior direito: `(W - S - w, H - S - h, w, h)`. Slots `kind="image"` também usam `fit="fixed"` (o renderer aplica `object-fit: cover`; o valor impede que a semântica tipográfica de shrink seja herdada por imagens).
 
 | Arquétipo | Fundo | Slots (além do logo) |
 |---|---|---|
