@@ -70,6 +70,35 @@ def test_low_resolution_image_blocked(brand_package, tmp_path):
     assert check.status == "blocked"
 
 
+def test_raster_sem_extensao_e_validado_pelo_conteudo(brand_package, tmp_path):
+    ir = _ir(brand_package)
+    layout = _layout(ir, "quote-post-1x1")
+    image_path = tmp_path / ("a" * 64)
+    Image.new("RGB", (1080, 1080), (10, 10, 10)).save(image_path, format="PNG")
+    content = ContentSpec(
+        layout_id=layout.id,
+        brand_revision_id=ir.revision.id,
+        values={
+            "photo": ImageValue(path=image_path.name),
+            "quote": TextValue(text="Frase"),
+        },
+    )
+
+    check = next(
+        check
+        for check in run_static_checks(ir, layout, content, tmp_path)
+        if check.id == "image-resolution"
+    )
+
+    assert check.status == "pass"
+    assert check.detail == {
+        "width": 1080,
+        "height": 1080,
+        "minWidth": 1080,
+        "minHeight": 1080,
+    }
+
+
 def test_bad_contrast_detected_with_doctored_ir(brand_package):
     ir = _ir(brand_package)
     ir = ir.model_copy(deep=True)

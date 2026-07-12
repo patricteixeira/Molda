@@ -14,7 +14,6 @@ from brand_runtime.colors import wcag_contrast
 from brand_runtime.ir.models import BrandIR, CamelModel
 from brand_runtime.kit.models import ContentSpec, ImageValue, LayoutSpec, Slot, TextValue
 
-_RASTER_SUFFIXES = {".png", ".jpg", ".jpeg"}
 _RASTER_FORMATS = {"PNG", "JPEG"}
 
 
@@ -245,16 +244,6 @@ def _image_resolution_checks(
                     "image-resolution",
                     f"A imagem de «{slot.id}» não foi encontrada.",
                     slot_id=slot.id,
-                )
-            )
-            continue
-        if resolved.suffix.casefold() not in _RASTER_SUFFIXES:
-            checks.append(
-                _blocked(
-                    "image-resolution",
-                    f"A imagem de «{slot.id}» deve estar em formato PNG ou JPEG.",
-                    slot_id=slot.id,
-                    detail={"format": resolved.suffix.casefold().removeprefix(".")},
                 )
             )
             continue
