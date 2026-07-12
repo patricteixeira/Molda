@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 import pymupdf
@@ -75,3 +76,34 @@ def fixture_font(tmp_path_factory) -> Path:
     font_path = tmp_path_factory.mktemp("fixture-font") / "fixture-sans-bold.ttf"
     fb.save(font_path)
     return font_path
+
+
+# Mesmo SVG hostil da Task 6 (tests/test_svg_logo.py, constante MALICIOUS),
+# duplicado aqui porque conftest não deve importar módulos de teste: o pacote
+# de fixture prova que o pipeline de draft sanitiza uploads antes de extrair.
+_MALICIOUS_SVG = b"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <script>alert(1)</script>
+  <rect width="60" height="100" fill="#1A4D8F" onclick="evil()"/>
+  <circle r="20" fill="#F4A300" stroke="#1A4D8F"/>
+  <image href="https://evil.example/x.png"/>
+  <use href="#ok"/>
+</svg>"""
+
+
+@pytest.fixture(scope="session")
+def brand_package(tmp_path_factory, brand_pdf, fixture_font) -> Path:
+    """Pacote informal de marca completo, na convenção de ``brand_runtime.intake.draft``.
+
+    Contém ``manual.pdf`` (cópia de ``brand_pdf``), ``assets/logos/logo.svg``
+    (o SVG hostil da Task 6 — passa pela sanitização) e
+    ``fonts/fixture-sans-bold.ttf``. Reutilizada pelas Tasks 10 a 15.
+    """
+    package = tmp_path_factory.mktemp("brand-package")
+    shutil.copyfile(brand_pdf, package / "manual.pdf")
+    logos_dir = package / "assets" / "logos"
+    logos_dir.mkdir(parents=True)
+    (logos_dir / "logo.svg").write_bytes(_MALICIOUS_SVG)
+    fonts_dir = package / "fonts"
+    fonts_dir.mkdir()
+    shutil.copyfile(fixture_font, fonts_dir / "fixture-sans-bold.ttf")
+    return package
