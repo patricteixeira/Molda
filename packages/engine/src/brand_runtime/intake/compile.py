@@ -159,7 +159,9 @@ def _portable_evidence(item: Evidence, package_dir: Path) -> Evidence:
     try:
         base = package_dir.resolve(strict=True)
         raw = Path(item.path)
-        resolved = raw.resolve(strict=True) if raw.is_absolute() else (base / raw).resolve(strict=True)
+        resolved = (
+            raw.resolve(strict=True) if raw.is_absolute() else (base / raw).resolve(strict=True)
+        )
     except OSError as exc:
         raise CompileError(f"A origem da evidência não foi encontrada: {item.path}.") from exc
     if not resolved.is_file() or not resolved.is_relative_to(base):

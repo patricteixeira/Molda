@@ -1,6 +1,7 @@
 {
   "$defs": {
     "ImageValue": {
+      "additionalProperties": false,
       "description": "Imagem fornecida para um slot, opcionalmente acompanhada de seu hash.",
       "properties": {
         "kind": {
@@ -36,6 +37,7 @@
       "type": "object"
     },
     "TextValue": {
+      "additionalProperties": false,
       "description": "Conteúdo textual fornecido para um slot.",
       "properties": {
         "kind": {
@@ -56,6 +58,7 @@
       "type": "object"
     }
   },
+  "additionalProperties": false,
   "description": "Conteúdo de uma peça ligado a um layout e a uma revisão de marca.",
   "properties": {
     "layoutId": {

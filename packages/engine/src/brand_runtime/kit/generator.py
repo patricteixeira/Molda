@@ -38,9 +38,7 @@ def _validate_ir(ir: BrandIR) -> None:
         missing.append("logo.primary")
     if missing:
         raise KitGenerationError(
-            "O Brand IR não contém referências obrigatórias para o kit: "
-            + ", ".join(missing)
-            + "."
+            "O Brand IR não contém referências obrigatórias para o kit: " + ", ".join(missing) + "."
         )
 
 

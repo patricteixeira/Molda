@@ -1,6 +1,8 @@
 {
   "$defs": {
     "BrandInfo": {
+      "additionalProperties": false,
+      "description": "Metadados essenciais da marca compilada.",
       "properties": {
         "name": {
           "title": "Name",
@@ -14,6 +16,8 @@
       "type": "object"
     },
     "ColorToken": {
+      "additionalProperties": false,
+      "description": "Cor semântica normalizada com sua cadeia de evidências.",
       "properties": {
         "value": {
           "title": "Value",
@@ -35,6 +39,8 @@
       "type": "object"
     },
     "Diagnostic": {
+      "additionalProperties": false,
+      "description": "Lacuna ou decisão pendente comunicada em linguagem orientada à ação.",
       "properties": {
         "code": {
           "title": "Code",
@@ -70,6 +76,7 @@
       "type": "object"
     },
     "Evidence": {
+      "additionalProperties": false,
       "description": "Rastro de origem de um valor da marca, com confiança e autoridade.",
       "properties": {
         "sourceType": {
@@ -154,6 +161,8 @@
       "type": "object"
     },
     "FontToken": {
+      "additionalProperties": false,
+      "description": "Fonte semântica confirmada, ligada ou não a um arquivo local.",
       "properties": {
         "family": {
           "title": "Family",
@@ -213,6 +222,7 @@
       "type": "object"
     },
     "LogoAsset": {
+      "additionalProperties": false,
       "description": "Asset de logo publicado com integridade e proveniência confirmada.",
       "properties": {
         "path": {
@@ -259,6 +269,8 @@
       "type": "object"
     },
     "RevisionInfo": {
+      "additionalProperties": false,
+      "description": "Identidade determinística e instante de auditoria de uma revisão.",
       "properties": {
         "id": {
           "title": "Id",
@@ -278,6 +290,8 @@
       "type": "object"
     },
     "SemanticRole": {
+      "additionalProperties": false,
+      "description": "Papel tipográfico que referencia tokens de fonte e cor do Brand IR.",
       "properties": {
         "font": {
           "title": "Font",
@@ -311,6 +325,8 @@
       "type": "object"
     }
   },
+  "additionalProperties": false,
+  "description": "Contrato imutável da marca consumido pelo kit, guard e renderer.",
   "properties": {
     "schemaVersion": {
       "const": "0.1.0",

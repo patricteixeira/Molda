@@ -24,6 +24,6 @@ def test_parse_camel_case_family_split():
 def test_extract_from_fixture_pdf(brand_pdf):
     cands = extract_pdf_fonts(brand_pdf)
     families = {c.value["family"] for c in cands}
-    assert "Helvetica" in families           # builtin "helv"
+    assert "Helvetica" in families  # builtin "helv"
     weights = {c.value["family"]: c.value["weight"] for c in cands}
     assert weights.get("Times", weights.get("Times New Roman", 0)) == 700  # tibo = Times-Bold

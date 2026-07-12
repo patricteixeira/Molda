@@ -146,7 +146,7 @@ def _font_entry_name(path: tuple[str, ...], component_names: frozenset[str]) -> 
 
 
 def _parse_weight(value: Any, pointer: str) -> int:
-    """Converte o ``$value`` de um token ``fontWeight`` em peso numérico."""
+    """Converta o ``$value`` de um token ``fontWeight`` em peso numérico."""
     if isinstance(value, bool):  # bool é subclasse de int: rejeitar explicitamente
         raise DtcgError(f"O token de peso «{pointer}» tem valor inválido: {value!r}.")
     if isinstance(value, (int, float)):
@@ -204,9 +204,7 @@ def load_dtcg(path: Path) -> dict[str, Candidate]:
             if key in colors:
                 continue  # primeiro token com o nome vence
             if not isinstance(value, str):
-                raise DtcgError(
-                    f"O token de cor «{pointer}» tem valor não suportado: {value!r}."
-                )
+                raise DtcgError(f"O token de cor «{pointer}» tem valor não suportado: {value!r}.")
             try:
                 hex_value = normalize_color(value)
             except ValueError as exc:
@@ -219,9 +217,7 @@ def load_dtcg(path: Path) -> dict[str, Candidate]:
             if isinstance(value, list):
                 value = value[0] if value else None  # lista = pilha de fallback: 1ª vence
             if not isinstance(value, str) or not value:
-                raise DtcgError(
-                    f"O token de família «{pointer}» tem valor inválido: {value!r}."
-                )
+                raise DtcgError(f"O token de família «{pointer}» tem valor inválido: {value!r}.")
             if name not in families:
                 families[name] = (value, evidence)
                 family_order.append(name)

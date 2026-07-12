@@ -108,11 +108,7 @@ def _contract_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> l
 
 def _is_blank_required_text(slot: Slot, value: TextValue | ImageValue | None) -> bool:
     """Trata texto obrigatório vazio como ausência de conteúdo."""
-    return (
-        slot.kind == "text"
-        and isinstance(value, TextValue)
-        and not value.text.strip()
-    )
+    return slot.kind == "text" and isinstance(value, TextValue) and not value.text.strip()
 
 
 def _presence_and_type_checks(layout: LayoutSpec, content: ContentSpec) -> list[GuardCheck]:

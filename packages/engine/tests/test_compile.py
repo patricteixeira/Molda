@@ -86,9 +86,7 @@ def test_revision_id_is_portable_between_package_roots(brand_package, tmp_path):
 def test_unanswered_secondary_yields_diagnostic(brand_package):
     draft = build_draft(brand_package)
     ir = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
-    assert any(
-        d.code == "UNDETERMINED" and d.target == "color.secondary" for d in ir.diagnostics
-    )
+    assert any(d.code == "UNDETERMINED" and d.target == "color.secondary" for d in ir.diagnostics)
 
 
 def test_missing_error_lists_every_required_answer(brand_package):
@@ -179,7 +177,9 @@ def test_file_candidate_wins_tie_when_its_path_was_selected(brand_package):
     draft = build_draft(brand_package)
     answers = _answers(draft)
     heading = next(question for question in draft.questions if question.id == "font.heading")
-    file_candidate = next(candidate for candidate in heading.candidates if "path" in candidate.value)
+    file_candidate = next(
+        candidate for candidate in heading.candidates if "path" in candidate.value
+    )
     answers.values["font.heading"] = file_candidate.value
 
     ir = compile_ir(draft, answers, "ACME", created_at=FIXED)

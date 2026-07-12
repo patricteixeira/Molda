@@ -1,6 +1,7 @@
 {
   "$defs": {
     "Background": {
+      "additionalProperties": false,
       "allOf": [
         {
           "if": {
@@ -58,6 +59,7 @@
       "type": "object"
     },
     "Canvas": {
+      "additionalProperties": false,
       "description": "Dimensões e margem segura de um perfil de saída, em pixels.",
       "properties": {
         "widthPx": {
@@ -85,6 +87,7 @@
       "type": "object"
     },
     "Slot": {
+      "additionalProperties": false,
       "allOf": [
         {
           "if": {
@@ -226,6 +229,7 @@
       "type": "object"
     }
   },
+  "additionalProperties": false,
   "allOf": [
     {
       "if": {

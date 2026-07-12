@@ -27,8 +27,7 @@ def export_schemas(out_dir: Path) -> list[Path]:
     """Escreve os JSON Schemas (camelCase) em `out_dir` e retorna os paths."""
     payloads = {
         filename: (
-            json.dumps(model.model_json_schema(by_alias=True), ensure_ascii=False, indent=2)
-            + "\n"
+            json.dumps(model.model_json_schema(by_alias=True), ensure_ascii=False, indent=2) + "\n"
         )
         for filename, model in _SCHEMAS
     }

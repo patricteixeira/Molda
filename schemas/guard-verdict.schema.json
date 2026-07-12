@@ -1,6 +1,7 @@
 {
   "$defs": {
     "GuardCheck": {
+      "additionalProperties": false,
       "description": "Resultado serializável de uma regra do Brand Guard.",
       "properties": {
         "id": {
@@ -47,6 +48,7 @@
       "type": "object"
     }
   },
+  "additionalProperties": false,
   "description": "Artefato compartilhado que envolve a sequência ordenada de checks.",
   "properties": {
     "checks": {

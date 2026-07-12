@@ -21,7 +21,9 @@ def test_engine_walking_skeleton(brand_package, tmp_path):
     draft = json.loads(draft_p.read_text(encoding="utf-8"))
 
     def first(question_id):
-        question = next(question for question in draft["questions"] if question["id"] == question_id)
+        question = next(
+            question for question in draft["questions"] if question["id"] == question_id
+        )
         return question["candidates"][0]["value"]
 
     answers_p = tmp_path / "answers.json"
@@ -72,12 +74,8 @@ def test_engine_walking_skeleton(brand_package, tmp_path):
         json.dumps(
             {
                 "layoutId": "statement-post-1x1",
-                "brandRevisionId": json.loads(ir_p.read_text(encoding="utf-8"))["revision"][
-                    "id"
-                ],
-                "values": {
-                    "headline": {"kind": "text", "text": "Lançamento em agosto"}
-                },
+                "brandRevisionId": json.loads(ir_p.read_text(encoding="utf-8"))["revision"]["id"],
+                "values": {"headline": {"kind": "text", "text": "Lançamento em agosto"}},
             }
         ),
         encoding="utf-8",

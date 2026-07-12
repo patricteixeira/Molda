@@ -54,7 +54,7 @@ _EXPECTED_ERRORS = (
 
 
 def _error_message(error: Exception) -> str:
-    """Converte falhas esperadas em mensagens PT-BR sem expor traceback interno."""
+    """Retorne uma mensagem PT-BR para uma falha operacional esperada."""
     if isinstance(error, (CliInputError, CompileError, KitGenerationError)):
         return str(error)
     if isinstance(error, ValidationError):
@@ -81,7 +81,9 @@ def _read_model(path: Path, model: type[ModelT]) -> ModelT:
     try:
         return model.model_validate_json(payload)
     except ValidationError as exc:
-        raise CliInputError(f"O arquivo «{path}» não contém um JSON válido para este comando.") from exc
+        raise CliInputError(
+            f"O arquivo «{path}» não contém um JSON válido para este comando."
+        ) from exc
 
 
 def _model_json(model: BaseModel) -> str:
@@ -169,9 +171,7 @@ def guard_command(
         content = _read_model(content_json, ContentSpec)
         if not assets_dir.is_dir():
             raise CliInputError(f"O diretório de assets «{assets_dir}» não existe.")
-        verdict = GuardVerdict(
-            checks=run_static_checks(ir, layout, content, assets_dir)
-        )
+        verdict = GuardVerdict(checks=run_static_checks(ir, layout, content, assets_dir))
     except _EXPECTED_ERRORS as error:
         _fail(error)
     typer.echo(verdict.model_dump_json(by_alias=True, indent=2))
@@ -189,7 +189,9 @@ def schemas_command(
             raise CliInputError(f"O destino «{out_dir}» não é um diretório.")
         paths = export_schemas(out_dir)
         if len(paths) != 4:
-            raise CliInputError("A publicação de schemas não produziu os quatro contratos esperados.")
+            raise CliInputError(
+                "A publicação de schemas não produziu os quatro contratos esperados."
+            )
     except _EXPECTED_ERRORS as error:
         _fail(error)
 

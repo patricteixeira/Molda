@@ -101,13 +101,13 @@ def test_empty_conditional_references_are_rejected():
 
 def test_public_schema_exposes_profiles_constraints_and_logo_evidence(tmp_path):
     export_schemas(tmp_path)
-    layout_schema = json.loads(
-        (tmp_path / "layout-spec.schema.json").read_text(encoding="utf-8")
-    )
+    layout_schema = json.loads((tmp_path / "layout-spec.schema.json").read_text(encoding="utf-8"))
     assert set(layout_schema["properties"]["profile"]["enum"]) == set(PROFILES)
     profile_rules = layout_schema["allOf"]
     one_by_one = next(
-        rule for rule in profile_rules if rule["if"]["properties"]["profile"] == {"const": "post-1x1"}
+        rule
+        for rule in profile_rules
+        if rule["if"]["properties"]["profile"] == {"const": "post-1x1"}
     )
     canvas_contract = one_by_one["then"]["properties"]["canvas"]["properties"]
     assert canvas_contract["widthPx"] == {"const": 1080}
@@ -118,9 +118,7 @@ def test_public_schema_exposes_profiles_constraints_and_logo_evidence(tmp_path):
     assert slot_schema["allOf"][0]["then"]["required"] == ["role"]
     assert "safeAreaPx" in layout_schema["$defs"]["Canvas"]["properties"]
 
-    brand_schema = json.loads(
-        (tmp_path / "brand-ir.schema.json").read_text(encoding="utf-8")
-    )
+    brand_schema = json.loads((tmp_path / "brand-ir.schema.json").read_text(encoding="utf-8"))
     logo = brand_schema["$defs"]["LogoAsset"]
     assert "evidence" in logo["properties"]
     assert "evidence" in logo["required"]

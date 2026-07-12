@@ -383,9 +383,7 @@ def build_draft(package_dir: Path) -> BrandDraft:
     colors = _color_candidates(pdfs, svg_logos, png_logos, dtcg_colors)
     non_neutral = [c for c in colors if not is_neutral(c.value)]
     light_neutrals = [
-        c
-        for c in colors
-        if is_neutral(c.value) and lightness(c.value) > _BACKGROUND_MIN_LIGHTNESS
+        c for c in colors if is_neutral(c.value) and lightness(c.value) > _BACKGROUND_MIN_LIGHTNESS
     ]
     dark_neutrals = [
         c for c in colors if is_neutral(c.value) and lightness(c.value) < _TEXT_MAX_LIGHTNESS

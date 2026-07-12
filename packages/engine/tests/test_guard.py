@@ -81,9 +81,7 @@ def test_bad_contrast_detected_with_doctored_ir(brand_package):
         values={"headline": TextValue(text="Olá")},
     )
     checks = run_static_checks(ir, layout, content, brand_package)
-    contrast = [
-        check for check in checks if check.id == "contrast" and check.slot_id == "headline"
-    ]
+    contrast = [check for check in checks if check.id == "contrast" and check.slot_id == "headline"]
     assert contrast and contrast[0].status == "blocked"
 
 
@@ -92,9 +90,7 @@ def test_guard_check_contract_accepts_fixed_and_has_isolated_details():
     other = GuardCheck(id="contrast", status="pass", message_pt="Aprovado.")
     fixed.detail["x"] = 1
     assert other.detail == {}
-    data = json.loads(
-        GuardVerdict(checks=[fixed]).model_dump_json(by_alias=True)
-    )
+    data = json.loads(GuardVerdict(checks=[fixed]).model_dump_json(by_alias=True))
     assert data == {
         "checks": [
             {
@@ -243,9 +239,7 @@ def test_guard_never_mutates_inputs(brand_package, tmp_path):
             "quote": TextValue(text="Frase integral"),
         },
     )
-    before = tuple(
-        item.model_dump(mode="json") for item in (ir, layout, content)
-    )
+    before = tuple(item.model_dump(mode="json") for item in (ir, layout, content))
     run_static_checks(ir, layout, content, tmp_path)
     after = tuple(item.model_dump(mode="json") for item in (ir, layout, content))
     assert after == before
@@ -300,7 +294,5 @@ def test_optional_sha256_is_verified(brand_package, tmp_path):
 def test_guard_verdict_schema_is_published(tmp_path):
     names = {path.name for path in export_schemas(tmp_path)}
     assert "guard-verdict.schema.json" in names
-    schema = json.loads(
-        (tmp_path / "guard-verdict.schema.json").read_text(encoding="utf-8")
-    )
+    schema = json.loads((tmp_path / "guard-verdict.schema.json").read_text(encoding="utf-8"))
     assert schema["properties"]["checks"]["items"]["$ref"].endswith("/$defs/GuardCheck")

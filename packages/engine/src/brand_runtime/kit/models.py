@@ -107,9 +107,7 @@ class Background(CamelModel):
     @model_validator(mode="after")
     def _color_requires_token(self) -> Background:
         """Exige a referência ao token quando o fundo é uma cor sólida."""
-        if self.kind == "color" and (
-            self.color_token is None or not self.color_token.strip()
-        ):
+        if self.kind == "color" and (self.color_token is None or not self.color_token.strip()):
             raise ValueError("Fundos de cor precisam informar um token de cor.")
         return self
 

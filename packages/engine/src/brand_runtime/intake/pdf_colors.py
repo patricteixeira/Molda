@@ -96,7 +96,5 @@ def extract_pdf_colors(pdf_path: Path) -> list[Candidate]:
         # max_score == 0 ⇒ todos os pesos são 0 (ex.: só strokes com rect de área
         # zero); cores empatadas normalizam para 1.0, como no caso não degenerado.
         normalized = score / max_score if max_score > 0 else 1.0
-        candidates.append(
-            Candidate(value=representative, score=normalized, evidence=evidence)
-        )
+        candidates.append(Candidate(value=representative, score=normalized, evidence=evidence))
     return candidates

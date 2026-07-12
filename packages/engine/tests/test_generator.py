@@ -39,22 +39,16 @@ def test_slots_fit_inside_canvas(brand_package):
         width, height = layout.canvas.width_px, layout.canvas.height_px
         for slot in layout.slots:
             x, y, slot_width, slot_height = slot.area
-            assert (
-                0 <= x
-                and 0 <= y
-                and x + slot_width <= width
-                and y + slot_height <= height
-            ), (layout.id, slot.id)
+            assert 0 <= x and 0 <= y and x + slot_width <= width and y + slot_height <= height, (
+                layout.id,
+                slot.id,
+            )
 
 
 def test_adaptation_not_resize(brand_package):
     kit = {layout.id: layout for layout in generate_kit(_ir(brand_package))}
-    square = next(
-        slot for slot in kit["statement-post-1x1"].slots if slot.id == "headline"
-    )
-    story = next(
-        slot for slot in kit["statement-story-9x16"].slots if slot.id == "headline"
-    )
+    square = next(slot for slot in kit["statement-post-1x1"].slots if slot.id == "headline")
+    story = next(slot for slot in kit["statement-story-9x16"].slots if slot.id == "headline")
     assert square.area != story.area  # composição recalculada por perfil
 
 
