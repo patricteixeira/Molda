@@ -223,6 +223,7 @@ class LogoAsset(CamelModel):
     path: str
     sha256: str
     format: Literal["svg", "png"]
+    evidence: list[Evidence]
     min_width_px: int = 96
     clear_space_ratio: float = 0.25
 
@@ -282,7 +283,8 @@ def _minimal_ir() -> BrandIR:
         fonts={"font.heading": FontToken(family="Archivo", weight=700, source="referenced-only", evidence=[ev])},
         roles={"heading": SemanticRole(font="font.heading", color="color.primary",
                                        min_size_px=40, max_size_px=96, line_height=1.1)},
-        assets={"logo.primary": LogoAsset(path="assets/logos/a.svg", sha256="0" * 64, format="svg")},
+        assets={"logo.primary": LogoAsset(path="assets/logos/a.svg", sha256="0" * 64,
+                                           format="svg", evidence=[ev])},
     )
 
 
@@ -752,18 +754,18 @@ def compile_ir(draft: BrandDraft, answers: Answers, brand_name: str,
 
 - Regras normativas:
   1. obrigatórios: `color.primary`, `color.background`, `color.text`, `font.heading`, `font.body`, `logo.primary` — ausentes em `answers.values` → `CompileError` com todos os faltantes;
-  2. valor respondido que coincide com um candidato (cores comparadas após `normalize_color`; fontes por `family`+`weight`; logo por path) herda as evidências do candidato e recebe **adicionalmente** `Evidence(source_type="wizard-confirmation", confidence=1.0, authoritative=True, confirmed_at=created_at)`; valor que não coincide com nenhum candidato recebe apenas a evidência de confirmação;
+  2. valor respondido que coincide com um candidato (cores comparadas após `normalize_color`; fontes por `family`+`weight`, com `path` apenas como desempate seguro entre candidatas idênticas; logo por path) herda as evidências do candidato e recebe **adicionalmente** `Evidence(source_type="wizard-confirmation", confidence=1.0, authoritative=True, confirmed_at=created_at)`; valor que não coincide com nenhum candidato recebe apenas a evidência de confirmação; isso vale também para `LogoAsset.evidence`;
   3. fontes: se o candidato escolhido tem `"path"` no value → `source="file"`, `file_sha256` = SHA-256 do arquivo; senão `source="referenced-only"` + Diagnostic `FONT_FILE_MISSING` com `resolution="render-fallback"`;
   4. logo: `sha256` do arquivo; `format` pela extensão; path relativo ao pacote;
   5. roles fixos: `heading {font.heading, color.primary, 40..96, lh 1.1}`, `body {font.body, color.text, 16..24, lh 1.5}`, `caption {font.body, color.text, 12..16, lh 1.4}`;
   6. `color.secondary` não respondida → Diagnostic `UNDETERMINED` target `color.secondary`;
-  7. `created_at` default = `datetime.now(timezone.utc)`; **id da revisão** = `"brandrev_" + sha256(model_dump_json(by_alias=True) do IR com revision zerada)[0:12]` — determinístico para o mesmo conteúdo;
+  7. `created_at` default = `datetime.now(timezone.utc)`; **id da revisão** = `"brandrev_" + sha256(model_dump_json(by_alias=True) da projeção canônica do IR)[0:12]`. A projeção canônica zera `revision.id`, fixa `revision.createdAt` e todo `Evidence.confirmedAt` no epoch UTC (`1970-01-01T00:00:00Z`) e usa `Evidence.path` relativo à raiz do pacote — metadados de auditoria reais permanecem no IR publicado, mas não contaminam a identidade. Assim, mesmo pacote + mesmas respostas produzem o mesmo id mesmo em outra raiz ou horário;
   8. diagnostics do draft são preservados no IR.
 
 - [ ] **Step 1: Testes falhando** `tests/test_compile.py`:
 
 ```python
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import pytest
 from brand_runtime.intake.compile import Answers, CompileError, compile_ir
 from brand_runtime.intake.draft import build_draft
@@ -802,12 +804,13 @@ def test_happy_path_produces_valid_ir(brand_package):
     assert ir.fonts["font.heading"].source == "file"
     assert ir.roles["heading"].font == "font.heading"
     assert ir.assets["logo.primary"].sha256 and len(ir.assets["logo.primary"].sha256) == 64
+    assert "wizard-confirmation" in [e.source_type for e in ir.assets["logo.primary"].evidence]
 
 
 def test_revision_id_is_deterministic(brand_package):
     draft = build_draft(brand_package)
     a = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
-    b = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
+    b = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED + timedelta(days=1))
     assert a.revision.id == b.revision.id
     assert a.revision.id.startswith("brandrev_")
 
@@ -947,7 +950,7 @@ def test_schemas_exported(tmp_path):
 
 | Arquétipo | Fundo | Slots (além do logo) |
 |---|---|---|
-| `statement` | `color`, token `color.primary` | `headline`: text, role `heading`, maxChars 90, area `(S, round(H*0.30), W-2S, round(H*0.40))` |
+| `statement` | `color`, token `color.background` | `headline`: text, role `heading`, maxChars 90, area `(S, round(H*0.30), W-2S, round(H*0.40))` |
 | `quote` | `image-slot` (slot `photo`: image, minResolution `(W, H)`, area `(0,0,W,H)`, required) | `quote`: text, role `heading`, maxChars 140, area `(S, round(H*0.32), W-2S, round(H*0.36))`; `author`: text, role `caption`, maxChars 40, required False, area `(S, round(H*0.72), W-2S, round(H*0.06))` |
 | `announce` | `color`, token `color.background` | `headline`: text, role `heading`, maxChars 70, area `(S, S, W-2S, round(H*0.22))`; `body`: text, role `body`, maxChars 240, area `(S, round(H*0.30), W-2S, round(H*0.28))`; `photo`: image, minResolution `(W, round(H*0.34))`, area `(0, round(H*0.62), W, round(H*0.38))` |
 | `one-pager` (só doc-a4) | `color`, token `color.background` | `title`: text, role `heading`, maxChars 80, area `(S, S, W-2S, 120)`; `body`: text, role `body`, maxChars 2200, area `(S, S+150, W-2S, H-2S-150-90)`; rodapé usa o slot `logo` padrão |
@@ -1061,6 +1064,7 @@ def test_text_within_limit_passes(brand_package):
     checks = run_static_checks(ir, layout, content, brand_package)
     by_id = {(c.id, c.slot_id): c.status for c in checks}
     assert by_id[("text-length", "headline")] == "pass"
+    assert by_id[("contrast", "headline")] == "pass"
 
 
 def test_text_overflow_blocked_with_counts(brand_package):
