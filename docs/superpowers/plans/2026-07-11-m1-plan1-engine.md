@@ -953,7 +953,7 @@ def test_schemas_exported(tmp_path):
 | `statement` | `color`, token `color.background` | `headline`: text, role `heading`, maxChars 90, area `(S, round(H*0.30), W-2S, round(H*0.40))` |
 | `quote` | `image-slot` (slot `photo`: image, minResolution `(W, H)`, area `(0,0,W,H)`, required) | `quote`: text, role `heading`, maxChars 140, area `(S, round(H*0.32), W-2S, round(H*0.36))`; `author`: text, role `caption`, maxChars 40, required False, area `(S, round(H*0.72), W-2S, round(H*0.06))` |
 | `announce` | `color`, token `color.background` | `headline`: text, role `heading`, maxChars 70, area `(S, S, W-2S, round(H*0.22))`; `body`: text, role `body`, maxChars 240, area `(S, round(H*0.30), W-2S, round(H*0.28))`; `photo`: image, minResolution `(W, round(H*0.34))`, area `(0, round(H*0.62), W, round(H*0.38))` |
-| `one-pager` (só doc-a4) | `color`, token `color.background` | `title`: text, role `heading`, maxChars 80, area `(S, S, W-2S, 120)`; `body`: text, role `body`, maxChars 2200, area `(S, S+150, W-2S, H-2S-150-90)`; rodapé usa o slot `logo` padrão |
+| `one-pager` (só doc-a4) | `color`, token `color.background` | `title`: text, role `heading`, maxChars 80, area `(S, S, W-2S, 120)`; `body`: text, role `body`, maxChars 2200, area `(S, S+150, W-2S, H-2S-150-logo_w)` — termina exatamente onde começa o logo, sem sobreposição; rodapé usa o slot `logo` padrão |
 | `name_pt` | — | `statement`→"Frase de impacto", `quote`→"Citação sobre foto", `announce`→"Anúncio com foto", `one-pager`→"Documento de uma página" |
 
 - [ ] **Step 1: Testes falhando** `tests/test_generator.py`:
