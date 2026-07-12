@@ -1131,16 +1131,19 @@ def test_bad_contrast_detected_with_doctored_ir(brand_package):
 
 **Files:**
 - Create: `packages/engine/src/brand_runtime/cli.py`
+- Modify: `packages/engine/src/brand_runtime/__init__.py` (API pública do mestre)
 - Modify: `packages/engine/README.md` (seção "Uso")
 - Test: `packages/engine/tests/test_cli.py`
 
 **Interfaces:**
-- Produces: app typer `brandrt` com comandos (todos JSON UTF-8, `by_alias`, indent 2):
+- Produces: app typer `brandrt` com comandos (artefatos estruturados em JSON UTF-8, `by_alias`, indent 2, newline final; escrita atômica):
   - `brandrt extract PACKAGE_DIR --out draft.json`
   - `brandrt compile DRAFT_JSON ANSWERS_JSON --name NOME --out ir.json` (answers = `{"values": {...}}`; `CompileError` → exit code 2 com mensagem em stderr)
   - `brandrt kit IR_JSON --out-dir DIR` (um arquivo `<layout-id>.json` por layout)
-  - `brandrt guard IR_JSON LAYOUT_JSON CONTENT_JSON --assets-dir DIR` (imprime checks; exit 0 se todos `pass`, exit 3 se algum `blocked`)
-  - `brandrt schemas --out-dir DIR` (chama `export_schemas`)
+  - `brandrt guard IR_JSON LAYOUT_JSON CONTENT_JSON --assets-dir DIR` (imprime `GuardVerdict` `{"checks":[...]}` em stdout; exit 0 se nenhum check está `blocked`, exit 3 se algum está — `fixed` é não bloqueante; stderr vazio nos dois casos)
+  - `brandrt schemas --out-dir DIR` (chama `export_schemas` e gera os quatro contratos, incluindo `guard-verdict.schema.json`)
+
+Erros esperados de uso, leitura, JSON, validação Pydantic, `CompileError`, `KitGenerationError` ou I/O → mensagem PT-BR em stderr, stdout vazio e exit 2, sem traceback. A raiz `brand_runtime` reexporta `build_draft`, `compile_ir`, `generate_kit` e `run_static_checks`, a API pública fixada no plano-mestre.
 
 - [ ] **Step 1: Teste falhando** `tests/test_cli.py` — o roteiro completo do motor:
 
