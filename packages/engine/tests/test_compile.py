@@ -15,13 +15,19 @@ def _answers(draft):
         q = next(q for q in draft.questions if q.id == qid)
         return q.candidates[0].value
 
+    def first_referenced(qid):
+        q = next(q for q in draft.questions if q.id == qid)
+        return next(candidate.value for candidate in q.candidates if "path" not in candidate.value)
+
     return Answers(
         values={
             "color.primary": first("color.primary"),
             "color.background": "#FFFFFF",
             "color.text": "#1A1A1A",
             "font.heading": first("font.heading"),
-            "font.body": first("font.body"),
+            # Exercita no walking skeleton os dois caminhos do renderer:
+            # heading com arquivo local e body apenas referenciada no PDF.
+            "font.body": first_referenced("font.body"),
             "logo.primary": first("logo.primary"),
         }
     )

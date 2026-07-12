@@ -18,6 +18,20 @@ python -m venv .venv
 
 Requisitos: Python 3.12+ (desenvolvimento em 3.14).
 
+### Export (render)
+
+O export usa o mesmo renderer TypeScript do preview, executado em Chromium
+headless. O setup local completo é:
+
+```bash
+cd packages/engine
+.venv/Scripts/pip install -e ".[dev,export]"
+.venv/Scripts/python -m playwright install chromium
+cd ../render
+npm install
+npm run build
+```
+
 ## Uso
 
 Depois da instalação em modo de desenvolvimento, a CLI `brandrt` expõe o
@@ -29,6 +43,8 @@ brandrt compile draft.json answers.json --name "Nome da marca" --out ir.json
 brandrt kit ir.json --out-dir kit
 brandrt guard ir.json kit/statement-post-1x1.json content.json --assets-dir PACKAGE_DIR
 brandrt schemas --out-dir schemas
+brandrt export ir.json kit/statement-post-1x1.json content.json \
+  --assets-dir PACKAGE_DIR --render-dist ../render/dist --out out/post.png
 ```
 
 Exemplo mínimo, partindo de um pacote em `./minha-marca`:
@@ -40,6 +56,14 @@ brandrt compile draft.json answers.json --name "Minha Marca" --out ir.json
 brandrt kit ir.json --out-dir kit
 brandrt guard ir.json kit/statement-post-1x1.json content.json --assets-dir ./minha-marca
 brandrt schemas --out-dir schemas
+```
+
+No Prompt de Comando do Windows, o mesmo export pode ser quebrado em duas
+linhas com `^`:
+
+```bash
+.venv/Scripts/brandrt export ir.json kit/statement-post-1x1.json content.json ^
+  --assets-dir pacote-da-marca --render-dist ../render/dist --out out/post.png
 ```
 
 `answers.json` usa os ids das perguntas do draft como chaves:

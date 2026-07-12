@@ -12,6 +12,7 @@ from fontTools.ttLib import TTLibError
 from pydantic import BaseModel, ValidationError
 
 from brand_runtime._io import atomic_write_text, publish_file_set
+from brand_runtime.export import ExportBlocked, ExportError, export_document
 from brand_runtime.guard.static_checks import GuardVerdict, run_static_checks
 from brand_runtime.intake.compile import Answers, CompileError, compile_ir
 from brand_runtime.intake.dtcg import DtcgError
@@ -55,7 +56,7 @@ _EXPECTED_ERRORS = (
 
 def _error_message(error: Exception) -> str:
     """Retorne uma mensagem PT-BR para uma falha operacional esperada."""
-    if isinstance(error, (CliInputError, CompileError, KitGenerationError)):
+    if isinstance(error, (CliInputError, CompileError, KitGenerationError, ExportError)):
         return str(error)
     if isinstance(error, ValidationError):
         return "O JSON informado não corresponde ao contrato esperado."
@@ -177,6 +178,31 @@ def guard_command(
     typer.echo(verdict.model_dump_json(by_alias=True, indent=2))
     if any(check.status == "blocked" for check in verdict.checks):
         raise typer.Exit(code=3)
+
+
+@app.command("export")
+def export_command(
+    ir_json: Path = typer.Argument(..., help="Brand IR em JSON."),
+    layout_json: Path = typer.Argument(..., help="Layout Spec em JSON."),
+    content_json: Path = typer.Argument(..., help="Content Spec em JSON."),
+    assets_dir: Path = typer.Option(..., "--assets-dir", help="Raiz autorizada dos assets."),
+    render_dist: Path = typer.Option(..., "--render-dist", help="Build dist do renderer."),
+    out: Path = typer.Option(..., "--out", help="Arquivo PNG ou PDF de saída."),
+) -> None:
+    """Renderiza um documento autorizado pelo Guard em PNG ou PDF."""
+    try:
+        ir = _read_model(ir_json, BrandIR)
+        layout = _read_model(layout_json, LayoutSpec)
+        content = _read_model(content_json, ContentSpec)
+        if not assets_dir.is_dir():
+            raise CliInputError(f"O diretório de assets «{assets_dir}» não existe.")
+        result = export_document(ir, layout, content, assets_dir, render_dist, out)
+    except ExportBlocked as error:
+        typer.echo(error.verdict.model_dump_json(by_alias=True, indent=2), err=True)
+        raise typer.Exit(code=3) from error
+    except (*_EXPECTED_ERRORS, ExportError) as error:
+        _fail(error)
+    typer.echo(result.out_path)
 
 
 @app.command("schemas")

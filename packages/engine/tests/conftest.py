@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 from pathlib import Path
 
 import pymupdf
 import pytest
 from fontTools.fontBuilder import FontBuilder
+from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.ttLib.tables._g_l_y_f import Glyph
 
 _PARAGRAPH = (
@@ -15,6 +17,17 @@ _PARAGRAPH = (
     "Estas diretrizes reunem as cores, as fontes e os usos corretos do logo, "
     "para que qualquer material mantenha a mesma identidade em todos os canais."
 )
+RENDER_DIST = Path(__file__).resolve().parents[2] / "render" / "dist"
+
+
+@pytest.fixture(scope="session")
+def render_dist() -> Path:
+    """Build do renderer; no gate obrigatório, ausência é falha e não skip."""
+    if not (RENDER_DIST / "render.html").is_file():
+        if os.environ.get("BRANDRT_REQUIRE_RENDER_TESTS") == "1":
+            pytest.fail("render dist obrigatório ausente — rode npm ci && npm run build")
+        pytest.skip("rode `npm run build` em packages/render antes dos testes de export")
+    return RENDER_DIST
 
 
 @pytest.fixture(scope="session")
@@ -59,16 +72,40 @@ def brand_pdf(tmp_path_factory) -> Path:
 
 @pytest.fixture(scope="session")
 def fixture_font(tmp_path_factory) -> Path:
-    """TTF mínima gerada com fontTools.fontBuilder — nenhum binário commitado.
+    """TTF determinística com cmap e outlines para os textos reais dos testes."""
+    codepoints = [*range(32, 127), *(ord(char) for char in "áíóãçé")]
+    names = {codepoint: f"uni{codepoint:04X}" for codepoint in codepoints}
+    glyph_order = [".notdef", *names.values()]
+    glyphs: dict[str, Glyph] = {}
+    metrics: dict[str, tuple[int, int]] = {}
 
-    Família "Fixture Sans", estilo "Bold", usWeightClass=700; glifos vazios
-    (".notdef" e "A") apenas para o arquivo ser uma fonte válida.
-    """
+    notdef_pen = TTGlyphPen(None)
+    notdef_pen.moveTo((50, 0))
+    notdef_pen.lineTo((450, 0))
+    notdef_pen.lineTo((450, 700))
+    notdef_pen.lineTo((50, 700))
+    notdef_pen.closePath()
+    glyphs[".notdef"] = notdef_pen.glyph()
+    metrics[".notdef"] = (500, 50)
+
+    for codepoint, name in names.items():
+        advance = 300 if codepoint == 32 else 600
+        pen = TTGlyphPen(None)
+        if codepoint != 32:
+            inset = 60 + codepoint % 40
+            pen.moveTo((inset, 0))
+            pen.lineTo((advance - inset, 0))
+            pen.lineTo((advance - inset, 700))
+            pen.lineTo((inset, 700))
+            pen.closePath()
+        glyphs[name] = pen.glyph()
+        metrics[name] = (advance, 0)
+
     fb = FontBuilder(1000)
-    fb.setupGlyphOrder([".notdef", "A"])
-    fb.setupCharacterMap({65: "A"})
-    fb.setupGlyf({".notdef": Glyph(), "A": Glyph()})
-    fb.setupHorizontalMetrics({".notdef": (500, 0), "A": (600, 0)})
+    fb.setupGlyphOrder(glyph_order)
+    fb.setupCharacterMap(names)
+    fb.setupGlyf(glyphs)
+    fb.setupHorizontalMetrics(metrics)
     fb.setupHorizontalHeader(ascent=800, descent=-200)
     fb.setupNameTable({"familyName": "Fixture Sans", "styleName": "Bold"})
     fb.setupOS2(usWeightClass=700)
