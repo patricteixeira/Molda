@@ -63,6 +63,21 @@ _HEAVY_MIN_WEIGHT = 600  # regras 6 e 7: divisor entre fonte de título e de cor
 _SVG_LOGO_CONFIDENCE = 0.95
 _RASTER_LOGO_CONFIDENCE = 0.85
 
+
+def _files_with_suffixes(directory: Path, suffixes: set[str]) -> list[Path]:
+    """Enumera arquivos por extensão sem depender do filesystem ou plataforma."""
+    if not directory.is_dir():
+        return []
+    return sorted(
+        (
+            path
+            for path in directory.iterdir()
+            if path.is_file() and path.suffix.casefold() in suffixes
+        ),
+        key=lambda path: (path.name.casefold(), path.name),
+    )
+
+
 # Prompts exatos da regra 9 — strings visíveis ao usuário, PT-BR.
 _PROMPTS = {
     "color.primary": "Qual destas é a cor principal da marca?",
@@ -117,10 +132,15 @@ def _dtcg_candidates(package_dir: Path) -> dict[str, Candidate]:
     vence o primeiro arquivo (``tokens.json`` antes dos ``*.tokens.json``,
     estes em ordem alfabética).
     """
-    canonical = package_dir / "tokens.json"
+    root_json = _files_with_suffixes(package_dir, {".json"})
+    canonical = [path for path in root_json if path.name.casefold() == "tokens.json"]
     token_files = [
-        *([canonical] if canonical.is_file() else []),
-        *sorted(package_dir.glob("*.tokens.json")),
+        *canonical,
+        *(
+            path
+            for path in root_json
+            if path.name.casefold().endswith(".tokens.json") and path not in canonical
+        ),
     ]
     merged: dict[str, Candidate] = {}
     for token_file in token_files:
@@ -367,14 +387,14 @@ def build_draft(package_dir: Path) -> BrandDraft:
     não-neutras além das oferecidas em ``color.primary``.
     """
     pdfs = [
-        *sorted(package_dir.glob("*.pdf")),
-        *sorted((package_dir / "references").glob("*.pdf")),
+        *_files_with_suffixes(package_dir, {".pdf"}),
+        *_files_with_suffixes(package_dir / "references", {".pdf"}),
     ]
     logos_dir = package_dir / "assets" / "logos"
-    svg_logos = sorted(logos_dir.glob("*.svg"))
-    png_logos = sorted(logos_dir.glob("*.png"))
+    svg_logos = _files_with_suffixes(logos_dir, {".svg"})
+    png_logos = _files_with_suffixes(logos_dir, {".png"})
     fonts_dir = package_dir / "fonts"
-    font_files = [*sorted(fonts_dir.glob("*.ttf")), *sorted(fonts_dir.glob("*.otf"))]
+    font_files = _files_with_suffixes(fonts_dir, {".otf", ".ttf"})
 
     dtcg = _dtcg_candidates(package_dir)
     dtcg_colors = [c for key, c in dtcg.items() if key.startswith("color.")]

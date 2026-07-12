@@ -41,3 +41,43 @@ def test_logo_question_and_prompt(brand_package):
     q = next(q for q in draft.questions if q.id == "logo.primary")
     assert q.prompt_pt == "Este é o logo oficial da marca?"
     assert q.candidates[0].value.endswith("logo.svg")
+
+
+def test_extensoes_sao_case_insensitive_em_toda_plataforma(brand_package, tmp_path):
+    import json
+    import shutil
+
+    package = tmp_path / "uppercase"
+    shutil.copytree(brand_package, package)
+    renames = (
+        (package / "manual.pdf", package / "MANUAL.PDF"),
+        (package / "assets" / "logos" / "logo.svg", package / "assets" / "logos" / "LOGO.SVG"),
+        (
+            package / "fonts" / "fixture-sans-bold.ttf",
+            package / "fonts" / "FIXTURE-SANS-BOLD.TTF",
+        ),
+    )
+    for source, destination in renames:
+        temporary = source.with_name(f"rename-{source.name}")
+        source.rename(temporary)
+        temporary.rename(destination)
+    (package / "TOKENS.JSON").write_text(
+        json.dumps({"color": {"brand": {"$type": "color", "$value": "#00FF88"}}}),
+        encoding="utf-8",
+    )
+
+    draft = build_draft(package)
+
+    assert not any(item.code == "NO_PDF_FOUND" for item in draft.diagnostics)
+    assert (
+        next(q for q in draft.questions if q.id == "color.primary").candidates[0].value == "#00FF88"
+    )
+    assert (
+        next(q for q in draft.questions if q.id == "font.heading").candidates[0].value["family"]
+        == "Fixture Sans"
+    )
+    assert (
+        next(q for q in draft.questions if q.id == "logo.primary")
+        .candidates[0]
+        .value.endswith("LOGO.SVG")
+    )
