@@ -10,6 +10,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from brand_runtime._io import publish_file_set
 from brand_runtime.guard.static_checks import GuardVerdict
 from brand_runtime.ir.models import BrandIR
 from brand_runtime.kit.models import ContentSpec, LayoutSpec
@@ -24,13 +25,11 @@ _SCHEMAS: list[tuple[str, type[BaseModel]]] = [
 
 def export_schemas(out_dir: Path) -> list[Path]:
     """Escreve os JSON Schemas (camelCase) em `out_dir` e retorna os paths."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    written: list[Path] = []
-    for filename, model in _SCHEMAS:
-        schema = model.model_json_schema(by_alias=True)
-        target = out_dir / filename
-        target.write_text(
-            json.dumps(schema, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    payloads = {
+        filename: (
+            json.dumps(model.model_json_schema(by_alias=True), ensure_ascii=False, indent=2)
+            + "\n"
         )
-        written.append(target)
-    return written
+        for filename, model in _SCHEMAS
+    }
+    return publish_file_set(out_dir, payloads, preserve={"LICENSE"})
