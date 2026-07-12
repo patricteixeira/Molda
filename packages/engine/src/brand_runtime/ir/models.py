@@ -64,9 +64,12 @@ class FontToken(CamelModel):
 
 
 class LogoAsset(CamelModel):
+    """Asset de logo publicado com integridade e proveniência confirmada."""
+
     path: str
     sha256: str
     format: Literal["svg", "png"]
+    evidence: list[Evidence]
     min_width_px: int = 96
     clear_space_ratio: float = 0.25
 

@@ -17,7 +17,14 @@ def _minimal_ir() -> BrandIR:
         fonts={"font.heading": FontToken(family="Archivo", weight=700, source="referenced-only", evidence=[ev])},
         roles={"heading": SemanticRole(font="font.heading", color="color.primary",
                                        min_size_px=40, max_size_px=96, line_height=1.1)},
-        assets={"logo.primary": LogoAsset(path="assets/logos/a.svg", sha256="0" * 64, format="svg")},
+        assets={
+            "logo.primary": LogoAsset(
+                path="assets/logos/a.svg",
+                sha256="0" * 64,
+                format="svg",
+                evidence=[ev],
+            )
+        },
     )
 
 
