@@ -168,6 +168,16 @@ def _fixture_font_bytes() -> bytes:
     return buffer.getvalue()
 
 
+def _png_bytes(w: int = 1200, h: int = 1200, color=(10, 60, 120)) -> bytes:
+    import io
+
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (w, h), color).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
 @pytest.fixture(scope="session")
 def package_zip() -> bytes:
     import io

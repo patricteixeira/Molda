@@ -9,6 +9,8 @@ from brand_api.auth import hash_token, require_token
 from brand_api.config import Settings
 from brand_api.db import make_engine, make_session_factory
 from brand_api.models import Base, InviteToken
+from brand_api.routes.assets import router as assets_router
+from brand_api.routes.documents import router as documents_router
 from brand_api.routes.intake import router as intake_router
 from brand_api.routes.revisions import router as revisions_router
 from brand_api.storage import Storage
@@ -67,5 +69,7 @@ def create_app(settings: Settings) -> FastAPI:
 
     app.include_router(intake_router)
     app.include_router(revisions_router)
+    app.include_router(assets_router)
+    app.include_router(documents_router)
 
     return app
