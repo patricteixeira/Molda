@@ -10,14 +10,15 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+# defusedxml é dependência de runtime obrigatória (pyproject): endurece o parse
+# contra bombas de expansão de entidades (billion laughs) e referências externas
+# (XXE). Import direto e sem fallback — cair no parser stdlib silenciosamente
+# deixaria uploads hostis sem proteção (spec §5.3).
+from defusedxml.ElementTree import fromstring as _fromstring
+
 from brand_runtime.colors import normalize_color
 from brand_runtime.intake.base import Candidate
 from brand_runtime.ir.models import Evidence
-
-try:  # defusedxml, se disponível, protege contra entidades/expansões maliciosas
-    from defusedxml.ElementTree import fromstring as _fromstring
-except ImportError:  # pragma: no cover — depende do ambiente
-    _fromstring = ET.fromstring
 
 _SVG_NS = "http://www.w3.org/2000/svg"
 _XLINK_NS = "http://www.w3.org/1999/xlink"
@@ -40,7 +41,7 @@ class SvgInvalid(Exception):
 def _parse(data: bytes) -> ET.Element:
     try:
         return _fromstring(data)
-    except Exception as exc:  # parser stdlib/defusedxml levanta tipos variados
+    except Exception as exc:  # defusedxml levanta ParseError e DefusedXmlException
         raise SvgInvalid(f"SVG inválido: XML não parseável ({exc})") from exc
 
 
@@ -77,7 +78,8 @@ def sanitize_svg(data: bytes) -> bytes:
     atributos ``href``/``xlink:href`` cujo valor não comece com ``#`` e
     elementos ``<image>`` com referência externa (qualquer coisa além de
     referência local ``#`` ou ``data:image/png|jpeg``). Nada é executado:
-    apenas parse XML via ElementTree (defusedxml quando instalado).
+    o parse XML usa defusedxml, que rejeita declarações de entidade (bombas de
+    expansão como billion laughs) e referências externas com ``SvgInvalid``.
     """
     root = _parse(data)
     parent_of = {child: parent for parent in root.iter() for child in parent}

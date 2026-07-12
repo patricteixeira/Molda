@@ -11,6 +11,7 @@ dependencies = [
   "fonttools>=4.53",
   "coloraide>=4.0",
   "typer>=0.12",
+  "defusedxml>=0.7",
 ]
 
 [project.optional-dependencies]
