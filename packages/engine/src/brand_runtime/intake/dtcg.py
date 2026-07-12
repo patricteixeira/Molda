@@ -76,51 +76,65 @@ class DtcgError(Exception):
     """Erro em tokens DTCG: JSON inválido, alias inexistente, ciclo ou valor inválido."""
 
 
-def _walk(
-    node: dict[str, Any],
-    path: tuple[str, ...],
-    inherited_type: str | None,
-    index: _TokenIndex,
-) -> None:
+def _walk(root: dict[str, Any], index: _TokenIndex) -> None:
     """Indexa todos os tokens (nós com ``$value``) com o ``$type`` efetivo.
 
     O ``$type`` de um grupo é herdado pelos descendentes que não declaram o
     próprio (DTCG §5.2). Chaves iniciadas em ``$`` são metadados, não filhos.
+    A raiz do documento é um grupo, nunca um token nomeado: ``$value`` na raiz
+    é ignorado. Iterativo com pilha explícita (preordem = ordem do documento):
+    tokens.json é input hostil e aninhamento arbitrário não pode estourar a
+    recursão do interpretador.
     """
-    node_type = node.get("$type", inherited_type)
-    if "$value" in node:
-        index[path] = (node, node_type)
-        return
-    for key, child in node.items():
-        if key.startswith("$") or not isinstance(child, dict):
+    stack: list[tuple[dict[str, Any], tuple[str, ...], str | None]] = [(root, (), None)]
+    while stack:
+        node, path, inherited_type = stack.pop()
+        node_type = node.get("$type", inherited_type)
+        if "$value" in node:
+            if path:
+                index[path] = (node, node_type)
             continue
-        _walk(child, (*path, key), node_type, index)
+        children = [
+            (child, (*path, key), node_type)
+            for key, child in node.items()
+            if not key.startswith("$") and isinstance(child, dict)
+        ]
+        stack.extend(reversed(children))  # pop() em LIFO devolve a ordem do documento
 
 
-def _resolve(
-    path: tuple[str, ...], index: _TokenIndex, chain: tuple[tuple[str, ...], ...]
-) -> tuple[Any, str | None]:
+def _resolve(path: tuple[str, ...], index: _TokenIndex) -> tuple[Any, str | None]:
     """Resolve o valor de um token seguindo aliases; retorna (valor, $type efetivo).
 
     O ``$type`` declarado no próprio token vence; sem ele, herda o do alvo do
-    alias. Ciclos e alvos inexistentes levantam :class:`DtcgError`.
+    alias (o primeiro declarado ao longo da cadeia). Ciclos e alvos
+    inexistentes levantam :class:`DtcgError`. Iterativo: cadeias de aliases
+    vêm de input hostil e, por mais longas que sejam (desde que sem ciclo),
+    não podem estourar a recursão do interpretador.
     """
-    dotted = ".".join(path)
-    if path in chain:
-        cycle = " -> ".join(".".join(p) for p in (*chain, path))
-        raise DtcgError(f"Ciclo de aliases nos tokens DTCG: {cycle}.")
-    if path not in index:
-        referrer = ".".join(chain[-1]) if chain else "?"
-        raise DtcgError(
-            f"O alias «{{{dotted}}}» referenciado em «{referrer}» não existe nos tokens."
-        )
-    node, node_type = index[path]
-    value = node["$value"]
-    if isinstance(value, str) and (match := _ALIAS.match(value.strip())):
-        target = tuple(match.group(1).split("."))
-        resolved_value, resolved_type = _resolve(target, index, (*chain, path))
-        return resolved_value, node_type or resolved_type
-    return value, node_type
+    chain: list[tuple[str, ...]] = []
+    visited: set[tuple[str, ...]] = set()
+    effective_type: str | None = None
+    current = path
+    while True:
+        if current in visited:
+            cycle = " -> ".join(".".join(p) for p in (*chain, current))
+            raise DtcgError(f"Ciclo de aliases nos tokens DTCG: {cycle}.")
+        if current not in index:
+            dotted = ".".join(current)
+            referrer = ".".join(chain[-1]) if chain else "?"
+            raise DtcgError(
+                f"O alias «{{{dotted}}}» referenciado em «{referrer}» não existe nos tokens."
+            )
+        chain.append(current)
+        visited.add(current)
+        node, node_type = index[current]
+        if effective_type is None:
+            effective_type = node_type
+        value = node["$value"]
+        if isinstance(value, str) and (match := _ALIAS.match(value.strip())):
+            current = tuple(match.group(1).split("."))
+            continue
+        return value, effective_type
 
 
 def _font_entry_name(path: tuple[str, ...], component_names: frozenset[str]) -> str:
@@ -156,18 +170,23 @@ def load_dtcg(path: Path) -> dict[str, Candidate]:
     ``Evidence(source_type="dtcg-tokens", confidence=1.0)`` com o JSON Pointer
     do token em ``detail``.
 
-    Levanta :class:`DtcgError` para JSON inválido, alias inexistente, ciclo de
-    aliases ou valor de cor/peso inválido.
+    Levanta :class:`DtcgError` para JSON inválido, aninhamento profundo demais
+    para o parser, alias inexistente, ciclo de aliases ou valor de cor/peso
+    inválido — nunca deixa escapar exceções cruas de input hostil.
     """
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise DtcgError(f"O arquivo de tokens «{path.name}» não é JSON válido: {exc}.") from exc
+    except RecursionError as exc:
+        raise DtcgError(
+            f"O arquivo de tokens «{path.name}» tem aninhamento profundo demais."
+        ) from exc
     if not isinstance(raw, dict):
         raise DtcgError(f"O arquivo de tokens «{path.name}» deve conter um objeto JSON na raiz.")
 
     index: _TokenIndex = {}
-    _walk(raw, (), None, index)
+    _walk(raw, index)
 
     colors: dict[str, Candidate] = {}
     families: dict[str, tuple[str, Evidence]] = {}
@@ -175,7 +194,7 @@ def load_dtcg(path: Path) -> dict[str, Candidate]:
     family_order: list[str] = []
 
     for token_path in index:  # ordem de inserção = ordem do documento
-        value, value_type = _resolve(token_path, index, ())
+        value, value_type = _resolve(token_path, index)
         pointer = "/" + "/".join(token_path)
         evidence = Evidence(
             source_type="dtcg-tokens", path=str(path), detail=pointer, confidence=_CONFIDENCE

@@ -36,6 +36,9 @@ from brand_runtime.ir.models import CamelModel, Diagnostic, Evidence
 # acima de qualquer extração; o logo vetorial é a amostra mais fiel das cores
 # da marca; o raster perde detalhe para anti-aliasing/compressão; o PDF
 # mistura cores da marca com cores editoriais do próprio documento.
+# Os pesos são aditivos por arquivo (dois SVGs concordando somam 6.0), então o
+# peso sozinho não garante DTCG em primeiro: o ranking ordena por camada de
+# autoridade antes do score (ver _color_candidates).
 _DTCG_WEIGHT = 5.0
 _SVG_WEIGHT = 3.0
 _RASTER_WEIGHT = 2.0
@@ -126,6 +129,11 @@ def _dtcg_candidates(package_dir: Path) -> dict[str, Candidate]:
     return merged
 
 
+def _is_dtcg_backed(candidate: Candidate) -> bool:
+    """Candidato sustentado por tokens DTCG — a camada de maior autoridade (spec §5.3)."""
+    return any(ev.source_type == "dtcg-tokens" for ev in candidate.evidence)
+
+
 def _color_candidates(
     pdfs: list[Path],
     svg_logos: list[Path],
@@ -137,7 +145,10 @@ def _color_candidates(
     Cada chamada de extrator é normalizada para máx=1.0, multiplicada pelo peso
     da fonte e somada por cor; cores perceptualmente próximas são fundidas com
     ``dedupe_colors`` e as evidências do grupo são concatenadas. Tokens DTCG
-    entram como um "extrator" a mais, com o maior peso de fonte.
+    entram como um "extrator" a mais, com o maior peso de fonte — e, como os
+    pesos são aditivos por arquivo, o ranking final ordena por camada de
+    autoridade antes do score: candidatos com evidência DTCG vêm primeiro
+    (spec §5.3), preservando a ordem por score dentro de cada camada.
     """
     runs: list[tuple[list[Candidate], float]] = [
         *((extract_pdf_colors(path), _PDF_WEIGHT) for path in pdfs),
@@ -167,6 +178,9 @@ def _color_candidates(
             assigned.add(original)
             group_evidence.extend(original_evidence)
         merged.append(Candidate(value=representative, score=score, evidence=group_evidence))
+    # Camada de autoridade antes do score: sort estável mantém a ordem por
+    # score (de dedupe_colors) dentro de cada camada.
+    merged.sort(key=lambda candidate: not _is_dtcg_backed(candidate))
     return merged
 
 
@@ -343,8 +357,9 @@ def build_draft(package_dir: Path) -> BrandDraft:
     na raiz.
 
     Candidatos DTCG entram com o maior peso de fonte (5.0, acima do SVG) e
-    ficam primeiros no ranking — mas continuam passando pelo wizard: a
-    autoridade permanece na confirmação (spec §5.3).
+    ficam primeiros no ranking — garantido pela camada de autoridade, não pela
+    soma de pesos (que é aditiva por arquivo). Mas continuam passando pelo
+    wizard: a autoridade final permanece na confirmação (spec §5.3).
 
     Perguntas obrigatórias: ``color.primary``, ``color.background``,
     ``color.text``, ``font.heading``, ``font.body`` e ``logo.primary``;
