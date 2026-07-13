@@ -61,6 +61,29 @@ def test_declared_hex_colors_are_ranked_by_semantic_role_across_pages(tmp_path):
     assert roles["primary"][0].evidence[0].detail == "cor HEX declarada no texto: #1F232A"
 
 
+def test_usage_after_hex_can_add_a_second_background_without_contaminating_neighbors(tmp_path):
+    pdf_path = tmp_path / "fundos-claro-escuro.pdf"
+    with pymupdf.open() as doc:
+        page = doc.new_page()
+        page.insert_textbox(
+            pymupdf.Rect(40, 40, 500, 700),
+            "Grafite - tinta\n60%\nHEX #1F232A\n"
+            "Texto, traco do simbolo, fundos escuros.\n"
+            "Ambar - o ponto\n10%\nHEX #CA6B0B\n"
+            "Acento unico. Nunca como cor de massa.\n"
+            "Papel - fundo\n30%\nHEX #FCFBF8\n"
+            "Fundo padrao. Branco quente, levemente off-white.",
+            fontsize=12,
+        )
+        doc.save(pdf_path)
+
+    roles = extract_pdf_declared_colors(pdf_path)
+    background = [candidate.value for candidate in roles["background"]]
+
+    assert background[:2] == ["#FCFBF8", "#1F232A"]
+    assert "#CA6B0B" not in background
+
+
 def test_functional_hex_colors_are_not_promoted_to_background_or_text(tmp_path):
     pdf_path = tmp_path / "cores-funcionais.pdf"
     with pymupdf.open() as doc:
@@ -76,6 +99,8 @@ def test_functional_hex_colors_are_not_promoted_to_background_or_text(tmp_path):
     roles = extract_pdf_declared_colors(pdf_path)
     background = {candidate.value for candidate in roles["background"]}
     text = {candidate.value for candidate in roles["text"]}
+    all_declared = {candidate.value for candidate in roles["all"]}
 
     assert background == {"#FCFBF8"}
     assert text == {"#1F232A"}
+    assert {"#FCFBF8", "#1F232A", "#4F7D5F", "#B1492F", "#5A6F88"}.issubset(all_declared)

@@ -16,20 +16,9 @@ interface Props {
   onRestart(): void
 }
 
-function automaticallyResolvedFont(question: DraftQuestion): unknown | null {
+function automaticallySuggestedFont(question: DraftQuestion): unknown | null {
   if (question.kind !== "pick-font") return null
-  const candidate = question.candidates.find((item) => {
-    if (typeof item.value !== "object" || item.value === null) return false
-    const value = item.value as {
-      path?: unknown
-      resource?: { usagePolicy?: unknown }
-    }
-    return (
-      typeof value.path === "string" &&
-      value.resource?.usagePolicy === "redistributable"
-    )
-  })
-  return candidate?.value ?? null
+  return question.candidates[0]?.value ?? null
 }
 
 export function QuestionStep(props: Props) {
@@ -42,8 +31,9 @@ export function QuestionStep(props: Props) {
   const selected =
     selection?.questionId === question.id
       ? selection.value
-      : storedAnswer ?? automaticallyResolvedFont(question)
+      : storedAnswer ?? automaticallySuggestedFont(question)
   useEffect(() => headingRef.current?.focus(), [question.id])
+  const missingDetectedOptions = question.candidates.length === 0 && question.kind !== "pick-font"
   const optionProps = {
     candidates: question.candidates,
     selected,
@@ -58,15 +48,28 @@ export function QuestionStep(props: Props) {
       <h2 ref={headingRef} tabIndex={-1}>
         {question.promptPt}
       </h2>
-      {question.candidates.length === 0 ? (
+      {missingDetectedOptions ? (
         <div className="empty-question" role="alert">
           <p>O pacote não trouxe uma opção válida para esta etapa.</p>
           <p>Volte aos materiais, acrescente os arquivos que faltam e envie o pacote novamente.</p>
         </div>
       ) : (
         <>
-          {question.kind === "pick-color" && <ColorOptions {...optionProps} />}
-          {question.kind === "pick-font" && <FontOptions draftId={draftId} {...optionProps} />}
+          {question.kind === "pick-color" && (
+            <ColorOptions
+              key={question.id}
+              recommendedCount={question.recommendedCount}
+              {...optionProps}
+            />
+          )}
+          {question.kind === "pick-font" && (
+            <FontOptions
+              key={question.id}
+              draftId={draftId}
+              questionId={question.id as "font.heading" | "font.body"}
+              {...optionProps}
+            />
+          )}
           {question.kind === "confirm-logo" && <LogoOptions draftId={draftId} {...optionProps} />}
         </>
       )}
@@ -77,7 +80,7 @@ export function QuestionStep(props: Props) {
           type="button"
           onClick={onRestart}
         >
-          {question.candidates.length === 0 ? "Voltar aos materiais" : "Trocar materiais"}
+          {missingDetectedOptions ? "Voltar aos materiais" : "Trocar materiais"}
         </button>
         {index > 0 && (
           <button data-testid="wizard-voltar" className="secondary-action" type="button" onClick={onBack}>
@@ -100,7 +103,7 @@ export function QuestionStep(props: Props) {
         <button
           data-testid="wizard-confirmar"
           type="button"
-          disabled={selected === null || question.candidates.length === 0}
+          disabled={selected === null || missingDetectedOptions}
           onClick={() => onConfirm(selected)}
         >
           Confirmar

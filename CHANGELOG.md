@@ -24,6 +24,11 @@ release pública.
 - Schemas públicos de Brand IR, Layout Spec, Content Spec e Guard Verdict.
 - Brand IR 0.2 e resolução automática de fontes abertas por catálogo oficial
   fixado, com licença, cobertura pt-BR, eixos variáveis, CAS e egress isolado.
+- Wizard com entrada manual de família tipográfica, paleta completa por papel
+  sem perder as recomendações semânticas, alternativas claras/escuras de fundo
+  declaradas pelo manual e prévias permitidas de fontes ITF FFL carregadas
+  diretamente do Fontshare, sem re-hospedar seus binários; nomes digitados usam
+  a variante catalogada mais próxima quando o peso preferido não existe.
 - Renderer autoritativo TypeScript (`packages/render`) concluído no Plano 2:
   - DOM 1:1 px e fitting determinístico, com pipeline estável compartilhado
     por prévia e exportação;

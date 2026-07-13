@@ -7,7 +7,7 @@ import shutil
 from io import BytesIO
 from pathlib import Path
 from struct import error as StructError
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 import pymupdf
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
@@ -21,7 +21,16 @@ from sqlalchemy.orm import Session
 
 from brand_api.auth import require_token
 from brand_api.db import new_id
-from brand_api.fonts import resolve_draft_fonts
+from brand_api.fonts import (
+    MAX_FONT_RESOLUTION_CANDIDATES,
+    MAX_RESOLVED_FONTS,
+    preferred_font_request,
+    reconcile_resolved_font_diagnostics,
+    resolve_draft_fonts,
+    resolve_font_candidate,
+)
+from brand_api.fonts.catalog import normalize_family
+from brand_api.fonts.intake import FontCandidateResolution
 from brand_api.media import asset_response, content_type_for
 from brand_api.models import Brand, BrandRevision, Draft
 from brand_api.unzip import UnzipError, safe_unpack
@@ -34,9 +43,10 @@ from brand_runtime import (
     generate_kit,
 )
 from brand_runtime.intake.draft import DraftQuestion
+from brand_runtime.intake.base import Candidate
 from brand_runtime.intake.dtcg import DtcgError
 from brand_runtime.intake.svg_logo import SvgInvalid, sanitize_svg
-from brand_runtime.ir.models import Diagnostic
+from brand_runtime.ir.models import Diagnostic, Evidence
 from brand_runtime.kit.generator import KitGenerationError
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
@@ -66,6 +76,24 @@ class ImportResponse(BaseModel):
     ignored_entries: list[str]
 
 
+class ResolveFontBody(BaseModel):
+    """Nome tipográfico explícito informado durante uma pergunta do wizard."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    question_id: Literal["font.heading", "font.body"]
+    family: str = Field(min_length=1, max_length=128, pattern=r".*\S.*")
+
+
+class ResolveFontResponse(BaseModel):
+    """Candidato persistido e capacidade real encontrada para a prévia."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    candidate: Candidate
+    status: FontCandidateResolution
+
+
 def _manifest_file(package_dir: Path, relative: str) -> Path:
     """Converte um path já validado pelo unpacker em path local contido."""
     return package_dir.joinpath(*relative.split("/"))
@@ -87,6 +115,22 @@ def _store_manifest(request: Request, package_dir: Path, manifest: dict[str, str
     for relative in sorted(manifest):
         path = _manifest_file(package_dir, relative)
         manifest[relative] = request.app.state.storage.put(path.read_bytes())
+
+
+def _store_new_manifest_entries(
+    request: Request,
+    package_dir: Path,
+    manifest: dict[str, str],
+    previous_manifest: dict[str, str],
+) -> None:
+    """Publica somente novos blobs hash-derived sem reler o pacote original."""
+    if any(manifest.get(relative) != sha256 for relative, sha256 in previous_manifest.items()):
+        raise RuntimeError("A resolução tipográfica tentou alterar o manifest existente.")
+    for relative in sorted(set(manifest).difference(previous_manifest)):
+        path = _manifest_file(package_dir, relative)
+        stored_sha256 = request.app.state.storage.put(path.read_bytes())
+        if stored_sha256 != manifest[relative]:
+            raise RuntimeError("Um novo recurso tipográfico perdeu integridade no storage.")
 
 
 def _files_with_suffixes(directory: Path, suffixes: set[str]) -> list[Path]:
@@ -273,6 +317,163 @@ async def import_brand(
         diagnostics=draft.diagnostics,
         ignored_entries=list(unpacked.ignored),
     )
+
+
+def _manual_font_candidate(draft: BrandDraft, body: ResolveFontBody) -> Candidate:
+    """Reutiliza a família detectada ou cria uma escolha explícita para o papel."""
+    normalized = normalize_family(body.family)
+    if not normalized:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Informe um nome de fonte válido.",
+        )
+    question = next((item for item in draft.questions if item.id == body.question_id), None)
+    if question is None or question.kind != "pick-font":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A pergunta de fonte não existe neste rascunho.",
+        )
+
+    candidate = next(
+        (
+            item
+            for item in question.candidates
+            if isinstance(item.value, dict)
+            and isinstance(item.value.get("family"), str)
+            and normalize_family(item.value["family"]) == normalized
+        ),
+        None,
+    )
+    if candidate is None:
+        manual_candidates = sum(
+            1
+            for item_question in draft.questions
+            if item_question.kind == "pick-font"
+            for item in item_question.candidates
+            if any(evidence.source_type == "manual-entry" for evidence in item.evidence)
+        )
+        if manual_candidates >= MAX_FONT_RESOLUTION_CANDIDATES:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Este rascunho atingiu o limite de escolhas tipográficas manuais. "
+                    "Troque os materiais para continuar."
+                ),
+            )
+    evidence = Evidence(
+        source_type="manual-entry",
+        detail=f"família informada no wizard para {body.question_id}",
+        confidence=1.0,
+    )
+    if candidate is None:
+        preferred = preferred_font_request(
+            body.family,
+            700 if body.question_id == "font.heading" else 400,
+        )
+        candidate = Candidate(
+            value={
+                "family": preferred.family,
+                "weight": preferred.weight,
+                "style": preferred.style,
+            },
+            score=1.0,
+            evidence=[evidence],
+        )
+    elif not any(
+        item.source_type == "manual-entry" and item.detail == evidence.detail
+        for item in candidate.evidence
+    ):
+        candidate.evidence.append(evidence)
+
+    question.candidates = [
+        candidate,
+        *(item for item in question.candidates if item is not candidate),
+    ]
+    return candidate
+
+
+def _draft_package_dir(request: Request, row: Draft) -> Path:
+    """Revalida o diretório persistido antes de materializar um novo recurso."""
+    try:
+        base = request.app.state.settings.packages_dir.resolve(strict=True)
+        package_dir = Path(row.package_path).resolve(strict=True)
+    except OSError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Os materiais deste rascunho não estão mais disponíveis.",
+        ) from exc
+    if not package_dir.is_dir() or not package_dir.is_relative_to(base):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="O diretório persistido do rascunho é inválido.",
+        )
+    return package_dir
+
+
+def _resolved_font_count(draft: BrandDraft) -> int:
+    """Conta somente arquivos adquiridos pelo sistema, sem duplicar papéis."""
+    return len(
+        {
+            candidate.value["path"]
+            for question in draft.questions
+            if question.kind == "pick-font"
+            for candidate in question.candidates
+            if isinstance(candidate.value, dict)
+            and isinstance(candidate.value.get("path"), str)
+            and candidate.value["path"].startswith("resolved-fonts/")
+        }
+    )
+
+
+@router.post(
+    "/drafts/{draft_id}/fonts/resolve",
+    response_model=ResolveFontResponse,
+)
+async def resolve_draft_font(
+    draft_id: str,
+    body: ResolveFontBody,
+    request: Request,
+) -> ResolveFontResponse:
+    """Registra um nome digitado e tenta resolvê-lo sem novo upload."""
+    with request.app.state.session_factory() as session:
+        row = session.execute(
+            select(Draft).where(Draft.id == draft_id).with_for_update()
+        ).scalar_one_or_none()
+        if row is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Rascunho não encontrado.",
+            )
+        try:
+            draft = BrandDraft.model_validate(row.draft)
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="O rascunho persistido não pode mais ser editado.",
+            ) from exc
+        package_dir = _draft_package_dir(request, row)
+        previous_manifest = dict(row.manifest)
+        manifest = dict(previous_manifest)
+        candidate = _manual_font_candidate(draft, body)
+        resolution = await resolve_font_candidate(
+            candidate,
+            package_dir,
+            manifest,
+            request.app.state.font_resolver,
+            allow_local_materialization=_resolved_font_count(draft) < MAX_RESOLVED_FONTS,
+        )
+        if resolution == "local-ready":
+            _store_new_manifest_entries(
+                request,
+                package_dir,
+                manifest,
+                previous_manifest,
+            )
+            reconcile_resolved_font_diagnostics(draft)
+        row.draft = draft.model_dump(mode="json", by_alias=True)
+        row.manifest = manifest
+        session.commit()
+    return ResolveFontResponse(candidate=candidate, status=resolution)
 
 
 @router.post("/drafts/{draft_id}/compile", status_code=status.HTTP_201_CREATED)

@@ -6,6 +6,7 @@ import type {
   GuardCheck,
   ImportResult,
   LayoutSpec,
+  FontResolutionResult,
 } from "./types"
 import { buildPackageZip } from "./zipPackage"
 
@@ -77,6 +78,15 @@ export function createApiClient(fetchFn: typeof fetch = fetch): ApiClient {
       const form = new FormData()
       form.set("package", new File([archive], "pacote.zip", { type: "application/zip" }))
       return json<ImportResult>("/v1/brands/imports", { method: "POST", body: form })
+    },
+    resolveDraftFont(draftId, questionId, family) {
+      return json<FontResolutionResult>(
+        `/v1/drafts/${encodeURIComponent(draftId)}/fonts/resolve`,
+        {
+          method: "POST",
+          body: JSON.stringify({ questionId, family }),
+        },
+      )
     },
     compileDraft(draftId, answers, brandName) {
       return json(`/v1/drafts/${encodeURIComponent(draftId)}/compile`, {

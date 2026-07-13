@@ -1,0 +1,6264 @@
+{
+  "families": {
+    "aktura": {
+      "licenseType": "itf_ffl",
+      "name": "Aktura",
+      "slug": "aktura",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "alpino": {
+      "licenseType": "itf_ffl",
+      "name": "Alpino",
+      "slug": "alpino",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "amulya": {
+      "licenseType": "itf_ffl",
+      "name": "Amulya",
+      "slug": "amulya",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "anton": {
+      "licenseType": "sil_ofl",
+      "name": "Anton",
+      "slug": "anton",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "archivo": {
+      "licenseType": "sil_ofl",
+      "name": "Archivo",
+      "slug": "archivo",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "array": {
+      "licenseType": "itf_ffl",
+      "name": "Array",
+      "slug": "array",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        }
+      ]
+    },
+    "asap": {
+      "licenseType": "sil_ofl",
+      "name": "Asap",
+      "slug": "asap",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "author": {
+      "licenseType": "itf_ffl",
+      "name": "Author",
+      "slug": "author",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "azeretmono": {
+      "licenseType": "sil_ofl",
+      "name": "Azeret Mono",
+      "slug": "azeret-mono",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "bebasneue": {
+      "licenseType": "sil_ofl",
+      "name": "Bebas Neue",
+      "slug": "bebas-neue",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "bespokesans": {
+      "licenseType": "itf_ffl",
+      "name": "Bespoke Sans",
+      "slug": "bespoke-sans",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "bespokeserif": {
+      "licenseType": "itf_ffl",
+      "name": "Bespoke Serif",
+      "slug": "bespoke-serif",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "bespokeslab": {
+      "licenseType": "itf_ffl",
+      "name": "Bespoke Slab",
+      "slug": "bespoke-slab",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "bespokestencil": {
+      "licenseType": "itf_ffl",
+      "name": "Bespoke Stencil",
+      "slug": "bespoke-stencil",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "bevellier": {
+      "licenseType": "itf_ffl",
+      "name": "Bevellier",
+      "slug": "bevellier",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "bevietnampro": {
+      "licenseType": "sil_ofl",
+      "name": "Be Vietnam Pro",
+      "slug": "beVietnam-pro",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "bonny": {
+      "licenseType": "itf_ffl",
+      "name": "Bonny",
+      "slug": "bonny",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "boska": {
+      "licenseType": "itf_ffl",
+      "name": "Boska",
+      "slug": "boska",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "boxing": {
+      "licenseType": "itf_ffl",
+      "name": "Boxing",
+      "slug": "boxing",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "britney": {
+      "licenseType": "itf_ffl",
+      "name": "Britney",
+      "slug": "britney",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1000,
+          "style": "normal",
+          "variable": false,
+          "weight": 1000
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "cabinetgrotesk": {
+      "licenseType": "itf_ffl",
+      "name": "Cabinet Grotesk",
+      "slug": "cabinet-grotesk",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "chillax": {
+      "licenseType": "itf_ffl",
+      "name": "Chillax",
+      "slug": "chillax",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "chubbo": {
+      "licenseType": "itf_ffl",
+      "name": "Chubbo",
+      "slug": "chubbo",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "clashdisplay": {
+      "licenseType": "itf_ffl",
+      "name": "Clash Display",
+      "slug": "clash-display",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "clashgrotesk": {
+      "licenseType": "itf_ffl",
+      "name": "Clash Grotesk",
+      "slug": "clash-grotesk",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "comico": {
+      "licenseType": "itf_ffl",
+      "name": "Comico",
+      "slug": "comico",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "crimsonpro": {
+      "licenseType": "sil_ofl",
+      "name": "Crimson Pro",
+      "slug": "crimson-pro",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "dancingscript": {
+      "licenseType": "sil_ofl",
+      "name": "Dancing Script",
+      "slug": "dancing-script",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "epilogue": {
+      "licenseType": "sil_ofl",
+      "name": "Epilogue",
+      "slug": "epilogue",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "erode": {
+      "licenseType": "itf_ffl",
+      "name": "Erode",
+      "slug": "erode",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "excon": {
+      "licenseType": "itf_ffl",
+      "name": "Excon",
+      "slug": "excon",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "expose": {
+      "licenseType": "itf_ffl",
+      "name": "Expose",
+      "slug": "expose",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "familjengrotesk": {
+      "licenseType": "sil_ofl",
+      "name": "Familjen Grotesk",
+      "slug": "familjen-grotesk",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "firasans": {
+      "licenseType": "sil_ofl",
+      "name": "Fira Sans",
+      "slug": "fira-sans",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "gambarino": {
+      "licenseType": "itf_ffl",
+      "name": "Gambarino",
+      "slug": "gambarino",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "gambetta": {
+      "licenseType": "itf_ffl",
+      "name": "Gambetta",
+      "slug": "gambetta",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "generalsans": {
+      "licenseType": "itf_ffl",
+      "name": "General Sans",
+      "slug": "general-sans",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "hind": {
+      "licenseType": "sil_ofl",
+      "name": "Hind",
+      "slug": "hind",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "hoover": {
+      "licenseType": "itf_ffl",
+      "name": "Hoover",
+      "slug": "hoover",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "jetbrainsmono": {
+      "licenseType": "sil_ofl",
+      "name": "JetBrains Mono",
+      "slug": "jet-brains-mono",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "kalam": {
+      "licenseType": "sil_ofl",
+      "name": "Kalam",
+      "slug": "kalam",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "karma": {
+      "licenseType": "sil_ofl",
+      "name": "Karma",
+      "slug": "karma",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "khand": {
+      "licenseType": "sil_ofl",
+      "name": "Khand",
+      "slug": "khand",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "kihim": {
+      "licenseType": "itf_ffl",
+      "name": "Kihim",
+      "slug": "kihim",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "kohinoorzerone": {
+      "licenseType": "itf_ffl",
+      "name": "Kohinoor Zerone",
+      "slug": "kohinoor-zerone",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        }
+      ]
+    },
+    "kola": {
+      "licenseType": "itf_ffl",
+      "name": "Kola",
+      "slug": "kola",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "literata": {
+      "licenseType": "sil_ofl",
+      "name": "Literata",
+      "slug": "literata",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "lora": {
+      "licenseType": "sil_ofl",
+      "name": "Lora",
+      "slug": "lora",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "manrope": {
+      "licenseType": "sil_ofl",
+      "name": "Manrope",
+      "slug": "manrope",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "melodrama": {
+      "licenseType": "itf_ffl",
+      "name": "Melodrama",
+      "slug": "melodrama",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "merriweathersans": {
+      "licenseType": "sil_ofl",
+      "name": "Merriweather Sans",
+      "slug": "merriweather-sans",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "montserrat": {
+      "licenseType": "sil_ofl",
+      "name": "Montserrat",
+      "slug": "montserrat",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "neco": {
+      "licenseType": "itf_ffl",
+      "name": "Neco",
+      "slug": "neco",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "newtitle": {
+      "licenseType": "itf_ffl",
+      "name": "New Title",
+      "slug": "new-title",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "nippo": {
+      "licenseType": "itf_ffl",
+      "name": "Nippo",
+      "slug": "nippo",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "nunito": {
+      "licenseType": "sil_ofl",
+      "name": "Nunito",
+      "slug": "nunito",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "oswald": {
+      "licenseType": "sil_ofl",
+      "name": "Oswald",
+      "slug": "oswald",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "outfit": {
+      "licenseType": "sil_ofl",
+      "name": "Outfit",
+      "slug": "outfit",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "pally": {
+      "licenseType": "itf_ffl",
+      "name": "Pally",
+      "slug": "pally",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "panchang": {
+      "licenseType": "itf_ffl",
+      "name": "Panchang",
+      "slug": "panchang",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "paquito": {
+      "licenseType": "itf_ffl",
+      "name": "Paquito",
+      "slug": "paquito",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "pencerio": {
+      "licenseType": "itf_ffl",
+      "name": "Pencerio",
+      "slug": "pencerio",
+      "styles": [
+        {
+          "code": 50,
+          "style": "normal",
+          "variable": false,
+          "weight": 50
+        }
+      ]
+    },
+    "pilcrowrounded": {
+      "licenseType": "itf_ffl",
+      "name": "Pilcrow Rounded",
+      "slug": "pilcrow-rounded",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "plein": {
+      "licenseType": "itf_ffl",
+      "name": "Plein",
+      "slug": "plein",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "plusjakartasans": {
+      "licenseType": "sil_ofl",
+      "name": "Plus Jakarta Sans",
+      "slug": "plus-jakarta-sans",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "poppins": {
+      "licenseType": "sil_ofl",
+      "name": "Poppins",
+      "slug": "poppins",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "pramukhrounded": {
+      "licenseType": "itf_ffl",
+      "name": "Pramukh Rounded",
+      "slug": "pramukh-rounded",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 350,
+          "style": "normal",
+          "variable": false,
+          "weight": 350
+        },
+        {
+          "code": 351,
+          "style": "italic",
+          "variable": false,
+          "weight": 350
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "publicsans": {
+      "licenseType": "sil_ofl",
+      "name": "Public Sans",
+      "slug": "public-sans",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "quicksand": {
+      "licenseType": "sil_ofl",
+      "name": "Quicksand",
+      "slug": "quicksand",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "quilon": {
+      "licenseType": "itf_ffl",
+      "name": "Quilon",
+      "slug": "quilon",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "rajdhani": {
+      "licenseType": "sil_ofl",
+      "name": "Rajdhani",
+      "slug": "rajdhani",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "ranade": {
+      "licenseType": "itf_ffl",
+      "name": "Ranade",
+      "slug": "ranade",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "recia": {
+      "licenseType": "itf_ffl",
+      "name": "Recia",
+      "slug": "recia",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "redhatdisplay": {
+      "licenseType": "sil_ofl",
+      "name": "Red Hat Display",
+      "slug": "red-hat-display",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "rosaline": {
+      "licenseType": "itf_ffl",
+      "name": "Rosaline",
+      "slug": "rosaline",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "roundo": {
+      "licenseType": "sil_ofl",
+      "name": "Roundo",
+      "slug": "roundo",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "rowan": {
+      "licenseType": "itf_ffl",
+      "name": "Rowan",
+      "slug": "rowan",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "rx100": {
+      "licenseType": "itf_ffl",
+      "name": "RX100",
+      "slug": "rx-100",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "satoshi": {
+      "licenseType": "itf_ffl",
+      "name": "Satoshi",
+      "slug": "satoshi",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "segment": {
+      "licenseType": "itf_ffl",
+      "name": "Segment",
+      "slug": "segment",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "sentient": {
+      "licenseType": "itf_ffl",
+      "name": "Sentient",
+      "slug": "sentient",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "sharpie": {
+      "licenseType": "itf_ffl",
+      "name": "Sharpie",
+      "slug": "sharpie",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "sora": {
+      "licenseType": "sil_ofl",
+      "name": "Sora",
+      "slug": "sora",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "spacegrotesk": {
+      "licenseType": "sil_ofl",
+      "name": "Space Grotesk",
+      "slug": "space-grotesk",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "splinesans": {
+      "licenseType": "sil_ofl",
+      "name": "Spline Sans",
+      "slug": "spline-sans",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "stardom": {
+      "licenseType": "itf_ffl",
+      "name": "Stardom",
+      "slug": "stardom",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "striper": {
+      "licenseType": "itf_ffl",
+      "name": "Striper",
+      "slug": "striper",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "styro": {
+      "licenseType": "itf_ffl",
+      "name": "Styro",
+      "slug": "styro",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "supreme": {
+      "licenseType": "itf_ffl",
+      "name": "Supreme",
+      "slug": "supreme",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "switzer": {
+      "licenseType": "itf_ffl",
+      "name": "Switzer",
+      "slug": "switzer",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "synonym": {
+      "licenseType": "itf_ffl",
+      "name": "Synonym",
+      "slug": "synonym",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "tabular": {
+      "licenseType": "itf_ffl",
+      "name": "Tabular",
+      "slug": "tabular",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "tanker": {
+      "licenseType": "itf_ffl",
+      "name": "Tanker",
+      "slug": "tanker",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "technor": {
+      "licenseType": "itf_ffl",
+      "name": "Technor",
+      "slug": "technor",
+      "styles": [
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "teko": {
+      "licenseType": "sil_ofl",
+      "name": "Teko",
+      "slug": "teko",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "telma": {
+      "licenseType": "itf_ffl",
+      "name": "Telma",
+      "slug": "telma",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "trenchslab": {
+      "licenseType": "itf_ffl",
+      "name": "Trench Slab",
+      "slug": "trench-slab",
+      "styles": [
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "worksans": {
+      "licenseType": "sil_ofl",
+      "name": "Work Sans",
+      "slug": "work-sans",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 200,
+          "style": "normal",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 201,
+          "style": "italic",
+          "variable": false,
+          "weight": 200
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 500,
+          "style": "normal",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 501,
+          "style": "italic",
+          "variable": false,
+          "weight": 500
+        },
+        {
+          "code": 600,
+          "style": "normal",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 601,
+          "style": "italic",
+          "variable": false,
+          "weight": 600
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    },
+    "zina": {
+      "licenseType": "itf_ffl",
+      "name": "Zina",
+      "slug": "zina",
+      "styles": [
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        }
+      ]
+    },
+    "zodiak": {
+      "licenseType": "itf_ffl",
+      "name": "Zodiak",
+      "slug": "zodiak",
+      "styles": [
+        {
+          "code": 100,
+          "style": "normal",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 101,
+          "style": "italic",
+          "variable": false,
+          "weight": 100
+        },
+        {
+          "code": 300,
+          "style": "normal",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 301,
+          "style": "italic",
+          "variable": false,
+          "weight": 300
+        },
+        {
+          "code": 400,
+          "style": "normal",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 401,
+          "style": "italic",
+          "variable": false,
+          "weight": 400
+        },
+        {
+          "code": 700,
+          "style": "normal",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 701,
+          "style": "italic",
+          "variable": false,
+          "weight": 700
+        },
+        {
+          "code": 800,
+          "style": "normal",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 801,
+          "style": "italic",
+          "variable": false,
+          "weight": 800
+        },
+        {
+          "code": 900,
+          "style": "normal",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 901,
+          "style": "italic",
+          "variable": false,
+          "weight": 900
+        },
+        {
+          "code": 1,
+          "style": "normal",
+          "variable": true,
+          "weight": 0
+        },
+        {
+          "code": 2,
+          "style": "italic",
+          "variable": true,
+          "weight": 0
+        }
+      ]
+    }
+  },
+  "provider": "fontshare-external",
+  "revision": "afd864a0e7dc9494ed943477cbed665ae67abe0909ed42a39e46b113fd452d6a",
+  "schemaVersion": "1.0.0",
+  "source": "https://api.fontshare.com/v2/fonts?offset=0&limit=100"
+}

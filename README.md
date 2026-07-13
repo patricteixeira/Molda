@@ -55,9 +55,15 @@ dos cinco serviços permanentes iniciarem.
 Fontes abertas declaradas no manual são resolvidas automaticamente por um
 catálogo Google Fonts fixado, conferidas contra o objeto Git esperado, validadas
 e armazenadas localmente junto com a licença. A API e o worker não recebem
-egress direto, e nenhuma API key é necessária. Fontes comerciais ou com
-redistribuição restrita continuam exigindo um arquivo/licença compatível; o
-sistema não as substitui silenciosamente.
+egress direto, e nenhuma API key é necessária. Famílias ITF FFL presentes no
+Fontshare — como Clash Display e General Sans — podem ter a prévia oficial
+ativada no wizard: o CSS é carregado pelo navegador diretamente do provedor,
+após permissão explícita para a conexão externa, sem proxy, cache ou binário no
+repositório. A interface informa os dados técnicos expostos ao provedor e liga
+os termos ITF FFL 1.0 aplicáveis. Essa prévia externa não incorpora a fonte no
+export. Fontes comerciais ou com
+redistribuição restrita continuam exigindo uma licença compatível; o sistema
+não as substitui silenciosamente.
 
 ## Estrutura do repositório
 

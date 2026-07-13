@@ -58,6 +58,19 @@ def _nearest_semantic_label(before: str) -> str:
     return ""
 
 
+def _usage_before_next_label(value: str) -> str:
+    """Mantém a descrição após o HEX sem herdar o rótulo da próxima cor."""
+    next_label = _nearest_semantic_label(value)
+    lines = value.splitlines()
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        letter_count = sum(character.isalpha() for character in stripped)
+        starts_new_section = letter_count >= 8 and stripped == stripped.upper()
+        if starts_new_section or (next_label and _searchable(line) == next_label):
+            return "\n".join(lines[:index])
+    return value
+
+
 def _label_score(label: str, words: tuple[str, ...]) -> float:
     return 12.0 * sum(word in label for word in words)
 
@@ -90,18 +103,61 @@ def extract_pdf_declared_colors(pdf_path: Path) -> dict[str, list[Candidate]]:
         "background": {},
         "text": {},
     }
+    all_values: dict[str, tuple[float, list[Evidence]]] = {}
     for match in _HEX_DECLARATION.finditer(full_text):
         value = normalize_color(f"#{match['hex']}")
-        before = full_text[max(0, match.start() - 320) : match.start()]
-        label = _nearest_semantic_label(before)
-        compact_before = _searchable(before).replace(" ", "")
         page_number = 1
-        for start, candidate_page in page_offsets:
+        page_start = 0
+        page_end = len(full_text)
+        for offset_index, (start, candidate_page) in enumerate(page_offsets):
             if start > match.start():
                 break
             page_number = candidate_page
+            page_start = start
+            page_end = (
+                page_offsets[offset_index + 1][0] - 1
+                if offset_index + 1 < len(page_offsets)
+                else len(full_text)
+            )
 
-        explicit_bonus = 24.0 if match["label"] else 0.25
+        evidence = Evidence(
+            source_type="pdf-guideline",
+            path=str(pdf_path),
+            page=page_number,
+            detail=(
+                f"cor HEX declarada no texto: {value}"
+                if match["label"]
+                else f"cor hexadecimal encontrada no texto: {value}"
+            ),
+            confidence=0.98 if match["label"] else 0.8,
+        )
+        previous_score, previous_evidence = all_values.get(value, (0.0, []))
+        all_values[value] = (
+            max(previous_score, 1.0 if match["label"] else 0.7),
+            [*previous_evidence, evidence],
+        )
+
+        # Um ``#RRGGBB`` solto em tabelas de contraste ou aplicações descreve
+        # uso contextual, não necessariamente um token semântico. Ele entra em
+        # ``all``, mas só ``HEX #RRGGBB`` alimenta recomendações por papel.
+        if not match["label"]:
+            continue
+
+        before = full_text[max(0, match.start() - 320) : match.start()]
+        same_page_before = full_text[max(page_start, match.start() - 320) : match.start()]
+        label = _nearest_semantic_label(before)
+        compact_before = _searchable(same_page_before).replace(" ", "")
+
+        next_declaration = _HEX_DECLARATION.search(full_text, match.end(), page_end)
+        description_end = min(
+            match.end() + 320,
+            next_declaration.start() if next_declaration is not None else page_end,
+        )
+        raw_description = full_text[match.end() : description_end]
+        description = _searchable(_usage_before_next_label(raw_description))
+        semantic_context = f"{label} {description}".strip()
+
+        explicit_bonus = 24.0
         percentages = list(_PERCENTAGE.finditer(before[-120:]))
         percentage_bonus = 0.0
         if percentages:
@@ -110,24 +166,17 @@ def extract_pdf_declared_colors(pdf_path: Path) -> dict[str, list[Candidate]]:
         role_scores = {
             "primary": explicit_bonus
             + percentage_bonus
-            + _label_score(label, _PRIMARY_WORDS)
+            + _label_score(semantic_context, _PRIMARY_WORDS)
             + (5.0 if "primaria" in compact_before and match["label"] else 0.0),
-            "background": explicit_bonus + _label_score(label, _BACKGROUND_WORDS),
-            "text": explicit_bonus + _label_score(label, _TEXT_WORDS),
+            "background": explicit_bonus + _label_score(semantic_context, _BACKGROUND_WORDS),
+            "text": explicit_bonus + _label_score(semantic_context, _TEXT_WORDS),
         }
         role_relevance = {
-            "primary": any(word in label for word in _PRIMARY_WORDS)
+            "primary": any(word in semantic_context for word in _PRIMARY_WORDS)
             or bool(match["label"] and "primaria" in compact_before),
-            "background": any(word in label for word in _BACKGROUND_WORDS),
-            "text": any(word in label for word in _TEXT_WORDS),
+            "background": any(word in semantic_context for word in _BACKGROUND_WORDS),
+            "text": any(word in semantic_context for word in _TEXT_WORDS),
         }
-        evidence = Evidence(
-            source_type="pdf-guideline",
-            path=str(pdf_path),
-            page=page_number,
-            detail=f"cor HEX declarada no texto: {value}",
-            confidence=0.98,
-        )
         for role, score in role_scores.items():
             if not role_relevance[role]:
                 continue
@@ -145,6 +194,14 @@ def extract_pdf_declared_colors(pdf_path: Path) -> dict[str, list[Candidate]]:
             Candidate(value=value, score=score / maximum, evidence=evidence)
             for value, (score, evidence) in ordered
         ]
+    result["all"] = [
+        Candidate(value=value, score=score, evidence=evidence)
+        for value, (score, evidence) in sorted(
+            all_values.items(),
+            key=lambda item: item[1][0],
+            reverse=True,
+        )
+    ]
     return result
 
 

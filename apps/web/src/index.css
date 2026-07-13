@@ -443,11 +443,36 @@
     color: var(--ui-ink);
   }
 
+  .color-choice {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 45rem;
+  }
+
+  .option-group-label {
+    margin: 0;
+    color: var(--ui-muted);
+    font-size: 0.8125rem;
+    font-weight: 650;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+  }
+
   .color-options {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
     gap: var(--space-4);
-    max-width: 45rem;
+  }
+
+  .show-all-options {
+    justify-self: start;
+    border: 0;
+    padding: 0.25rem 0;
+    background: transparent;
+    color: var(--ui-ink);
+    font-size: 0.875rem;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
   }
 
   .color-option {
@@ -467,6 +492,77 @@
   .logo-options {
     display: grid;
     gap: var(--space-3);
+  }
+
+  .font-choice,
+  .manual-font {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .manual-font,
+  .external-font-consent {
+    max-width: 45rem;
+    border: 1px solid var(--ui-rule);
+    padding: var(--space-4);
+    background: var(--ui-surface);
+  }
+
+  .manual-font > label,
+  .external-font-consent label {
+    font-size: 0.9375rem;
+    font-weight: 650;
+  }
+
+  .manual-font-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+  }
+
+  .manual-font-row input {
+    min-width: 0;
+    border: 1px solid var(--ui-ink);
+    padding: 0.75rem 0.875rem;
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    font: inherit;
+  }
+
+  .manual-font-row button {
+    white-space: nowrap;
+  }
+
+  .option-note,
+  .option-error,
+  .external-font-consent p {
+    margin: 0;
+    color: var(--ui-muted);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  .option-error {
+    color: var(--ui-danger);
+  }
+
+  .external-font-consent {
+    display: grid;
+    gap: var(--space-2);
+    border-left: 0.25rem solid var(--ui-accent);
+  }
+
+  .external-font-consent label {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .external-font-consent input {
+    width: 1rem;
+    height: 1rem;
+    margin-top: 0.125rem;
+    accent-color: var(--ui-accent);
   }
 
   .font-option,
@@ -506,14 +602,18 @@
   }
 
   .font-name {
+    min-width: 0;
     margin-top: var(--space-3);
     color: var(--ui-muted);
+    overflow-wrap: anywhere;
   }
 
   .font-source {
+    min-width: 0;
     margin-top: var(--space-1);
     color: var(--ui-muted);
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
+    overflow-wrap: anywhere;
   }
 
   .logo-option {
@@ -933,5 +1033,9 @@
 
   .action-row > button {
     flex: 1 1 100%;
+  }
+
+  .manual-font-row {
+    grid-template-columns: 1fr;
   }
 }

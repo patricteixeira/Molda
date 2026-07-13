@@ -6,20 +6,24 @@ import hashlib
 import os
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
-from brand_api.fonts.catalog import normalize_family
+from brand_api.fonts.catalog import GoogleFontsCatalog, normalize_family
+from brand_api.fonts.fontshare import FontshareCatalog
 from brand_api.fonts.models import (
     FontRequest,
     FontResolutionUnavailable,
     FontResolver,
     ResolvedFont,
 )
+from brand_runtime.intake.base import Candidate
 from brand_runtime.intake.draft import BrandDraft
-from brand_runtime.ir.models import Diagnostic, Evidence
+from brand_runtime.ir.models import Diagnostic, Evidence, FontResource
 
-_MAX_RESOLVED_FONTS = 4
-_MAX_CANDIDATES = 8
+MAX_RESOLVED_FONTS = 4
+MAX_FONT_RESOLUTION_CANDIDATES = 8
+_FONTSHARE_CATALOG = FontshareCatalog.bundled()
+_GOOGLE_FONTS_CATALOG = GoogleFontsCatalog.bundled()
 
 
 def _eligible(candidate) -> bool:
@@ -28,12 +32,46 @@ def _eligible(candidate) -> bool:
         return False
     return any(
         evidence.source_type == "dtcg-tokens"
+        or evidence.source_type == "manual-entry"
         or (
             evidence.source_type == "pdf-guideline"
             and (evidence.detail or "").startswith("fonte declarada para ")
         )
         for evidence in candidate.evidence
     )
+
+
+FontCandidateResolution = Literal[
+    "local-ready",
+    "vendor-hosted",
+    "not-found",
+    "capacity-reached",
+    "failed",
+]
+
+
+def preferred_font_request(
+    family: str,
+    preferred_weight: int,
+    style: Literal["normal", "italic"] = "normal",
+) -> FontRequest:
+    """Escolhe a variante catalogada mais próxima sem inventar substituição."""
+    cleaned_family = " ".join(family.split())
+    weights = sorted(
+        range(100, 901, 100),
+        key=lambda weight: (
+            abs(weight - preferred_weight),
+            -weight if preferred_weight >= 500 else weight,
+        ),
+    )
+    for weight in weights:
+        google = _GOOGLE_FONTS_CATALOG.select(cleaned_family, weight, style)
+        if google is not None:
+            return FontRequest(family=google.family.name, weight=weight, style=style)
+        fontshare = _FONTSHARE_CATALOG.select(cleaned_family, weight, style)
+        if fontshare is not None and fontshare.family.license_type == "itf_ffl":
+            return FontRequest(family=fontshare.family.name, weight=weight, style=style)
+    return FontRequest(family=cleaned_family, weight=preferred_weight, style=style)
 
 
 def _request(value: Any) -> FontRequest | None:
@@ -129,6 +167,106 @@ def _enrich(candidate, resolved: ResolvedFont, font_path: str) -> None:
     )
 
 
+def _enrich_fontshare(candidate: Candidate, request: FontRequest) -> bool:
+    """Liga uma variante FFL ao CSS oficial sem baixar ou re-hospedar seus bytes."""
+    selection = _FONTSHARE_CATALOG.select(request.family, request.weight, request.style)
+    if selection is None or selection.family.license_type != "itf_ffl":
+        return False
+    resource = FontResource(
+        provider="fontshare-external",
+        format="woff2",
+        upstream_ref=selection.css_url,
+        license_id="ITF-FFL-1.0",
+        usage_policy="restricted",
+    )
+    candidate.value = {
+        **candidate.value,
+        "family": selection.family.name,
+        "weight": selection.variant.weight,
+        "style": selection.variant.style,
+        "resource": resource.model_dump(mode="json", by_alias=True),
+    }
+    candidate.evidence.append(
+        Evidence(
+            source_type="font-catalog",
+            detail=(
+                f"fontshare@{_FONTSHARE_CATALOG.revision}:"
+                f"{selection.family.slug}@{selection.variant.code}"
+            ),
+            confidence=1.0,
+        )
+    )
+    return True
+
+
+async def resolve_font_candidate(
+    candidate: Candidate,
+    package_dir: Path,
+    manifest: dict[str, str],
+    resolver: FontResolver,
+    *,
+    allow_local_materialization: bool = True,
+) -> FontCandidateResolution:
+    """Resolve uma escolha explícita sem obrigar o usuário a reenviar o pacote."""
+    if not isinstance(candidate.value, dict):
+        return "not-found"
+    if candidate.value.get("path") is not None:
+        return "local-ready"
+    resource = candidate.value.get("resource")
+    if isinstance(resource, dict) and resource.get("provider") == "fontshare-external":
+        return "vendor-hosted"
+    if not _eligible(candidate):
+        return "not-found"
+    request = _request(candidate.value)
+    if request is None:
+        return "not-found"
+    if not allow_local_materialization:
+        return "vendor-hosted" if _enrich_fontshare(candidate, request) else "capacity-reached"
+    try:
+        resolved = await resolver.resolve(request)
+    except FontResolutionUnavailable:
+        return "vendor-hosted" if _enrich_fontshare(candidate, request) else "failed"
+    if resolved is None:
+        return "vendor-hosted" if _enrich_fontshare(candidate, request) else "not-found"
+    try:
+        font_path, _license_path = _materialize(package_dir, manifest, resolved)
+    except OSError:
+        return "failed"
+    _enrich(candidate, resolved, font_path)
+    return "local-ready"
+
+
+def reconcile_resolved_font_diagnostics(draft: BrandDraft) -> None:
+    """Remove falta de arquivo apenas quando toda a família está materializada."""
+    font_candidates = [
+        candidate
+        for question in draft.questions
+        if question.kind == "pick-font"
+        for candidate in question.candidates
+        if isinstance(candidate.value, dict) and _request(candidate.value) is not None
+    ]
+    locally_resolved = {
+        normalize_family(candidate.value["family"])
+        for candidate in font_candidates
+        if candidate.value.get("path") is not None
+    }
+    unresolved = {
+        normalize_family(candidate.value["family"])
+        for candidate in font_candidates
+        if candidate.value.get("path") is None
+    }
+    fully_resolved = locally_resolved.difference(unresolved)
+    if fully_resolved:
+        draft.diagnostics = [
+            diagnostic
+            for diagnostic in draft.diagnostics
+            if not (
+                diagnostic.code == "FONT_FILE_MISSING"
+                and normalize_family(diagnostic.target) in fully_resolved
+            )
+        ]
+
+
 async def resolve_draft_fonts(
     draft: BrandDraft,
     package_dir: Path,
@@ -143,7 +281,10 @@ async def resolve_draft_fonts(
     font_questions = [question for question in draft.questions if question.kind == "pick-font"]
     for question in font_questions:
         for candidate in question.candidates:
-            if considered >= _MAX_CANDIDATES or len(resolved_by_identity) >= _MAX_RESOLVED_FONTS:
+            if (
+                considered >= MAX_FONT_RESOLUTION_CANDIDATES
+                or len(resolved_by_identity) >= MAX_RESOLVED_FONTS
+            ):
                 break
             if not _eligible(candidate):
                 continue
@@ -176,25 +317,22 @@ async def resolve_draft_fonts(
         if unavailable:
             break
 
-    resolved_families = {identity[0] for identity in resolved_by_identity}
-    unresolved_families = {
-        normalize_family(request.family)
-        for question in font_questions
-        for candidate in question.candidates
-        if isinstance(candidate.value, dict)
-        and candidate.value.get("path") is None
-        and (request := _request(candidate.value)) is not None
-    }
-    fully_resolved_families = resolved_families.difference(unresolved_families)
-    if fully_resolved_families:
-        draft.diagnostics = [
-            diagnostic
-            for diagnostic in draft.diagnostics
-            if not (
-                diagnostic.code == "FONT_FILE_MISSING"
-                and normalize_family(diagnostic.target) in fully_resolved_families
-            )
-        ]
+    # Fontshare permanece uma referência externa: nenhum byte ou CSS passa
+    # pelo backend. O navegador só ativa a URL allowlisted após aceite da FFL.
+    for question in font_questions:
+        for candidate in question.candidates:
+            if not _eligible(candidate) or not isinstance(candidate.value, dict):
+                continue
+            if (
+                candidate.value.get("path") is not None
+                or candidate.value.get("resource") is not None
+            ):
+                continue
+            request = _request(candidate.value)
+            if request is not None:
+                _enrich_fontshare(candidate, request)
+
+    reconcile_resolved_font_diagnostics(draft)
     if unavailable:
         draft.diagnostics.append(
             Diagnostic(

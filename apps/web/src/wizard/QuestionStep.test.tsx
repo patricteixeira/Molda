@@ -61,6 +61,30 @@ it("pergunta sem candidatos oferece retorno aos materiais", async () => {
   expect(props.onRestart).toHaveBeenCalledOnce()
 })
 
+it("fonte sem candidatos continua editável pelo nome", async () => {
+  const props = renderStep({
+    question: {
+      id: "font.body",
+      kind: "pick-font",
+      promptPt: "Qual fonte é usada em textos corridos?",
+      candidates: [],
+      required: true,
+    },
+  })
+
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+  await userEvent.type(screen.getByLabelText("Ou digite o nome da fonte"), "General Sans")
+  await userEvent.click(screen.getByRole("button", { name: "Usar esta fonte" }))
+  const confirm = screen.getByTestId("wizard-confirmar")
+  expect(confirm).toBeEnabled()
+  await userEvent.click(confirm)
+  expect(props.onConfirm).toHaveBeenCalledWith({
+    family: "General Sans",
+    weight: 400,
+    style: "normal",
+  })
+})
+
 it("pular só existe em pergunta opcional; a primeira permite trocar os materiais", () => {
   renderStep()
   expect(screen.queryByTestId("wizard-pular")).not.toBeInTheDocument()
@@ -115,4 +139,75 @@ it("preseleciona fonte aberta resolvida mas ainda exige confirmação", async ()
   expect(props.onConfirm).not.toHaveBeenCalled()
   await userEvent.click(confirm)
   expect(props.onConfirm).toHaveBeenCalledWith(value)
+})
+
+it("preseleciona a primeira fonte declarada sem trocar pela próxima materializada", () => {
+  const declared = { family: "Clash Display", weight: 700, style: "normal" }
+  const resolved = {
+    family: "Fraunces",
+    weight: 400,
+    style: "italic",
+    path: "resolved-fonts/fraunces.ttf",
+    resource: {
+      provider: "google-fonts",
+      format: "ttf" as const,
+      usagePolicy: "redistributable" as const,
+      missingCodepoints: [],
+      axes: [],
+    },
+  }
+  renderStep({
+    question: {
+      id: "font.heading",
+      kind: "pick-font",
+      promptPt: "Qual fonte é usada em títulos?",
+      candidates: [
+        { value: declared, score: 1, evidence: [] },
+        { value: resolved, score: 0.8, evidence: [] },
+      ],
+      required: true,
+    },
+  })
+
+  expect(screen.getAllByTestId("candidate-option")[0]).toHaveAttribute("aria-pressed", "true")
+  expect(screen.getAllByTestId("candidate-option")[1]).toHaveAttribute("aria-pressed", "false")
+})
+
+it("reinicia o estado transitório ao avançar para outro papel", async () => {
+  const common = {
+    draftId: "d1",
+    index: 0,
+    total: 2,
+    answers: {},
+    onConfirm: vi.fn(),
+    onSkip: vi.fn(),
+    onBack: vi.fn(),
+    onRestart: vi.fn(),
+  }
+  const heading: DraftQuestion = {
+    id: "font.heading",
+    kind: "pick-font",
+    promptPt: "Qual fonte é usada em títulos?",
+    candidates: [],
+    required: true,
+  }
+  const body: DraftQuestion = {
+    ...heading,
+    id: "font.body",
+    promptPt: "Qual fonte é usada em textos corridos?",
+  }
+  const { rerender } = render(
+    <ApiProvider client={fakeClient()}>
+      <QuestionStep {...common} question={heading} />
+    </ApiProvider>,
+  )
+  await userEvent.type(screen.getByLabelText("Ou digite o nome da fonte"), "Clash Display")
+
+  rerender(
+    <ApiProvider client={fakeClient()}>
+      <QuestionStep {...common} question={body} index={1} />
+    </ApiProvider>,
+  )
+
+  expect(screen.getByLabelText("Ou digite o nome da fonte")).toHaveValue("")
 })

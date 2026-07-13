@@ -47,6 +47,30 @@ it("compileDraft embrulha as respostas em values (forma do Plano 3)", async () =
   })
 })
 
+it("resolveDraftFont envia apenas papel tipográfico e nome informado", async () => {
+  const response = {
+    candidate: {
+      value: { family: "General Sans", weight: 400, style: "normal" },
+      score: 1,
+      evidence: [],
+    },
+    status: "vendor-hosted",
+  }
+  const fetchFn = vi.fn(async () => jsonResponse(response))
+  const client = createApiClient(fetchFn as unknown as typeof fetch)
+
+  await expect(client.resolveDraftFont("d1", "font.body", "General Sans")).resolves.toEqual(
+    response,
+  )
+  const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit]
+  expect(url).toBe("/v1/drafts/d1/fonts/resolve")
+  expect(init.method).toBe("POST")
+  expect(JSON.parse(init.body as string)).toEqual({
+    questionId: "font.body",
+    family: "General Sans",
+  })
+})
+
 it("createDocument posta o ContentSpec e devolve os checks do guard", async () => {
   const fetchFn = vi.fn(async () => jsonResponse({ documentId: "doc1", checks: [] }))
   const client = createApiClient(fetchFn as unknown as typeof fetch)

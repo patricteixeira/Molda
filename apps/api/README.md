@@ -115,6 +115,30 @@ python tools/sync_google_fonts_catalog.py `
   --output apps/api/src/brand_api/fonts/google-fonts.catalog.json
 ```
 
+Famílias ITF FFL do Fontshare usam outro modo de entrega. A API mantém apenas
+um snapshot reduzido de metadados (família, slug, licença e variantes), nunca
+bytes ou URLs CDN. O draft recebe uma referência `fontshare-external` e o app
+web, após permissão explícita para a conexão externa, carrega o CSS diretamente
+de `api.fontshare.com`. Essa permissão não é
+registrada como aceite jurídico da ITF FFL 1.0. A API e o worker continuam sem
+egress para esse provedor.
+
+Para atualizar administrativamente o catálogo de metadados:
+
+```powershell
+python tools/sync_fontshare_catalog.py
+```
+
+O wizard também aceita um nome digitado em
+`POST /v1/drafts/{draft_id}/fonts/resolve`. A rota reutiliza a variante já
+declarada quando possível, tenta o resolvedor de fonte aberta e, por último,
+escolhe a variante catalogada mais próxima do peso do papel e registra uma
+referência Fontshare exata quando aplicável. Nome não encontrado continua como
+escolha explícita, sem inventar arquivo ou família substituta. Cada draft aceita
+até oito novas escolhas manuais e quatro fontes adquiridas localmente; após o
+teto local, a escolha continua registrável sem novo download e Fontshare segue
+disponível como prévia externa quando houver variante exata.
+
 ## Fluxo completo (curl)
 
 O exemplo abaixo pressupõe um pacote `marca.zip`, a API e o worker já ativos. Todas as

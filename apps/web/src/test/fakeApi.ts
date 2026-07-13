@@ -181,6 +181,18 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
       diagnostics: [],
       ignoredEntries: [],
     })),
+    resolveDraftFont: vi.fn(async (_draftId, questionId, family) => ({
+      candidate: {
+        value: {
+          family,
+          weight: questionId === "font.heading" ? 700 : 400,
+          style: "normal",
+        },
+        score: 1,
+        evidence: [],
+      },
+      status: "not-found" as const,
+    })),
     compileDraft: vi.fn(async () => ({ brandRevisionId: FAKE_IR.revision.id })),
     getBrandRevision: vi.fn(async () => FAKE_IR),
     getKit: vi.fn(async () => [fakeStatementLayout()]),

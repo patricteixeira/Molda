@@ -103,6 +103,9 @@ class DraftQuestion(CamelModel):
     kind: Literal["pick-color", "pick-font", "confirm-logo"]
     prompt_pt: str
     candidates: list[Candidate]
+    # ``0`` mantém drafts persistidos antes deste campo compiláveis. Novos
+    # drafts sempre recebem a contagem explícita por ``_question``.
+    recommended_count: int = 0
     required: bool
 
 
@@ -120,13 +123,23 @@ def _question(
     candidates: list[Candidate],
     *,
     required: bool,
+    recommended_count: int | None = None,
 ) -> DraftQuestion:
-    """Monta uma pergunta com o prompt PT-BR exato da regra 9."""
+    """Monta uma pergunta e explicita o prefixo recomendado do ranking.
+
+    Quando ``recommended_count`` não é informado, todos os candidatos são
+    recomendações. Perguntas de cor usam o campo para separar a curadoria por
+    papel das demais cores encontradas no pacote sem esconder alternativas.
+    """
+    visible_recommendations = len(candidates) if recommended_count is None else recommended_count
+    if not 0 <= visible_recommendations <= len(candidates):
+        raise ValueError("recommended_count deve estar entre zero e o total de candidatos")
     return DraftQuestion(
         id=question_id,
         kind=kind,
         prompt_pt=_PROMPTS[question_id],
         candidates=candidates,
+        recommended_count=visible_recommendations,
         required=required,
     )
 
@@ -170,6 +183,7 @@ def _dtcg_colors_for_role(dtcg: dict[str, Candidate], role: str) -> list[Candida
     """Seleciona tokens DTCG cujo nome exprime o papel, sem perder ``brand`` como primária."""
     terms = {
         "primary": ("primary", "brand", "accent"),
+        "secondary": ("secondary",),
         "background": ("background", "surface", "paper", "canvas"),
         "text": ("text", "foreground", "ink"),
     }[role]
@@ -320,7 +334,12 @@ def _pdf_font_candidates(pdfs: list[Path]) -> list[Candidate]:
 
 def _declared_color_candidates(pdfs: list[Path]) -> dict[str, list[Candidate]]:
     """Funde por papel as declarações HEX encontradas em todos os PDFs."""
-    merged: dict[str, dict[str, Candidate]] = {"primary": {}, "background": {}, "text": {}}
+    merged: dict[str, dict[str, Candidate]] = {
+        "primary": {},
+        "background": {},
+        "text": {},
+        "all": {},
+    }
     for pdf in pdfs:
         for role, candidates in extract_pdf_declared_colors(pdf).items():
             for candidate in candidates:
@@ -397,7 +416,11 @@ def _unique_colors(*groups: list[Candidate]) -> list[Candidate]:
             output.append(copied)
             by_value[candidate.value] = copied
         else:
-            existing.evidence.extend(candidate.evidence)
+            existing.evidence.extend(
+                evidence.model_copy(deep=True)
+                for evidence in candidate.evidence
+                if evidence not in existing.evidence
+            )
     return output
 
 
@@ -571,8 +594,9 @@ def build_draft(package_dir: Path) -> BrandDraft:
 
     Perguntas obrigatórias: ``color.primary``, ``color.background``,
     ``color.text``, ``font.heading``, ``font.body`` e ``logo.primary``;
-    ``color.secondary`` é opcional e omitida quando não sobram candidatas
-    não-neutras além das oferecidas em ``color.primary``.
+    ``color.secondary`` é opcional e aparece quando o pacote oferece mais de
+    uma cor. Toda pergunta de cor preserva a curadoria por papel no prefixo
+    recomendado e oferece, depois dele, a paleta completa extraída.
     """
     pdfs = [
         *_files_with_suffixes(package_dir, {".pdf"}),
@@ -595,6 +619,7 @@ def build_draft(package_dir: Path) -> BrandDraft:
     colors = _color_candidates(pdfs, svg_logos, png_logos, dtcg_colors)
     declared_colors = _declared_color_candidates(pdfs)
     dtcg_primary = _dtcg_colors_for_role(dtcg, "primary")
+    dtcg_secondary = _dtcg_colors_for_role(dtcg, "secondary")
     dtcg_background = _dtcg_colors_for_role(dtcg, "background")
     dtcg_text = _dtcg_colors_for_role(dtcg, "text")
     non_neutral = [c for c in colors if not is_neutral(c.value)]
@@ -604,6 +629,45 @@ def build_draft(package_dir: Path) -> BrandDraft:
     dark_neutrals = [
         c for c in colors if is_neutral(c.value) and lightness(c.value) < _TEXT_MAX_LIGHTNESS
     ]
+
+    # Declarações semânticas podem existir apenas como texto (por exemplo,
+    # ``HEX #CA6B0B``), sem uma área pintada que o extrator visual encontre.
+    # Elas também pertencem à paleta completa oferecida em cada papel.
+    all_document_colors = _unique_colors(
+        colors,
+        declared_colors["all"],
+    )
+
+    primary_semantic = _unique_colors(
+        dtcg_primary,
+        declared_colors["primary"],
+    )
+    primary_recommended = (primary_semantic if primary_semantic else _unique_colors(non_neutral))[
+        :_PRIMARY_TOP
+    ]
+    primary_candidates = _unique_colors(primary_recommended, all_document_colors)
+
+    background_semantic = _unique_colors(
+        dtcg_background,
+        declared_colors["background"],
+    )
+    background_recommended = (
+        background_semantic
+        if background_semantic
+        else _plus_default(_unique_colors(light_neutrals), _DEFAULT_BACKGROUND)
+    )
+    background_candidates = _unique_colors(background_recommended, all_document_colors)
+
+    text_semantic = _unique_colors(
+        dtcg_text,
+        declared_colors["text"],
+    )
+    text_recommended = (
+        text_semantic
+        if text_semantic
+        else _plus_default(_unique_colors(dark_neutrals), _DEFAULT_TEXT)
+    )
+    text_candidates = _unique_colors(text_recommended, all_document_colors)
 
     file_fonts = _file_font_candidates(font_files, package_dir)
     bound_dtcg_fonts = _bind_dtcg_fonts_to_files(dtcg_fonts, file_fonts)
@@ -618,45 +682,75 @@ def build_draft(package_dir: Path) -> BrandDraft:
     ]
     pdf_fonts = _pdf_font_candidates(pdfs)
     declared_fonts = _declared_font_candidates(pdfs)
+    # Uma declaração semântica ou token DTCG exprime intenção. As fontes
+    # meramente usadas para compor o PDF (Arial, Segoe UI etc.) só entram como
+    # fallback quando o papel não possui nenhuma fonte declarada.
+    heading_pdf_fallback = (
+        []
+        if dtcg_heading_fonts or declared_fonts["heading"]
+        else _weight_partitioned(pdf_fonts, heavy_first=True)
+    )
+    body_pdf_fallback = (
+        []
+        if dtcg_body_fonts or declared_fonts["body"]
+        else _weight_partitioned(pdf_fonts, heavy_first=False)
+    )
     logo_candidates = _logo_candidates(svg_logos, png_logos, package_dir)
 
     questions = [
         _question(
             "color.primary",
             "pick-color",
-            _unique_colors(
-                dtcg_primary,
-                declared_colors["primary"],
-                non_neutral,
-            )[:_PRIMARY_TOP],
+            primary_candidates,
             required=True,
+            recommended_count=len(primary_recommended),
         ),
         _question(
             "color.background",
             "pick-color",
-            _plus_default(
-                _unique_colors(
-                    dtcg_background,
-                    declared_colors["background"],
-                    light_neutrals,
-                ),
-                _DEFAULT_BACKGROUND,
-            ),
+            background_candidates,
             required=True,
+            recommended_count=len(background_recommended),
         ),
         _question(
             "color.text",
             "pick-color",
-            _plus_default(
-                _unique_colors(dtcg_text, declared_colors["text"], dark_neutrals),
-                _DEFAULT_TEXT,
-            ),
+            text_candidates,
             required=True,
+            recommended_count=len(text_recommended),
         ),
     ]
-    secondary = non_neutral[_PRIMARY_TOP : _PRIMARY_TOP + _SECONDARY_TOP]
-    if secondary:  # regra 5: pergunta opcional é omitida quando não há candidatas
-        questions.append(_question("color.secondary", "pick-color", secondary, required=False))
+    if len(all_document_colors) > 1:
+        likely_primary = primary_candidates[0].value if primary_candidates else None
+        secondary_pool = [
+            candidate for candidate in all_document_colors if candidate.value != likely_primary
+        ]
+        secondary_semantic = _unique_colors(
+            [candidate for candidate in dtcg_secondary if candidate.value != likely_primary],
+            [
+                candidate
+                for candidate in declared_colors["primary"]
+                if candidate.value != likely_primary
+            ],
+        )
+        secondary_recommended = (
+            secondary_semantic
+            if secondary_semantic
+            else _unique_colors(
+                [candidate for candidate in non_neutral if candidate.value != likely_primary],
+                secondary_pool,
+            )
+        )[:_SECONDARY_TOP]
+        secondary_candidates = _unique_colors(secondary_recommended, all_document_colors)
+        questions.append(
+            _question(
+                "color.secondary",
+                "pick-color",
+                secondary_candidates,
+                required=False,
+                recommended_count=len(secondary_recommended),
+            )
+        )
     # Grupos de candidatos de fonte, do mais ao menos confiável (spec §5.3):
     # tokens DTCG (intenção declarada) > arquivos de fonte > citações em PDF.
     questions.append(
@@ -667,7 +761,7 @@ def build_draft(package_dir: Path) -> BrandDraft:
                 _weight_partitioned(dtcg_heading_fonts, heavy_first=True),
                 _weight_partitioned(file_fonts, heavy_first=True),
                 declared_fonts["heading"],
-                _weight_partitioned(pdf_fonts, heavy_first=True),
+                heading_pdf_fallback,
             ),
             required=True,
         )
@@ -680,7 +774,7 @@ def build_draft(package_dir: Path) -> BrandDraft:
                 _weight_partitioned(dtcg_body_fonts, heavy_first=False),
                 _weight_partitioned(file_fonts, heavy_first=False),
                 declared_fonts["body"],
-                _weight_partitioned(pdf_fonts, heavy_first=False),
+                body_pdf_fallback,
             ),
             required=True,
         )
@@ -698,7 +792,8 @@ def build_draft(package_dir: Path) -> BrandDraft:
                 *bound_dtcg_fonts,
                 *declared_fonts["heading"],
                 *declared_fonts["body"],
-                *pdf_fonts,
+                *heading_pdf_fallback,
+                *body_pdf_fallback,
             ],
             invalid_svg_logos,
             package_dir,

@@ -1,7 +1,12 @@
 import pymupdf
 
 from brand_runtime.intake.base import Candidate
-from brand_runtime.intake.draft import _bind_dtcg_fonts_to_files, _diagnostics, build_draft
+from brand_runtime.intake.draft import (
+    BrandDraft,
+    _bind_dtcg_fonts_to_files,
+    _diagnostics,
+    build_draft,
+)
 from brand_runtime.ir.models import Evidence
 
 
@@ -19,17 +24,69 @@ def test_question_set(brand_package):
         assert required in ids
 
 
+def test_legacy_draft_without_recommended_count_remains_valid(brand_package):
+    payload = build_draft(brand_package).model_dump(mode="json", by_alias=True)
+    for question in payload["questions"]:
+        question.pop("recommendedCount")
+
+    restored = BrandDraft.model_validate(payload)
+
+    assert all(question.recommended_count == 0 for question in restored.questions)
+
+
 def test_primary_candidates_are_non_neutral_and_svg_weighted(brand_package):
     draft = build_draft(brand_package)
     q = next(q for q in draft.questions if q.id == "color.primary")
     assert q.candidates[0].value == "#1A4D8F"  # aparece no SVG (peso 3) e no PDF
-    assert all(c.value != "#333333" for c in q.candidates)  # neutra não entra em primary
+    assert all(c.value != "#333333" for c in q.candidates[: q.recommended_count])
+    assert any(c.value == "#333333" for c in q.candidates[q.recommended_count :])
+    assert q.model_dump(by_alias=True)["recommendedCount"] == q.recommended_count
 
 
 def test_background_has_white_default_last(brand_package):
     draft = build_draft(brand_package)
     q = next(q for q in draft.questions if q.id == "color.background")
-    assert q.candidates[-1].value == "#FFFFFF"
+    assert q.candidates[q.recommended_count - 1].value == "#FFFFFF"
+    assert {"#1A4D8F", "#F4A300", "#333333"}.issubset(
+        {candidate.value for candidate in q.candidates}
+    )
+
+
+def test_every_color_role_offers_the_complete_extracted_palette(brand_package):
+    draft = build_draft(brand_package)
+    questions = {question.id: question for question in draft.questions}
+    extracted = {"#1A4D8F", "#F4A300", "#333333"}
+
+    for question_id in ("color.primary", "color.background", "color.text", "color.secondary"):
+        assert extracted.issubset(
+            {candidate.value for candidate in questions[question_id].candidates}
+        )
+        for candidate in questions[question_id].candidates:
+            serialized_evidence = [
+                evidence.model_dump(mode="json") for evidence in candidate.evidence
+            ]
+            assert len(serialized_evidence) == len(
+                {str(sorted(evidence.items())) for evidence in serialized_evidence}
+            )
+
+
+def test_secondary_is_offered_for_a_two_color_palette(tmp_path):
+    package = tmp_path / "two-color-package"
+    logos = package / "assets" / "logos"
+    logos.mkdir(parents=True)
+    (logos / "logo.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        '<path fill="#1A4D8F" d="M0 0h50v100H0z"/>'
+        '<path fill="#F4A300" d="M50 0h50v100H50z"/></svg>',
+        encoding="utf-8",
+    )
+
+    draft = build_draft(package)
+    secondary = next(question for question in draft.questions if question.id == "color.secondary")
+
+    assert secondary.required is False
+    assert secondary.recommended_count == 1
+    assert {candidate.value for candidate in secondary.candidates} == {"#1A4D8F", "#F4A300"}
 
 
 def test_heading_candidates_prefer_font_files(brand_package):
@@ -165,7 +222,8 @@ def test_semantic_pdf_declarations_drive_color_and_font_roles(tmp_path):
         page.insert_textbox(
             pymupdf.Rect(40, 40, 500, 700),
             "HEX #FCFBF8\nESTRUTURA & IMPACTO\nClash Display\nAa Gg\n"
-            "ACENTO AUTORAL\nFraunces\nAa Gg\nLEITURA & UI\nGeneral Sans\nAa Gg",
+            "ACENTO AUTORAL\nFraunces\nAa Gg\nLEITURA & UI\nGeneral Sans\nAa Gg\n"
+            "FUNCIONAIS\nSucesso #4F7D5F\nErro #B1492F",
             fontsize=12,
         )
         doc.save(package / "manual.pdf")
@@ -176,9 +234,63 @@ def test_semantic_pdf_declarations_drive_color_and_font_roles(tmp_path):
     assert questions["color.primary"].candidates[0].value == "#1F232A"
     assert questions["color.background"].candidates[0].value == "#FCFBF8"
     assert questions["color.text"].candidates[0].value == "#1F232A"
+    assert [
+        candidate.value
+        for candidate in questions["color.primary"].candidates[
+            : questions["color.primary"].recommended_count
+        ]
+    ] == ["#1F232A", "#CA6B0B"]
+    assert [
+        candidate.value
+        for candidate in questions["color.background"].candidates[
+            : questions["color.background"].recommended_count
+        ]
+    ] == ["#FCFBF8"]
+    assert [
+        candidate.value
+        for candidate in questions["color.text"].candidates[
+            : questions["color.text"].recommended_count
+        ]
+    ] == ["#1F232A"]
+    assert [
+        candidate.value
+        for candidate in questions["color.secondary"].candidates[
+            : questions["color.secondary"].recommended_count
+        ]
+    ] == ["#CA6B0B"]
+    for question_id in ("color.primary", "color.background", "color.text", "color.secondary"):
+        assert {"#4F7D5F", "#B1492F"}.issubset(
+            {candidate.value for candidate in questions[question_id].candidates}
+        )
     assert questions["font.heading"].candidates[0].value["family"] == "Clash Display"
     assert questions["font.heading"].candidates[1].value["family"] == "Fraunces"
     assert questions["font.body"].candidates[0].value["family"] == "General Sans"
+    assert [candidate.value["family"] for candidate in questions["font.heading"].candidates] == [
+        "Clash Display",
+        "Fraunces",
+    ]
+    assert [candidate.value["family"] for candidate in questions["font.body"].candidates] == [
+        "General Sans"
+    ]
+    missing_targets = {
+        diagnostic.target
+        for diagnostic in draft.diagnostics
+        if diagnostic.code == "FONT_FILE_MISSING"
+    }
+    assert missing_targets == {"Clash Display", "Fraunces", "General Sans"}
+
+
+def test_observed_pdf_fonts_remain_fallback_without_semantic_declaration(brand_package):
+    draft = build_draft(brand_package)
+    heading = next(question for question in draft.questions if question.id == "font.heading")
+    body = next(question for question in draft.questions if question.id == "font.body")
+
+    assert {"Times", "Helvetica"}.issubset(
+        {candidate.value["family"] for candidate in heading.candidates}
+    )
+    assert {"Times", "Helvetica"}.issubset(
+        {candidate.value["family"] for candidate in body.candidates}
+    )
 
 
 def test_external_style_svg_is_diagnostic_and_not_a_logo_candidate(tmp_path):

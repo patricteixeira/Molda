@@ -1,11 +1,11 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, it, vi } from "vitest"
 import { ApiProvider } from "../../api/context"
 import type { Candidate } from "../../api/types"
 import { fakeClient } from "../../test/fakeApi"
 import { ColorOptions } from "./ColorOptions"
-import { FontOptions } from "./FontOptions"
+import { FontOptions, safeFontshareStylesheetUrl } from "./FontOptions"
 import { LogoOptions } from "./LogoOptions"
 
 const candidate = (value: unknown): Candidate => ({ value, score: 1, evidence: [] })
@@ -27,11 +27,58 @@ it("cores são amostras clicáveis, sem hex visível", async () => {
   expect(onSelect).toHaveBeenCalledWith("#F4A300")
 })
 
-it("fontes mostram amostra na própria família e peso", () => {
+it("cores abrem com a curadoria e permitem revelar a paleta inteira", async () => {
+  const colors = ["#1A4D8F", "#F4A300", "#333333", "#FFFFFF"].map(candidate)
+  render(
+    <ColorOptions
+      candidates={colors}
+      recommendedCount={2}
+      selected={null}
+      onSelect={vi.fn()}
+    />,
+  )
+
+  expect(screen.getAllByTestId("candidate-option")).toHaveLength(2)
+  const toggle = screen.getByRole("button", { name: "Ver paleta completa (4)" })
+  expect(toggle).toHaveAttribute("aria-expanded", "false")
+
+  await userEvent.click(toggle)
+
+  const revealed = screen.getAllByTestId("candidate-option")
+  expect(revealed).toHaveLength(4)
+  expect(revealed[2]).toHaveFocus()
+  expect(
+    screen.getByRole("button", { name: "Mostrar apenas as recomendadas" }),
+  ).toHaveAttribute("aria-expanded", "true")
+})
+
+it("mantém visível uma cor escolhida fora das recomendações ao recolher a paleta", async () => {
+  const colors = ["#1A4D8F", "#F4A300", "#333333", "#FFFFFF"].map(candidate)
+  render(
+    <ColorOptions
+      candidates={colors}
+      recommendedCount={2}
+      selected="#FFFFFF"
+      onSelect={vi.fn()}
+    />,
+  )
+
+  expect(screen.getAllByTestId("candidate-option")).toHaveLength(4)
+  await userEvent.click(screen.getByRole("button", { name: "Mostrar apenas as recomendadas" }))
+
+  const visibleValues = screen
+    .getAllByTestId("candidate-option")
+    .map((option) => option.getAttribute("data-value"))
+  expect(visibleValues).toEqual(["#1A4D8F", "#F4A300", "#FFFFFF"])
+  expect(screen.getByText("Recomendadas e sua escolha")).toBeInTheDocument()
+})
+
+it("fontes sem arquivo não fingem uma prévia exata", () => {
   render(
     <ApiProvider client={fakeClient()}>
       <FontOptions
         draftId="d1"
+        questionId="font.heading"
         candidates={[
           candidate({ family: "Fixture Sans", weight: 700, style: "normal" }),
         ]}
@@ -41,16 +88,19 @@ it("fontes mostram amostra na própria família e peso", () => {
     </ApiProvider>,
   )
   const sample = screen.getByTestId("font-sample")
-  expect(sample.style.fontFamily).toContain("Fixture Sans")
+  expect(sample.style.fontFamily).toBe("sans-serif")
   expect(sample).toHaveStyle({ fontWeight: "700" })
-  expect(screen.getByText("Família citada no manual · prévia aproximada")).toBeInTheDocument()
+  expect(
+    screen.getByText("Família identificada no manual · amostra em fonte de sistema"),
+  ).toBeInTheDocument()
 })
 
-it("identifica quando o arquivo da fonte está incluído", () => {
+it("não promete prévia exata quando o arquivo incluído não pode ser carregado", async () => {
   render(
     <ApiProvider client={fakeClient()}>
       <FontOptions
         draftId="d1"
+        questionId="font.heading"
         candidates={[
           candidate({ family: "Fixture Sans", weight: 700, style: "normal", path: "fonts/fixture.ttf" }),
         ]}
@@ -60,14 +110,47 @@ it("identifica quando o arquivo da fonte está incluído", () => {
     </ApiProvider>,
   )
 
-  expect(screen.getByText("Arquivo da fonte incluído")).toBeInTheDocument()
+  expect(await screen.findByText("Arquivo incluído · prévia local indisponível")).toBeInTheDocument()
 })
 
-it("explica quando a fonte foi incorporada automaticamente", () => {
+it("distingue fontes da mesma variante quando somente uma possui arquivo", async () => {
+  const onSelect = vi.fn()
+  const unresolved = candidate({ family: "Fixture Sans", weight: 700, style: "normal" })
+  const packaged = candidate({
+    family: "Fixture Sans",
+    weight: 700,
+    style: "normal",
+    path: "fonts/fixture-display.ttf",
+  })
   render(
     <ApiProvider client={fakeClient()}>
       <FontOptions
         draftId="d1"
+        questionId="font.heading"
+        candidates={[unresolved, packaged]}
+        selected={packaged.value}
+        onSelect={onSelect}
+      />
+    </ApiProvider>,
+  )
+
+  const options = screen.getAllByTestId("candidate-option")
+  expect(options).toHaveLength(2)
+  expect(options[0]).toHaveAttribute("aria-pressed", "false")
+  expect(options[1]).toHaveAttribute("aria-pressed", "true")
+  expect(screen.getAllByTestId("font-sample")[0].style.fontFamily).toBe("sans-serif")
+  expect(screen.getAllByTestId("font-sample")[1].style.fontFamily).toBe("sans-serif")
+
+  await userEvent.click(options[0])
+  expect(onSelect).toHaveBeenCalledWith(unresolved.value)
+})
+
+it("explica quando uma fonte Google incorporada está indisponível na prévia", async () => {
+  render(
+    <ApiProvider client={fakeClient()}>
+      <FontOptions
+        draftId="d1"
+        questionId="font.heading"
         candidates={[
           candidate({
             family: "Fraunces",
@@ -89,9 +172,270 @@ it("explica quando a fonte foi incorporada automaticamente", () => {
     </ApiProvider>,
   )
 
+  expect(await screen.findByText("Fonte incorporada · prévia local indisponível")).toBeInTheDocument()
+})
+
+it("só aplica e anuncia a fonte local depois que o arquivo carrega", async () => {
+  const originalFontFace = Object.getOwnPropertyDescriptor(globalThis, "FontFace")
+  const originalFonts = Object.getOwnPropertyDescriptor(document, "fonts")
+  const fontSet = { add: vi.fn(), delete: vi.fn() }
+  class LoadedFontFace {
+    status = "loaded"
+    load = vi.fn(async () => this)
+  }
+  Object.defineProperty(globalThis, "FontFace", {
+    configurable: true,
+    value: LoadedFontFace,
+  })
+  Object.defineProperty(document, "fonts", { configurable: true, value: fontSet })
+  let unmount: () => void = () => undefined
+
+  try {
+    ;({ unmount } = render(
+      <ApiProvider client={fakeClient()}>
+        <FontOptions
+          draftId="d1"
+          questionId="font.heading"
+          candidates={[
+            candidate({
+              family: "Fraunces",
+              weight: 700,
+              style: "normal",
+              path: "resolved-fonts/fraunces.ttf",
+              resource: {
+                provider: "google-fonts",
+                format: "ttf",
+                usagePolicy: "redistributable",
+                missingCodepoints: [],
+                axes: [],
+              },
+            }),
+          ]}
+          selected={null}
+          onSelect={vi.fn()}
+        />
+      </ApiProvider>,
+    ))
+
+    expect(await screen.findByText("Prévia exata incorporada · Google Fonts")).toBeInTheDocument()
+    expect(screen.getByTestId("font-sample").style.fontFamily).toContain("br-preview-0")
+    expect(fontSet.add).toHaveBeenCalledOnce()
+  } finally {
+    unmount()
+    if (originalFontFace) Object.defineProperty(globalThis, "FontFace", originalFontFace)
+    else Reflect.deleteProperty(globalThis, "FontFace")
+    if (originalFonts) Object.defineProperty(document, "fonts", originalFonts)
+    else Reflect.deleteProperty(document, "fonts")
+  }
+})
+
+it("permite digitar uma família e seleciona o resultado resolvido", async () => {
+  const onSelect = vi.fn()
+  const resolveDraftFont = vi.fn(async () => ({
+    candidate: {
+      value: { family: "General Sans", weight: 400, style: "normal" },
+      score: 1,
+      evidence: [],
+    },
+    status: "not-found" as const,
+  }))
+  render(
+    <ApiProvider client={fakeClient({ resolveDraftFont })}>
+      <FontOptions
+        draftId="d1"
+        questionId="font.body"
+        candidates={[]}
+        selected={null}
+        onSelect={onSelect}
+      />
+    </ApiProvider>,
+  )
+
+  await userEvent.type(screen.getByLabelText("Ou digite o nome da fonte"), "  General   Sans  ")
+  await userEvent.click(screen.getByRole("button", { name: "Usar esta fonte" }))
+
+  expect(resolveDraftFont).toHaveBeenCalledWith("d1", "font.body", "General Sans")
+  expect(onSelect).toHaveBeenCalledWith({ family: "General Sans", weight: 400, style: "normal" })
+  expect(screen.getByRole("status")).toHaveTextContent("O nome foi registrado")
+})
+
+it("aceita somente a URL CSS oficial e estritamente formada do Fontshare", () => {
+  const resource = {
+    provider: "fontshare-external",
+    format: "woff2" as const,
+    upstreamRef:
+      "https://api.fontshare.com/v2/css?f[]=general-sans@400&display=swap",
+    usagePolicy: "restricted" as const,
+    missingCodepoints: [],
+    axes: [],
+  }
+  expect(safeFontshareStylesheetUrl({ family: "General Sans", resource })).toContain(
+    "api.fontshare.com/v2/css",
+  )
   expect(
-    screen.getByText("Identificada e incorporada automaticamente · Google Fonts"),
-  ).toBeInTheDocument()
+    safeFontshareStylesheetUrl({
+      family: "General Sans",
+      resource: { ...resource, upstreamRef: "https://malicioso.invalid/font.css" },
+    }),
+  ).toBeNull()
+  expect(
+    safeFontshareStylesheetUrl({
+      family: "General Sans",
+      resource: {
+        ...resource,
+        upstreamRef:
+          "https://usuario@api.fontshare.com/v2/css?f[]=general-sans@400&display=swap",
+      },
+    }),
+  ).toBeNull()
+  expect(
+    safeFontshareStylesheetUrl({
+      family: "General Sans",
+      resource: {
+        ...resource,
+        upstreamRef:
+          "https://api.fontshare.com/v2/css?f[]=general-sans@400&display=swap&display=swap",
+      },
+    }),
+  ).toBeNull()
+})
+
+it("só chama a prévia Fontshare de oficial depois da permissão e carregamento real", async () => {
+  const original = Object.getOwnPropertyDescriptor(document, "fonts")
+  const fontSet = {
+    add: vi.fn(),
+    delete: vi.fn(),
+    load: vi.fn(async () => [{ status: "loaded" } as FontFace]),
+    check: vi.fn(() => true),
+  }
+  Object.defineProperty(document, "fonts", { configurable: true, value: fontSet })
+  const external = candidate({
+    family: "General Sans",
+    weight: 400,
+    style: "normal",
+    resource: {
+      provider: "fontshare-external",
+      format: "woff2",
+      upstreamRef:
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400&display=swap",
+      licenseId: "ITF-FFL-1.0",
+      usagePolicy: "restricted",
+      missingCodepoints: [],
+      axes: [],
+    },
+  })
+
+  try {
+    render(
+      <ApiProvider client={fakeClient()}>
+        <FontOptions
+          draftId="d1"
+          questionId="font.body"
+          candidates={[external]}
+          selected={external.value}
+          onSelect={vi.fn()}
+        />
+      </ApiProvider>,
+    )
+    expect(screen.getByTestId("font-sample").style.fontFamily).toBe("sans-serif")
+    expect(
+      screen.getByText("Fonte identificada · prévia oficial disponível no Fontshare"),
+    ).toBeInTheDocument()
+
+    await userEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Permitir prévias oficiais do Fontshare nesta etapa",
+      }),
+    )
+    const stylesheet = await waitFor(() => {
+      const link = document.head.querySelector<HTMLLinkElement>(
+        'link[data-font-provider="fontshare"]',
+      )
+      expect(link).not.toBeNull()
+      return link as HTMLLinkElement
+    })
+    expect(stylesheet.referrerPolicy).toBe("no-referrer")
+    fireEvent.load(stylesheet)
+
+    expect(await screen.findByText("Prévia oficial carregada · Fontshare")).toBeInTheDocument()
+    expect(screen.getByTestId("font-sample").style.fontFamily).toContain("General Sans")
+    expect(fontSet.load).toHaveBeenCalledWith(
+      '400 16px "General Sans"',
+      "A tipografia da sua marca",
+    )
+
+    await userEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Permitir prévias oficiais do Fontshare nesta etapa",
+      }),
+    )
+    expect(screen.getByTestId("font-sample").style.fontFamily).toBe("sans-serif")
+    expect(
+      screen.getByText("Fonte identificada · prévia oficial disponível no Fontshare"),
+    ).toBeInTheDocument()
+  } finally {
+    if (original) Object.defineProperty(document, "fonts", original)
+    else Reflect.deleteProperty(document, "fonts")
+  }
+})
+
+it("não declara uma prévia Fontshare exata quando nenhuma face foi carregada", async () => {
+  const original = Object.getOwnPropertyDescriptor(document, "fonts")
+  const fontSet = {
+    add: vi.fn(),
+    delete: vi.fn(),
+    load: vi.fn(async () => [] as FontFace[]),
+    check: vi.fn(() => true),
+  }
+  Object.defineProperty(document, "fonts", { configurable: true, value: fontSet })
+  const external = candidate({
+    family: "General Sans",
+    weight: 400,
+    style: "normal",
+    resource: {
+      provider: "fontshare-external",
+      format: "woff2",
+      upstreamRef: "https://api.fontshare.com/v2/css?f[]=general-sans@400&display=swap",
+      usagePolicy: "restricted",
+      missingCodepoints: [],
+      axes: [],
+    },
+  })
+
+  try {
+    render(
+      <ApiProvider client={fakeClient()}>
+        <FontOptions
+          draftId="d1"
+          questionId="font.body"
+          candidates={[external]}
+          selected={external.value}
+          onSelect={vi.fn()}
+        />
+      </ApiProvider>,
+    )
+    await userEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Permitir prévias oficiais do Fontshare nesta etapa",
+      }),
+    )
+    const stylesheet = await waitFor(() => {
+      const link = document.head.querySelector<HTMLLinkElement>(
+        'link[data-font-provider="fontshare"]',
+      )
+      expect(link).not.toBeNull()
+      return link as HTMLLinkElement
+    })
+    fireEvent.load(stylesheet)
+
+    expect(
+      await screen.findByText("Fonte identificada · origem Fontshare indisponível"),
+    ).toBeInTheDocument()
+    expect(screen.getByTestId("font-sample").style.fontFamily).toBe("sans-serif")
+  } finally {
+    if (original) Object.defineProperty(document, "fonts", original)
+    else Reflect.deleteProperty(document, "fonts")
+  }
 })
 
 it("logo é renderizado de verdade a partir do draft", () => {

@@ -19,6 +19,7 @@ export interface DraftQuestion {
   kind: "pick-color" | "pick-font" | "confirm-logo"
   promptPt: string
   candidates: Candidate[]
+  recommendedCount?: number
   required: boolean
 }
 
@@ -149,6 +150,18 @@ export interface ImportResult {
   ignoredEntries: string[]
 }
 
+export type FontResolutionStatus =
+  | "local-ready"
+  | "vendor-hosted"
+  | "not-found"
+  | "capacity-reached"
+  | "failed"
+
+export interface FontResolutionResult {
+  candidate: Candidate
+  status: FontResolutionStatus
+}
+
 export interface DocumentResult {
   documentId: string
   checks: GuardCheck[]
@@ -161,6 +174,11 @@ export interface AssetUpload {
 
 export interface ApiClient {
   importBrandPackage(files: File[]): Promise<ImportResult>
+  resolveDraftFont(
+    draftId: string,
+    questionId: "font.heading" | "font.body",
+    family: string,
+  ): Promise<FontResolutionResult>
   compileDraft(
     draftId: string,
     answers: Record<string, unknown>,
