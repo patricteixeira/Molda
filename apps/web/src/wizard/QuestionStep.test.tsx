@@ -27,6 +27,7 @@ function renderStep(overrides: Partial<Parameters<typeof QuestionStep>[0]> = {})
     onConfirm: vi.fn(),
     onSkip: vi.fn(),
     onBack: vi.fn(),
+    onRestart: vi.fn(),
     ...overrides,
   }
   render(
@@ -51,10 +52,20 @@ it("mostra o prompt do servidor, o progresso e confirma a seleção", async () =
   expect(props.onConfirm).toHaveBeenCalledWith("#1A4D8F")
 })
 
-it("pular só existe em pergunta opcional; voltar só depois da primeira", () => {
+it("pergunta sem candidatos oferece retorno aos materiais", async () => {
+  const props = renderStep({ question: { ...question, candidates: [] } })
+
+  expect(screen.getByRole("alert")).toHaveTextContent("não trouxe uma opção válida")
+  expect(screen.getByTestId("wizard-confirmar")).toBeDisabled()
+  await userEvent.click(screen.getByRole("button", { name: "Voltar aos materiais" }))
+  expect(props.onRestart).toHaveBeenCalledOnce()
+})
+
+it("pular só existe em pergunta opcional; a primeira permite trocar os materiais", () => {
   renderStep()
   expect(screen.queryByTestId("wizard-pular")).not.toBeInTheDocument()
   expect(screen.queryByTestId("wizard-voltar")).not.toBeInTheDocument()
+  expect(screen.getByTestId("wizard-trocar-materiais")).toHaveTextContent("Trocar materiais")
 })
 
 it("pergunta opcional oferece 'A marca não tem'", async () => {

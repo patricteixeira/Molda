@@ -75,6 +75,11 @@ export function FontOptions({ draftId, candidates, selected, onSelect }: Props) 
               <small>A tipografia da sua marca</small>
             </span>
             <span className="font-name">{family}</span>
+            <span className="font-source">
+              {font.path
+                ? "Arquivo da fonte incluído"
+                : "Família citada no manual · prévia aproximada"}
+            </span>
           </button>
         )
       })}

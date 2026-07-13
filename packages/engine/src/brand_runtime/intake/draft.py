@@ -17,6 +17,8 @@ passando pelo wizard.
 
 from __future__ import annotations
 
+import hashlib
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -26,10 +28,14 @@ from brand_runtime.colors import dedupe_colors, delta_e, is_neutral, lightness
 from brand_runtime.intake.base import Candidate
 from brand_runtime.intake.dtcg import load_dtcg
 from brand_runtime.intake.fonts import introspect_font
-from brand_runtime.intake.pdf_colors import extract_pdf_colors
-from brand_runtime.intake.pdf_fonts import extract_pdf_fonts
+from brand_runtime.intake.pdf_colors import extract_pdf_colors, extract_pdf_declared_colors
+from brand_runtime.intake.pdf_fonts import extract_pdf_declared_fonts, extract_pdf_fonts
 from brand_runtime.intake.raster_logo import extract_raster_colors
-from brand_runtime.intake.svg_logo import extract_svg_colors, svg_canvas_size
+from brand_runtime.intake.svg_logo import (
+    extract_svg_colors,
+    svg_canvas_size,
+    svg_external_style_missing,
+)
 from brand_runtime.ir.models import CamelModel, Diagnostic, Evidence
 
 # Pesos por fonte de evidência (regra 1): tokens DTCG são intenção declarada,
@@ -154,6 +160,44 @@ def _is_dtcg_backed(candidate: Candidate) -> bool:
     return any(ev.source_type == "dtcg-tokens" for ev in candidate.evidence)
 
 
+def _semantic_key_parts(key: str) -> set[str]:
+    """Separa caminhos DTCG incluindo camelCase, kebab-case e snake_case."""
+    expanded = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", key)
+    return {part.casefold() for part in re.split(r"[^A-Za-z0-9]+", expanded) if part}
+
+
+def _dtcg_colors_for_role(dtcg: dict[str, Candidate], role: str) -> list[Candidate]:
+    """Seleciona tokens DTCG cujo nome exprime o papel, sem perder ``brand`` como primária."""
+    terms = {
+        "primary": ("primary", "brand", "accent"),
+        "background": ("background", "surface", "paper", "canvas"),
+        "text": ("text", "foreground", "ink"),
+    }[role]
+    return [
+        candidate
+        for key, candidate in dtcg.items()
+        if key.startswith("color.") and any(term in _semantic_key_parts(key) for term in terms)
+    ]
+
+
+def _dtcg_fonts_for_role(dtcg: dict[str, Candidate], role: str) -> list[Candidate]:
+    """Respeita ``font.heading``/``font.body`` e compartilha só tokens não tipados."""
+    role_terms = {
+        "heading": {"heading", "title", "display"},
+        "body": {"body", "text", "reading", "paragraph"},
+    }
+    own = role_terms[role]
+    opposite = set().union(*(terms for name, terms in role_terms.items() if name != role))
+    selected: list[Candidate] = []
+    for key, candidate in dtcg.items():
+        if not key.startswith("font."):
+            continue
+        parts = _semantic_key_parts(key)
+        if parts & own or not parts & (own | opposite):
+            selected.append(candidate)
+    return selected
+
+
 def _color_candidates(
     pdfs: list[Path],
     svg_logos: list[Path],
@@ -210,8 +254,14 @@ def _plus_default(candidates: list[Candidate], default_hex: str) -> list[Candida
     Se a cor padrão também foi extraída dos materiais, a evidência extraída é
     herdada pelo candidato padrão em vez de duplicar o swatch na pergunta.
     """
+    matching = [candidate for candidate in candidates if candidate.value == default_hex]
     kept = [c for c in candidates if c.value != default_hex]
-    inherited = [ev for c in candidates if c.value == default_hex for ev in c.evidence]
+    inherited = [ev for candidate in matching for ev in candidate.evidence]
+    authoritative = next((candidate for candidate in matching if _is_dtcg_backed(candidate)), None)
+    if authoritative is not None:
+        selected = authoritative.model_copy(deep=True)
+        selected.evidence = inherited
+        return [selected, *kept]
     default = Candidate(
         value=default_hex,
         score=_DEFAULT_SCORE,
@@ -268,6 +318,110 @@ def _pdf_font_candidates(pdfs: list[Path]) -> list[Candidate]:
     return candidates
 
 
+def _declared_color_candidates(pdfs: list[Path]) -> dict[str, list[Candidate]]:
+    """Funde por papel as declarações HEX encontradas em todos os PDFs."""
+    merged: dict[str, dict[str, Candidate]] = {"primary": {}, "background": {}, "text": {}}
+    for pdf in pdfs:
+        for role, candidates in extract_pdf_declared_colors(pdf).items():
+            for candidate in candidates:
+                existing = merged[role].get(candidate.value)
+                if existing is None:
+                    merged[role][candidate.value] = candidate.model_copy(deep=True)
+                else:
+                    existing.score += candidate.score
+                    existing.evidence.extend(candidate.evidence)
+    return {
+        role: sorted(candidates.values(), key=lambda candidate: candidate.score, reverse=True)
+        for role, candidates in merged.items()
+    }
+
+
+def _declared_font_candidates(pdfs: list[Path]) -> dict[str, list[Candidate]]:
+    """Funde famílias declaradas, preservando a primeira ordem editorial."""
+    merged: dict[str, dict[tuple[str, int, str], Candidate]] = {"heading": {}, "body": {}}
+    for pdf in pdfs:
+        for role, candidates in extract_pdf_declared_fonts(pdf).items():
+            for candidate in candidates:
+                value = candidate.value
+                key = (value["family"].casefold(), value["weight"], value["style"])
+                existing = merged[role].get(key)
+                if existing is None:
+                    merged[role][key] = candidate.model_copy(deep=True)
+                else:
+                    existing.score += candidate.score
+                    existing.evidence.extend(candidate.evidence)
+    return {role: list(candidates.values()) for role, candidates in merged.items()}
+
+
+def _bind_dtcg_fonts_to_files(
+    dtcg_candidates: list[Candidate], file_candidates: list[Candidate]
+) -> list[Candidate]:
+    """Liga intenção DTCG ao binário local compatível sem perder sua autoridade."""
+    by_identity: dict[tuple[str, int, str], Candidate] = {}
+    for candidate in file_candidates:
+        value = candidate.value
+        identity = (
+            value["family"].strip().casefold(),
+            value["weight"],
+            value.get("style", "normal"),
+        )
+        by_identity.setdefault(identity, candidate)
+
+    bound: list[Candidate] = []
+    for candidate in dtcg_candidates:
+        value = candidate.value
+        identity = (
+            value["family"].strip().casefold(),
+            value["weight"],
+            value.get("style", "normal"),
+        )
+        file_candidate = by_identity.get(identity)
+        copied = candidate.model_copy(deep=True)
+        if file_candidate is not None:
+            copied.value = {**copied.value, "path": file_candidate.value["path"]}
+            copied.evidence.extend(item.model_copy(deep=True) for item in file_candidate.evidence)
+        bound.append(copied)
+    return bound
+
+
+def _unique_colors(*groups: list[Candidate]) -> list[Candidate]:
+    """Concatena rankings sem repetir o mesmo HEX, preservando a autoridade."""
+    output: list[Candidate] = []
+    by_value: dict[str, Candidate] = {}
+    for candidate in (item for group in groups for item in group):
+        existing = by_value.get(candidate.value)
+        if existing is None:
+            copied = candidate.model_copy(deep=True)
+            output.append(copied)
+            by_value[candidate.value] = copied
+        else:
+            existing.evidence.extend(candidate.evidence)
+    return output
+
+
+def _font_key(candidate: Candidate) -> tuple[str, int, str, str | None]:
+    value = candidate.value
+    return (
+        value["family"].casefold(),
+        value["weight"],
+        value.get("style", "normal"),
+        value.get("path"),
+    )
+
+
+def _unique_fonts(*groups: list[Candidate]) -> list[Candidate]:
+    """Concatena rankings de fonte sem repetir família/peso/estilo."""
+    output: list[Candidate] = []
+    seen: set[tuple[str, int, str, str | None]] = set()
+    for candidate in (item for group in groups for item in group):
+        key = _font_key(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(candidate)
+    return output
+
+
 def _weight_partitioned(candidates: list[Candidate], *, heavy_first: bool) -> list[Candidate]:
     """Ordena um grupo de fontes: partição por peso, depois score desc (regras 6 e 7)."""
     heavy = sorted(
@@ -283,6 +437,19 @@ def _weight_partitioned(candidates: list[Candidate], *, heavy_first: bool) -> li
     return [*heavy, *light] if heavy_first else [*light, *heavy]
 
 
+def _dedupe_paths_by_hash(paths: list[Path]) -> list[Path]:
+    """Preserva o primeiro arquivo de cada conteúdo binário idêntico."""
+    unique: list[Path] = []
+    seen_hashes: set[str] = set()
+    for path in paths:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest in seen_hashes:
+            continue
+        seen_hashes.add(digest)
+        unique.append(path)
+    return unique
+
+
 def _logo_candidates(
     svg_logos: list[Path], png_logos: list[Path], package_dir: Path
 ) -> list[Candidate]:
@@ -291,12 +458,20 @@ def _logo_candidates(
     SVGs são ordenados pela área do canvas (``svg_canvas_size``) e PNGs pela
     área em pixels; o ``value`` é o path relativo ao pacote (POSIX).
     """
+    unique_svg = _dedupe_paths_by_hash(svg_logos)
+    svg_hashes = {hashlib.sha256(path.read_bytes()).hexdigest() for path in unique_svg}
+    unique_png = [
+        path
+        for path in _dedupe_paths_by_hash(png_logos)
+        if hashlib.sha256(path.read_bytes()).hexdigest() not in svg_hashes
+    ]
+
     svg_entries: list[tuple[Path, float, str, float]] = []
-    for path in svg_logos:
+    for path in unique_svg:
         width, height = svg_canvas_size(path)
         svg_entries.append((path, width * height, "svg-asset", _SVG_LOGO_CONFIDENCE))
     png_entries: list[tuple[Path, float, str, float]] = []
-    for path in png_logos:
+    for path in unique_png:
         with Image.open(path) as img:
             area = float(img.width * img.height)
         png_entries.append((path, area, "raster-asset", _RASTER_LOGO_CONFIDENCE))
@@ -322,6 +497,8 @@ def _diagnostics(
     logo_candidates: list[Candidate],
     file_fonts: list[Candidate],
     referenced_fonts: list[Candidate],
+    invalid_svg_logos: list[Path],
+    package_dir: Path,
 ) -> list[Diagnostic]:
     """Diagnósticos de lacunas do pacote (regra 10) — códigos exatos, mensagens PT-BR.
 
@@ -329,6 +506,18 @@ def _diagnostics(
     cada uma sem arquivo correspondente gera um ``FONT_FILE_MISSING``.
     """
     diagnostics: list[Diagnostic] = []
+    for path in invalid_svg_logos:
+        diagnostics.append(
+            Diagnostic(
+                code="SVG_EXTERNAL_STYLE_MISSING",
+                target=path.relative_to(package_dir).as_posix(),
+                message=(
+                    f"O SVG «{path.name}» depende de estilos externos e não pode ser usado "
+                    "isoladamente como logo. Exporte-o novamente com fill e stroke embutidos."
+                ),
+                resolution="embed-svg-paints",
+            )
+        )
     if not pdfs:
         diagnostics.append(
             Diagnostic(
@@ -391,8 +580,12 @@ def build_draft(package_dir: Path) -> BrandDraft:
         *_files_with_suffixes(package_dir / "references", {".pdf"}),
     ]
     logos_dir = package_dir / "assets" / "logos"
-    svg_logos = _files_with_suffixes(logos_dir, {".svg"})
-    png_logos = _files_with_suffixes(logos_dir, {".png"})
+    all_svg_logos = _files_with_suffixes(logos_dir, {".svg"})
+    invalid_svg_logos = [path for path in all_svg_logos if svg_external_style_missing(path)]
+    svg_logos = _dedupe_paths_by_hash(
+        [path for path in all_svg_logos if path not in invalid_svg_logos]
+    )
+    png_logos = _dedupe_paths_by_hash(_files_with_suffixes(logos_dir, {".png"}))
     fonts_dir = package_dir / "fonts"
     font_files = _files_with_suffixes(fonts_dir, {".otf", ".ttf"})
 
@@ -401,6 +594,10 @@ def build_draft(package_dir: Path) -> BrandDraft:
     dtcg_fonts = [c for key, c in dtcg.items() if key.startswith("font.")]
 
     colors = _color_candidates(pdfs, svg_logos, png_logos, dtcg_colors)
+    declared_colors = _declared_color_candidates(pdfs)
+    dtcg_primary = _dtcg_colors_for_role(dtcg, "primary")
+    dtcg_background = _dtcg_colors_for_role(dtcg, "background")
+    dtcg_text = _dtcg_colors_for_role(dtcg, "text")
     non_neutral = [c for c in colors if not is_neutral(c.value)]
     light_neutrals = [
         c for c in colors if is_neutral(c.value) and lightness(c.value) > _BACKGROUND_MIN_LIGHTNESS
@@ -410,19 +607,52 @@ def build_draft(package_dir: Path) -> BrandDraft:
     ]
 
     file_fonts = _file_font_candidates(font_files, package_dir)
+    bound_dtcg_fonts = _bind_dtcg_fonts_to_files(dtcg_fonts, file_fonts)
+    bound_by_original_id = {
+        id(original): bound for original, bound in zip(dtcg_fonts, bound_dtcg_fonts, strict=True)
+    }
+    dtcg_heading_fonts = [
+        bound_by_original_id[id(candidate)] for candidate in _dtcg_fonts_for_role(dtcg, "heading")
+    ]
+    dtcg_body_fonts = [
+        bound_by_original_id[id(candidate)] for candidate in _dtcg_fonts_for_role(dtcg, "body")
+    ]
     pdf_fonts = _pdf_font_candidates(pdfs)
+    declared_fonts = _declared_font_candidates(pdfs)
     logo_candidates = _logo_candidates(svg_logos, png_logos, package_dir)
 
     questions = [
-        _question("color.primary", "pick-color", non_neutral[:_PRIMARY_TOP], required=True),
         _question(
-            "color.background",
+            "color.primary",
             "pick-color",
-            _plus_default(light_neutrals, _DEFAULT_BACKGROUND),
+            _unique_colors(
+                dtcg_primary,
+                declared_colors["primary"],
+                non_neutral,
+            )[:_PRIMARY_TOP],
             required=True,
         ),
         _question(
-            "color.text", "pick-color", _plus_default(dark_neutrals, _DEFAULT_TEXT), required=True
+            "color.background",
+            "pick-color",
+            _plus_default(
+                _unique_colors(
+                    dtcg_background,
+                    declared_colors["background"],
+                    light_neutrals,
+                ),
+                _DEFAULT_BACKGROUND,
+            ),
+            required=True,
+        ),
+        _question(
+            "color.text",
+            "pick-color",
+            _plus_default(
+                _unique_colors(dtcg_text, declared_colors["text"], dark_neutrals),
+                _DEFAULT_TEXT,
+            ),
+            required=True,
         ),
     ]
     secondary = non_neutral[_PRIMARY_TOP : _PRIMARY_TOP + _SECONDARY_TOP]
@@ -434,11 +664,12 @@ def build_draft(package_dir: Path) -> BrandDraft:
         _question(
             "font.heading",
             "pick-font",
-            [
-                *_weight_partitioned(dtcg_fonts, heavy_first=True),
-                *_weight_partitioned(file_fonts, heavy_first=True),
-                *_weight_partitioned(pdf_fonts, heavy_first=True),
-            ],
+            _unique_fonts(
+                _weight_partitioned(dtcg_heading_fonts, heavy_first=True),
+                _weight_partitioned(file_fonts, heavy_first=True),
+                declared_fonts["heading"],
+                _weight_partitioned(pdf_fonts, heavy_first=True),
+            ),
             required=True,
         )
     )
@@ -446,11 +677,12 @@ def build_draft(package_dir: Path) -> BrandDraft:
         _question(
             "font.body",
             "pick-font",
-            [
-                *_weight_partitioned(dtcg_fonts, heavy_first=False),
-                *_weight_partitioned(file_fonts, heavy_first=False),
-                *_weight_partitioned(pdf_fonts, heavy_first=False),
-            ],
+            _unique_fonts(
+                _weight_partitioned(dtcg_body_fonts, heavy_first=False),
+                _weight_partitioned(file_fonts, heavy_first=False),
+                declared_fonts["body"],
+                _weight_partitioned(pdf_fonts, heavy_first=False),
+            ),
             required=True,
         )
     )
@@ -459,5 +691,17 @@ def build_draft(package_dir: Path) -> BrandDraft:
     return BrandDraft(
         package_dir=str(package_dir),
         questions=questions,
-        diagnostics=_diagnostics(pdfs, logo_candidates, file_fonts, [*dtcg_fonts, *pdf_fonts]),
+        diagnostics=_diagnostics(
+            pdfs,
+            logo_candidates,
+            file_fonts,
+            [
+                *bound_dtcg_fonts,
+                *declared_fonts["heading"],
+                *declared_fonts["body"],
+                *pdf_fonts,
+            ],
+            invalid_svg_logos,
+            package_dir,
+        ),
     )

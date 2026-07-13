@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
 import type { DraftQuestion } from "../api/types"
-import { initialWizardState, wizardReducer } from "./state"
+import { blockingRequiredQuestions, initialWizardState, wizardReducer } from "./state"
 
 const q = (id: string, required = true): DraftQuestion => ({
   id,
@@ -18,6 +18,32 @@ const started = wizardReducer(initialWizardState, {
 
 it("draft-created entra na primeira pergunta", () => {
   expect(started).toMatchObject({ step: "question", draftId: "d1", index: 0, answers: {} })
+})
+
+it("identifica apenas perguntas obrigatórias sem candidatos", () => {
+  const requiredEmpty = { ...q("logo.primary"), candidates: [] }
+  const optionalEmpty = { ...q("color.secondary", false), candidates: [] }
+  expect(blockingRequiredQuestions([requiredEmpty, optionalEmpty, q("font.body")])).toEqual([
+    requiredEmpty,
+  ])
+})
+
+it("draft-created incompleto permanece no envio de materiais", () => {
+  const requiredEmpty = { ...q("logo.primary"), candidates: [] }
+  expect(
+    wizardReducer(initialWizardState, {
+      type: "draft-created",
+      draftId: "d-incompleto",
+      questions: [q("color.primary"), requiredEmpty],
+    }),
+  ).toEqual(initialWizardState)
+  expect(
+    wizardReducer(initialWizardState, {
+      type: "draft-created",
+      draftId: "d-vazio",
+      questions: [],
+    }),
+  ).toEqual(initialWizardState)
 })
 
 it("answer grava e avança; a última leva a publish", () => {
@@ -102,4 +128,8 @@ it("published finaliza", () => {
     step: "done",
     brandRevisionId: "brandrev_z",
   })
+})
+
+it("restart retorna ao envio de materiais", () => {
+  expect(wizardReducer(started, { type: "restart" })).toEqual(initialWizardState)
 })

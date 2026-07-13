@@ -32,8 +32,10 @@ from brand_runtime import (
     compile_ir,
     generate_kit,
 )
-from brand_runtime.intake.svg_logo import SvgInvalid, sanitize_svg
+from brand_runtime.intake.draft import DraftQuestion
 from brand_runtime.intake.dtcg import DtcgError
+from brand_runtime.intake.svg_logo import SvgInvalid, sanitize_svg
+from brand_runtime.ir.models import Diagnostic
 from brand_runtime.kit.generator import KitGenerationError
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
@@ -50,6 +52,17 @@ class CompileBody(BaseModel):
 
     answers: dict[str, Any]
     brand_name: str = Field(min_length=1, pattern=r".*\S.*")
+
+
+class ImportResponse(BaseModel):
+    """Draft extraído e lacunas que precisam de ação antes do wizard."""
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
+
+    draft_id: str
+    questions: list[DraftQuestion]
+    diagnostics: list[Diagnostic]
+    ignored_entries: list[str]
 
 
 def _manifest_file(package_dir: Path, relative: str) -> Path:
@@ -167,11 +180,15 @@ def _insert_revision_once(
     session.execute(statement)
 
 
-@router.post("/brands/imports", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/brands/imports",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ImportResponse,
+)
 async def import_brand(
     request: Request,
     package: Annotated[UploadFile, File()],
-) -> dict[str, Any]:
+) -> ImportResponse:
     """Converte um pacote ZIP hostil em draft sanitizado e persistido."""
     limit = request.app.state.settings.max_upload_bytes
     try:
@@ -243,12 +260,12 @@ async def import_brand(
         shutil.rmtree(package_dir, ignore_errors=True)
         raise
 
-    return {
-        "draftId": draft_id,
-        "questions": [item.model_dump(mode="json", by_alias=True) for item in draft.questions],
-        "diagnostics": [item.model_dump(mode="json", by_alias=True) for item in draft.diagnostics],
-        "ignoredEntries": list(unpacked.ignored),
-    }
+    return ImportResponse(
+        draft_id=draft_id,
+        questions=draft.questions,
+        diagnostics=draft.diagnostics,
+        ignored_entries=list(unpacked.ignored),
+    )
 
 
 @router.post("/drafts/{draft_id}/compile", status_code=status.HTTP_201_CREATED)

@@ -1,3 +1,5 @@
+import pymupdf
+
 from brand_runtime.intake.draft import build_draft
 
 
@@ -81,3 +83,73 @@ def test_extensoes_sao_case_insensitive_em_toda_plataforma(brand_package, tmp_pa
         .candidates[0]
         .value.endswith("LOGO.SVG")
     )
+
+
+def test_semantic_pdf_declarations_drive_color_and_font_roles(tmp_path):
+    package = tmp_path / "semantic-package"
+    package.mkdir()
+    with pymupdf.open() as doc:
+        page = doc.new_page()
+        page.insert_textbox(
+            pymupdf.Rect(40, 40, 500, 700),
+            "PRIMARIAS\nGrafite - tinta\n60%\nHEX #1F232A\n"
+            "Ambar - o ponto\n10%\nHEX #CA6B0B\nPapel - fundo\n30%",
+            fontsize=12,
+        )
+        page = doc.new_page()
+        page.insert_textbox(
+            pymupdf.Rect(40, 40, 500, 700),
+            "HEX #FCFBF8\nESTRUTURA & IMPACTO\nClash Display\nAa Gg\n"
+            "ACENTO AUTORAL\nFraunces\nAa Gg\nLEITURA & UI\nGeneral Sans\nAa Gg",
+            fontsize=12,
+        )
+        doc.save(package / "manual.pdf")
+
+    draft = build_draft(package)
+    questions = {question.id: question for question in draft.questions}
+
+    assert questions["color.primary"].candidates[0].value == "#1F232A"
+    assert questions["color.background"].candidates[0].value == "#FCFBF8"
+    assert questions["color.text"].candidates[0].value == "#1F232A"
+    assert questions["font.heading"].candidates[0].value["family"] == "Clash Display"
+    assert questions["font.heading"].candidates[1].value["family"] == "Fraunces"
+    assert questions["font.body"].candidates[0].value["family"] == "General Sans"
+
+
+def test_external_style_svg_is_diagnostic_and_not_a_logo_candidate(tmp_path):
+    package = tmp_path / "external-svg"
+    logos = package / "assets" / "logos"
+    logos.mkdir(parents=True)
+    (logos / "logo.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        '<path class="ink" d="M0 0h100v100H0z"/></svg>',
+        encoding="utf-8",
+    )
+
+    draft = build_draft(package)
+    logo_question = next(question for question in draft.questions if question.id == "logo.primary")
+
+    assert logo_question.candidates == []
+    diagnostic = next(
+        item for item in draft.diagnostics if item.code == "SVG_EXTERNAL_STYLE_MISSING"
+    )
+    assert diagnostic.target == "assets/logos/logo.svg"
+    assert "fill e stroke embutidos" in diagnostic.message
+
+
+def test_identical_logo_files_are_deduplicated_by_hash(tmp_path):
+    package = tmp_path / "duplicate-logos"
+    logos = package / "assets" / "logos"
+    logos.mkdir(parents=True)
+    data = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        '<path fill="#1F232A" d="M0 0h100v100H0z"/></svg>'
+    )
+    (logos / "logo-a.svg").write_text(data, encoding="utf-8")
+    (logos / "logo-b.svg").write_text(data, encoding="utf-8")
+
+    draft = build_draft(package)
+    logo_question = next(question for question in draft.questions if question.id == "logo.primary")
+
+    assert len(logo_question.candidates) == 1
+    assert logo_question.candidates[0].value == "assets/logos/logo-a.svg"

@@ -43,6 +43,24 @@ it("fontes mostram amostra na própria família e peso", () => {
   const sample = screen.getByTestId("font-sample")
   expect(sample.style.fontFamily).toContain("Fixture Sans")
   expect(sample).toHaveStyle({ fontWeight: "700" })
+  expect(screen.getByText("Família citada no manual · prévia aproximada")).toBeInTheDocument()
+})
+
+it("identifica quando o arquivo da fonte está incluído", () => {
+  render(
+    <ApiProvider client={fakeClient()}>
+      <FontOptions
+        draftId="d1"
+        candidates={[
+          candidate({ family: "Fixture Sans", weight: 700, style: "normal", path: "fonts/fixture.ttf" }),
+        ]}
+        selected={null}
+        onSelect={vi.fn()}
+      />
+    </ApiProvider>,
+  )
+
+  expect(screen.getByText("Arquivo da fonte incluído")).toBeInTheDocument()
 })
 
 it("logo é renderizado de verdade a partir do draft", () => {

@@ -175,7 +175,12 @@ export function fakeOnePagerLayout(): LayoutSpec {
 export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
   const sha256 = "b".repeat(64)
   return {
-    importBrandPackage: vi.fn(async () => ({ draftId: "draft_x", questions: [] })),
+    importBrandPackage: vi.fn(async () => ({
+      draftId: "draft_x",
+      questions: [],
+      diagnostics: [],
+      ignoredEntries: [],
+    })),
     compileDraft: vi.fn(async () => ({ brandRevisionId: FAKE_IR.revision.id })),
     getBrandRevision: vi.fn(async () => FAKE_IR),
     getKit: vi.fn(async () => [fakeStatementLayout()]),

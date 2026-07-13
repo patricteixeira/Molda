@@ -42,6 +42,21 @@ def test_draft_ranks_dtcg_first(brand_package, tmp_path):
     assert q.candidates[0].value == "#00FF88"
 
 
+def test_draft_recognizes_camel_case_color_role_before_pdf(brand_package):
+    from brand_runtime.intake.draft import build_draft
+
+    (brand_package / "tokens.json").write_text(
+        json.dumps({"palette": {"brandPrimary": {"$type": "color", "$value": "#00FF88"}}}),
+        encoding="utf-8",
+    )
+
+    draft = build_draft(brand_package)
+    primary = next(question for question in draft.questions if question.id == "color.primary")
+
+    assert primary.candidates[0].value == "#00FF88"
+    assert primary.candidates[0].evidence[0].source_type == "dtcg-tokens"
+
+
 def test_draft_ranks_dtcg_first_even_when_extractors_agree(tmp_path):
     """Pesos de extração são aditivos por arquivo (dois SVGs concordando em uma
     cor somam 6.0) e não podem passar na frente de um token DTCG (camada de
@@ -65,6 +80,61 @@ def test_draft_ranks_dtcg_first_even_when_extractors_agree(tmp_path):
     q = next(q for q in draft.questions if q.id == "color.primary")
     assert q.candidates[0].value == "#00FF88"
     assert q.candidates[1].value == "#FF0000"  # extração concordante vem logo depois
+
+
+def test_semantic_dtcg_background_and_text_keep_highest_authority(tmp_path):
+    from brand_runtime.intake.draft import build_draft
+
+    package = tmp_path / "semantic-tokens"
+    package.mkdir()
+    (package / "tokens.json").write_text(
+        json.dumps(
+            {
+                "color": {
+                    "background": {"$type": "color", "$value": "#FFFFFF"},
+                    "text": {"$type": "color", "$value": "#222222"},
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    draft = build_draft(package)
+    questions = {question.id: question for question in draft.questions}
+
+    assert questions["color.background"].candidates[0].value == "#FFFFFF"
+    assert questions["color.text"].candidates[0].value == "#222222"
+    assert questions["color.background"].candidates[0].evidence[0].source_type == "dtcg-tokens"
+
+
+def test_dtcg_font_roles_do_not_leak_between_heading_and_body(tmp_path):
+    from brand_runtime.intake.draft import build_draft
+
+    package = tmp_path / "font-roles"
+    package.mkdir()
+    (package / "tokens.json").write_text(
+        json.dumps(
+            {
+                "font": {
+                    "heading": {
+                        "family": {"$type": "fontFamily", "$value": "Clash Display"},
+                        "weight": {"$type": "fontWeight", "$value": 700},
+                    },
+                    "body": {
+                        "family": {"$type": "fontFamily", "$value": "General Sans"},
+                        "weight": {"$type": "fontWeight", "$value": 400},
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    draft = build_draft(package)
+    questions = {question.id: question for question in draft.questions}
+
+    assert questions["font.heading"].candidates[0].value["family"] == "Clash Display"
+    assert questions["font.body"].candidates[0].value["family"] == "General Sans"
 
 
 def test_deep_nesting_raises_no_recursion_error(tmp_path):

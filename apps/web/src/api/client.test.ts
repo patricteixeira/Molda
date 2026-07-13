@@ -9,11 +9,23 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 it("importBrandPackage envia um ZIP no campo package", async () => {
-  const fetchFn = vi.fn(async () => jsonResponse({ draftId: "d1", questions: [] }))
+  const response = {
+    draftId: "d1",
+    questions: [],
+    diagnostics: [
+      {
+        code: "NO_LOGO_FOUND",
+        target: "package",
+        message: "Nenhum logo foi encontrado.",
+      },
+    ],
+    ignoredEntries: ["anotacao.txt"],
+  }
+  const fetchFn = vi.fn(async () => jsonResponse(response))
   const client = createApiClient(fetchFn as unknown as typeof fetch)
   const files = [new File(["%PDF"], "manual.pdf"), new File(["<svg/>"], "logo.svg")]
   const result = await client.importBrandPackage(files)
-  expect(result.draftId).toBe("d1")
+  expect(result).toEqual(response)
   const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit]
   expect(url).toBe("/v1/brands/imports")
   expect(init.method).toBe("POST")

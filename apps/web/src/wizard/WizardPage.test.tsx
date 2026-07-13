@@ -39,7 +39,12 @@ function renderWizard(client: ApiClient) {
 
 it("roteiro completo: upload → uma pergunta por vez → publicar → kit", async () => {
   const user = userEvent.setup()
-  const importBrandPackage = vi.fn(async () => ({ draftId: "d1", questions }))
+  const importBrandPackage = vi.fn(async () => ({
+    draftId: "d1",
+    questions,
+    diagnostics: [],
+    ignoredEntries: [],
+  }))
   const compileDraft = vi.fn(async () => ({ brandRevisionId: "brandrev_e2e" }))
   renderWizard(fakeClient({ importBrandPackage, compileDraft }))
 
@@ -65,4 +70,52 @@ it("roteiro completo: upload → uma pergunta por vez → publicar → kit", asy
     ),
   )
   expect(await screen.findByRole("heading", { name: "Kit da marca" })).toBeInTheDocument()
+})
+
+it("mantém o upload visível quando uma pergunta obrigatória não tem candidatos", async () => {
+  const user = userEvent.setup()
+  const importBrandPackage = vi.fn(async () => ({
+    draftId: "d-incompleto",
+    questions: [{ ...questions[1], candidates: [] }],
+    diagnostics: [
+      {
+        code: "NO_LOGO_FOUND",
+        target: "package",
+        message: "Nenhum logo foi encontrado em assets/logos (SVG ou PNG).",
+      },
+    ],
+    ignoredEntries: [],
+  }))
+  renderWizard(fakeClient({ importBrandPackage }))
+
+  await user.upload(screen.getByTestId("wizard-file-input"), new File(["pdf"], "manual.pdf"))
+  await user.click(screen.getByTestId("wizard-enviar"))
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("O pacote ainda está incompleto.")
+  expect(screen.getByText("Escolher ou soltar materiais da marca")).toBeInTheDocument()
+  expect(screen.queryByText("Este é o logo oficial da marca?")).not.toBeInTheDocument()
+})
+
+it("volta aos materiais preservando os arquivos já reunidos", async () => {
+  const user = userEvent.setup()
+  const importBrandPackage = vi.fn(async () => ({
+    draftId: "d1",
+    questions,
+    diagnostics: [],
+    ignoredEntries: [],
+  }))
+  renderWizard(fakeClient({ importBrandPackage }))
+  await user.upload(
+    screen.getByTestId("wizard-file-input"),
+    new File(["pdf"], "manual.pdf", { type: "application/pdf" }),
+  )
+  await user.click(screen.getByTestId("wizard-enviar"))
+  await screen.findByTestId("wizard-question")
+
+  await user.click(screen.getByTestId("wizard-trocar-materiais"))
+
+  expect(screen.getByText("manual.pdf")).toBeVisible()
+  expect(screen.getByText("material reunido", { exact: false }).closest("p")).toHaveTextContent(
+    "1 material reunido",
+  )
 })

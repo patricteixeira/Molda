@@ -13,6 +13,7 @@ def test_import_cria_draft_com_perguntas(client, package_zip):
     assert response.status_code == 201, response.text
     body = response.json()
     assert body["draftId"].startswith("draft_")
+    assert set(body) == {"draftId", "questions", "diagnostics", "ignoredEntries"}
     ids = [question["id"] for question in body["questions"]]
     for required in [
         "color.primary",
@@ -23,7 +24,51 @@ def test_import_cria_draft_com_perguntas(client, package_zip):
         "logo.primary",
     ]:
         assert required in ids
+    assert all(not question["required"] or question["candidates"] for question in body["questions"])
     assert body["ignoredEntries"] == []
+
+
+def test_import_expoe_contrato_tipado_no_openapi(client):
+    schema = client.app.openapi()["components"]["schemas"]["ImportResponse"]
+
+    assert set(schema["required"]) == {
+        "draftId",
+        "questions",
+        "diagnostics",
+        "ignoredEntries",
+    }
+
+
+def test_import_incompleto_retorna_diagnosticos_acionaveis(client, package_zip):
+    import io
+    import zipfile
+
+    def subset(*suffixes: str) -> bytes:
+        source = io.BytesIO(package_zip)
+        destination = io.BytesIO()
+        with zipfile.ZipFile(source) as original, zipfile.ZipFile(destination, "w") as reduced:
+            for info in original.infolist():
+                if info.filename.endswith(suffixes):
+                    reduced.writestr(info, original.read(info))
+        return destination.getvalue()
+
+    logo_only = _post_zip(client, subset(".svg"))
+    assert logo_only.status_code == 201, logo_only.text
+    logo_body = logo_only.json()
+    assert any(item["code"] == "NO_PDF_FOUND" for item in logo_body["diagnostics"])
+    assert any(
+        question["required"] and not question["candidates"] for question in logo_body["questions"]
+    )
+
+    pdf_only = _post_zip(client, subset(".pdf"))
+    assert pdf_only.status_code == 201, pdf_only.text
+    pdf_body = pdf_only.json()
+    assert any(item["code"] == "NO_LOGO_FOUND" for item in pdf_body["diagnostics"])
+    logo_question = next(
+        question for question in pdf_body["questions"] if question["id"] == "logo.primary"
+    )
+    assert logo_question["required"] is True
+    assert logo_question["candidates"] == []
 
 
 def test_import_sanitiza_svg_e_armazena_blobs(client, package_zip, tmp_path):

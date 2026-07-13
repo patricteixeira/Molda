@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from brand_runtime.colors import normalize_color
 from brand_runtime.intake.base import Candidate
 from brand_runtime.intake.draft import BrandDraft, DraftQuestion
+from brand_runtime.intake.svg_logo import SvgInvalid, svg_external_style_missing
 from brand_runtime.ir.models import (
     BrandIR,
     BrandInfo,
@@ -267,10 +268,20 @@ def _compile_logo(draft: BrandDraft, value: Any, created_at: datetime) -> LogoAs
     """Compila o logo primário com path portátil, formato e hash do arquivo real."""
     relative = _portable_relative_path(value)
     candidate = _match_logo(_question(draft, "logo.primary"), relative)
+    if candidate is None:
+        raise CompileError("O logo confirmado precisa ser uma das opções válidas do rascunho.")
     suffix = Path(relative).suffix.casefold().removeprefix(".")
     if suffix not in {"svg", "png"}:
         raise CompileError("O logo confirmado deve estar em formato SVG ou PNG.")
     logo_path = _package_file(Path(draft.package_dir), relative)
+    if suffix == "svg":
+        try:
+            if svg_external_style_missing(logo_path):
+                raise CompileError(
+                    "O logo confirmado depende de estilos externos; use um SVG autocontido."
+                )
+        except SvgInvalid as exc:
+            raise CompileError("O logo confirmado não é um SVG válido e autocontido.") from exc
     return LogoAsset(
         path=relative,
         sha256=_sha256(logo_path),

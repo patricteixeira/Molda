@@ -31,11 +31,13 @@ test("walking skeleton M1: instalar → confirmar → kit → slots → guard �
   page,
 }) => {
   await page.goto("/")
-  await page.getByTestId("wizard-file-input").setInputFiles([
-    path.join(PKG, "manual.pdf"),
-    path.join(PKG, "assets", "logos", "logo.svg"),
-    path.join(PKG, "fonts", "fixture-sans-bold.ttf"),
-  ])
+  const intake = page.getByTestId("wizard-file-input")
+  await intake.setInputFiles(path.join(PKG, "assets", "logos", "logo.svg"))
+  await intake.setInputFiles(path.join(PKG, "manual.pdf"))
+  await intake.setInputFiles(path.join(PKG, "fonts", "fixture-sans-bold.ttf"))
+  await expect(page.getByText("materiais reunidos", { exact: false })).toContainText(
+    "3 materiais reunidos",
+  )
   await page.getByTestId("wizard-enviar").click()
 
   await expect(page.getByTestId("wizard-question")).toContainText(

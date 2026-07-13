@@ -29,6 +29,13 @@ export interface FontCandidateValue {
   path?: string | null
 }
 
+export interface Diagnostic {
+  code: string
+  target: string
+  message: string
+  resolution?: string | null
+}
+
 export interface BrandIr {
   schemaVersion: string
   brand: { name: string }
@@ -60,12 +67,7 @@ export interface BrandIr {
     }
   >
   formatProfiles: string[]
-  diagnostics: Array<{
-    code: string
-    target: string
-    message: string
-    resolution?: string | null
-  }>
+  diagnostics: Diagnostic[]
 }
 
 export interface Slot {
@@ -122,6 +124,8 @@ export interface JobInfo {
 export interface ImportResult {
   draftId: string
   questions: DraftQuestion[]
+  diagnostics: Diagnostic[]
+  ignoredEntries: string[]
 }
 
 export interface DocumentResult {

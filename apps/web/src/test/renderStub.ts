@@ -15,7 +15,14 @@ export interface GuardReport {
   }>
 }
 
-export const mounts: Array<{ el: HTMLElement; payloads: RenderPayload[] }> = []
+type MountRecord = { el: HTMLElement; payloads: RenderPayload[] }
+
+interface RenderTestGlobal {
+  __brandRuntimeRenderMounts__?: MountRecord[]
+}
+
+const renderTestGlobal = globalThis as typeof globalThis & RenderTestGlobal
+export const mounts = (renderTestGlobal.__brandRuntimeRenderMounts__ ??= [])
 
 export function renderDocument(el: HTMLElement, payload: RenderPayload): GuardReport {
   const record = mounts.find((mount) => mount.el === el)

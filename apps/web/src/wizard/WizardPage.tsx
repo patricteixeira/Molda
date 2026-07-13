@@ -26,7 +26,7 @@ export function WizardPage() {
           <span />
         </aside>
         <div className="wizard-stage">
-          {state.step === "upload" && (
+          <div hidden={state.step !== "upload"}>
             <UploadStep
               onDraft={(result) =>
                 dispatch({
@@ -36,7 +36,7 @@ export function WizardPage() {
                 })
               }
             />
-          )}
+          </div>
           {state.step === "question" && (
             <QuestionStep
               draftId={state.draftId}
@@ -53,6 +53,7 @@ export function WizardPage() {
               }
               onSkip={() => dispatch({ type: "skip" })}
               onBack={() => dispatch({ type: "back" })}
+              onRestart={() => dispatch({ type: "restart" })}
             />
           )}
           {state.step === "publish" && (

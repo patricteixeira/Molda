@@ -22,9 +22,14 @@ export type WizardAction =
   | { type: "answer"; questionId: string; value: unknown }
   | { type: "skip" }
   | { type: "back" }
+  | { type: "restart" }
   | { type: "published"; brandRevisionId: string }
 
 export const initialWizardState: WizardState = { step: "upload" }
+
+export function blockingRequiredQuestions(questions: DraftQuestion[]): DraftQuestion[] {
+  return questions.filter((question) => question.required && question.candidates.length === 0)
+}
 
 function advance(
   state: Extract<WizardState, { step: "question" }>,
@@ -42,15 +47,12 @@ function advance(
 }
 
 export function wizardReducer(state: WizardState, action: WizardAction): WizardState {
+  if (action.type === "restart") return initialWizardState
   if (action.type === "draft-created" && state.step === "upload") {
-    if (action.questions.length === 0) {
-      return {
-        step: "publish",
-        draftId: action.draftId,
-        questions: action.questions,
-        answers: {},
-      }
-    }
+    if (
+      action.questions.length === 0 ||
+      blockingRequiredQuestions(action.questions).length > 0
+    ) return state
     return {
       step: "question",
       draftId: action.draftId,

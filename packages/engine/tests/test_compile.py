@@ -194,12 +194,75 @@ def test_file_candidate_wins_tie_when_its_path_was_selected(brand_package):
     assert ir.fonts["font.heading"].file_sha256 is not None
 
 
+def test_dtcg_font_is_bound_to_compatible_file_by_default(brand_package):
+    (brand_package / "tokens.json").write_text(
+        """{
+          "font": {
+            "heading": {
+              "family": {"$type": "fontFamily", "$value": "Fixture Sans"},
+              "weight": {"$type": "fontWeight", "$value": 700}
+            }
+          }
+        }""",
+        encoding="utf-8",
+    )
+    draft = build_draft(brand_package)
+    heading = next(question for question in draft.questions if question.id == "font.heading")
+    selected = heading.candidates[0]
+
+    assert selected.value["path"] == "fonts/fixture-sans-bold.ttf"
+    assert [evidence.source_type for evidence in selected.evidence] == [
+        "dtcg-tokens",
+        "dtcg-tokens",
+        "font-file",
+    ]
+
+    ir = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
+
+    assert ir.fonts["font.heading"].source == "file"
+    assert ir.fonts["font.heading"].file_sha256 is not None
+    assert {evidence.source_type for evidence in ir.fonts["font.heading"].evidence} >= {
+        "dtcg-tokens",
+        "font-file",
+        "wizard-confirmation",
+    }
+
+
 def test_logo_path_cannot_escape_package(brand_package):
     draft = build_draft(brand_package)
     answers = _answers(draft)
     answers.values["logo.primary"] = "../fora.svg"
 
     with pytest.raises(CompileError, match="dentro do pacote"):
+        compile_ir(draft, answers, "ACME", created_at=FIXED)
+
+
+def test_logo_must_be_a_valid_candidate_from_the_draft(brand_package):
+    draft = build_draft(brand_package)
+    extra = brand_package / "assets" / "logos" / "extra.svg"
+    extra.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+        '<rect width="10" height="10" fill="#000"/></svg>',
+        encoding="utf-8",
+    )
+    answers = _answers(draft)
+    answers.values["logo.primary"] = "assets/logos/extra.svg"
+
+    with pytest.raises(CompileError, match="opções válidas"):
+        compile_ir(draft, answers, "ACME", created_at=FIXED)
+
+
+def test_logo_candidate_is_revalidated_as_self_contained_at_compile_time(brand_package):
+    draft = build_draft(brand_package)
+    answers = _answers(draft)
+    logo = brand_package / str(answers.values["logo.primary"])
+    logo.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+        '<rect class="ink" width="10" height="10"/></svg>',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(CompileError, match="estilos externos"):
         compile_ir(draft, answers, "ACME", created_at=FIXED)
 
 
