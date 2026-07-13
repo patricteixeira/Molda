@@ -84,3 +84,35 @@ it("restaura a resposta confirmada ao voltar para uma pergunta", () => {
   expect(screen.getAllByTestId("candidate-option")[1]).toHaveAttribute("aria-pressed", "true")
   expect(screen.getByTestId("wizard-confirmar")).toBeEnabled()
 })
+
+it("preseleciona fonte aberta resolvida mas ainda exige confirmação", async () => {
+  const value = {
+    family: "Fraunces",
+    weight: 700,
+    style: "normal",
+    path: "resolved-fonts/fraunces.ttf",
+    resource: {
+      provider: "google-fonts",
+      format: "ttf",
+      usagePolicy: "redistributable",
+      missingCodepoints: [],
+      axes: [],
+    },
+  }
+  const props = renderStep({
+    question: {
+      id: "font.heading",
+      kind: "pick-font",
+      promptPt: "Qual fonte é usada em títulos?",
+      candidates: [{ value, score: 1, evidence: [] }],
+      required: true,
+    },
+  })
+
+  expect(screen.getByTestId("candidate-option")).toHaveAttribute("aria-pressed", "true")
+  const confirm = screen.getByTestId("wizard-confirmar")
+  expect(confirm).toBeEnabled()
+  expect(props.onConfirm).not.toHaveBeenCalled()
+  await userEvent.click(confirm)
+  expect(props.onConfirm).toHaveBeenCalledWith(value)
+})

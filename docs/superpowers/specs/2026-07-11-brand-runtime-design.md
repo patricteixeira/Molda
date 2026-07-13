@@ -149,6 +149,14 @@ sua interpretação visual permanece fora do motor do Plano 1.
 
 **Wizard de confirmação.** Mostra, não descreve ("esta é a cor principal?" com a cor na tela); uma pergunta por vez; vocabulário sem jargão. O que não pôde ser determinado fica registrado como indeterminado — o sistema **nunca inventa silenciosamente**. O resultado confirmado é publicado como revisão imutável do Brand IR.
 
+**Resolução de fontes abertas.** Nomes declarados no manual ou em DTCG passam
+por provedores de aquisição antes da confirmação. Correspondência exata com
+licença redistribuível é baixada por egress isolado, validada quanto a
+família/variante/cobertura, armazenada com licença no CAS e apresentada já com
+prévia real. O renderer nunca consulta catálogo ou CDN. Fonte comercial,
+licença restrita, ambiguidade ou falha de rede permanecem explícitas; nenhuma
+substituição acontece silenciosamente (ADR 0008).
+
 **LLM como acelerador opcional.** Interpretar texto de guideline, sugerir mapeamento de papéis, classificar layouts de exemplo. Toda sugestão é materializada como configuração explícita e confirmada — IA não decide conformidade. O wizard funciona 100% sem chave de API (provedores plugáveis: Anthropic, OpenAI, Ollama local).
 
 **Segurança.** Uploads são conteúdo hostil. A política do system design anterior (§20 daquele documento) aplica-se integralmente desde o M1: limites de tamanho e entries de ZIP, path traversal, MIME por assinatura, sanitização de SVG (scripts, links externos), image bombs, hash SHA-256 em streaming, processamento em sandbox sem rede externa.
@@ -378,6 +386,9 @@ Importador Figma (quando o acesso à API for viável), adapters comunitários de
   grant; a decisão final depende de revisão jurídica antes da publicação.
 - **Documentação e spec: CC BY 4.0.**
 - **Fontes:** nunca redistribuídas pelo repositório nem pela instância sem licença registrada. O intake classifica cada fonte (instalada / hospedada / embutível / apenas referenciada / fallback) e toda substituição é sinalizada — nunca silenciosa.
+- **Catálogo aberto:** metadados podem ser versionados no repositório; binários
+  são adquiridos sob demanda e só entram no CAS quando sua licença individual
+  autoriza a política registrada no Brand IR.
 - **Distribuição M1:** `docker compose up`, single-tenant por instância, auth por convite. Instância pública multi-tenant só no M4.
 
 ---

@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { useApi } from "../../api/context"
-import type { Candidate } from "../../api/types"
+import type { Candidate, FontResource } from "../../api/types"
 
 interface Props {
   draftId: string
@@ -14,6 +14,20 @@ interface FontCandidate {
   weight?: number
   style?: string
   path?: string
+  resource?: FontResource
+}
+
+function fontFaceWeight(font: FontCandidate): string {
+  const axis = font.resource?.axes.find((item) => item.tag === "wght")
+  return axis ? `${axis.minimum} ${axis.maximum}` : String(font.weight ?? 400)
+}
+
+function sourceLabel(font: FontCandidate): string {
+  if (font.resource?.provider === "google-fonts" && font.path) {
+    return "Identificada e incorporada automaticamente · Google Fonts"
+  }
+  if (font.path) return "Arquivo da fonte incluído"
+  return "Família citada no manual · prévia aproximada"
 }
 
 export function FontOptions({ draftId, candidates, selected, onSelect }: Props) {
@@ -29,7 +43,7 @@ export function FontOptions({ draftId, candidates, selected, onSelect }: Props) 
       const face = new FontFace(
         internalFamily,
         `url("${api.draftAssetUrl(draftId, font.path)}")`,
-        { weight: String(font.weight ?? 400), style: font.style ?? "normal" },
+        { weight: fontFaceWeight(font), style: font.style ?? "normal" },
       )
       void face
         .load()
@@ -75,11 +89,7 @@ export function FontOptions({ draftId, candidates, selected, onSelect }: Props) 
               <small>A tipografia da sua marca</small>
             </span>
             <span className="font-name">{family}</span>
-            <span className="font-source">
-              {font.path
-                ? "Arquivo da fonte incluído"
-                : "Família citada no manual · prévia aproximada"}
-            </span>
+            <span className="font-source">{sourceLabel(font)}</span>
           </button>
         )
       })}

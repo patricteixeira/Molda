@@ -67,21 +67,30 @@ def _match_color(question: DraftQuestion | None, value: Any) -> Candidate | None
     return None
 
 
-def _font_identity(value: Any) -> tuple[str, int]:
-    """Extrai a identidade normativa de uma resposta de fonte."""
+def _font_fields(value: Any) -> tuple[str, int, str]:
+    """Valida os campos tipográficos preservando o nome editorial da família."""
     if not isinstance(value, dict):
         raise CompileError("A resposta de fonte deve informar família e peso.")
     family = value.get("family")
     weight = value.get("weight", 400)
+    style = value.get("style", "normal")
     if not isinstance(family, str) or not family.strip():
         raise CompileError("A resposta de fonte deve informar uma família válida.")
     if isinstance(weight, bool) or not isinstance(weight, int):
         raise CompileError("A resposta de fonte deve informar um peso numérico válido.")
-    return family, weight
+    if style not in {"normal", "italic"}:
+        raise CompileError("A resposta de fonte deve informar um estilo válido.")
+    return family.strip(), weight, style
+
+
+def _font_identity(value: Any) -> tuple[str, int, str]:
+    """Extrai a identidade completa e normalizada de uma variante de fonte."""
+    family, weight, style = _font_fields(value)
+    return family.casefold(), weight, style
 
 
 def _match_font(question: DraftQuestion | None, value: Any) -> Candidate | None:
-    """Casa fontes por família e peso, usando o path apenas para desempatar."""
+    """Casa família, peso e estilo, usando o path apenas para desempatar."""
     identity = _font_identity(value)
     if question is None:
         return None
@@ -231,11 +240,11 @@ def _compile_font(
     diagnostics: list[Diagnostic],
 ) -> FontToken:
     """Compila uma fonte confirmada e liga o arquivo apenas quando ele veio no pacote."""
-    family, weight = _font_identity(value)
+    family, weight, style = _font_fields(value)
     candidate = _match_font(_question(draft, token_id), value)
     candidate_value = candidate.value if candidate is not None else {}
-    style = value.get("style", candidate_value.get("style", "normal"))
     relative_path = candidate_value.get("path")
+    resource = candidate_value.get("resource")
     file_sha256: str | None = None
     source = "referenced-only"
     if relative_path is not None:
@@ -258,6 +267,7 @@ def _compile_font(
             style=style,
             source=source,
             file_sha256=file_sha256,
+            resource=resource,
             evidence=_confirmed_evidence(candidate, created_at, Path(draft.package_dir)),
         )
     except ValidationError as exc:

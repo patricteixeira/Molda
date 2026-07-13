@@ -8,9 +8,9 @@ token com ponto (ex.: "color.primary") são chaves de dict, não atributos.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
 from brand_runtime.colors import normalize_color
@@ -20,6 +20,7 @@ SourceType = Literal[
     "svg-asset",
     "raster-asset",
     "font-file",
+    "font-catalog",
     "dtcg-tokens",
     "wizard-confirmation",
     "manual-entry",
@@ -60,6 +61,63 @@ class ColorToken(CamelModel):
         return normalize_color(value)
 
 
+class FontAxis(CamelModel):
+    """Intervalo de um eixo OpenType variável, preservado para reprodução."""
+
+    tag: str = Field(min_length=4, max_length=4, pattern=r"^[A-Za-z0-9]{4}$")
+    minimum: float = Field(allow_inf_nan=False)
+    default: float = Field(allow_inf_nan=False)
+    maximum: float = Field(allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def _ordered_interval(self) -> Self:
+        if not self.minimum <= self.default <= self.maximum:
+            raise ValueError("O eixo de fonte deve respeitar minimum <= default <= maximum.")
+        return self
+
+
+class FontResource(CamelModel):
+    """Binário de fonte resolvido com origem, licença e cobertura verificáveis."""
+
+    provider: str = Field(min_length=1)
+    format: Literal["ttf", "otf", "woff2"]
+    upstream_ref: str | None = None
+    license_id: str | None = None
+    license_sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")] | None = None
+    usage_policy: Literal["redistributable", "embeddable", "restricted", "unknown"] = "unknown"
+    coverage_profile: str | None = None
+    missing_codepoints: list[int] = Field(default_factory=list)
+    axes: list[FontAxis] = Field(default_factory=list)
+
+    @field_validator("missing_codepoints")
+    @classmethod
+    def _normalize_missing_codepoints(cls, values: list[int]) -> list[int]:
+        normalized = sorted(set(values))
+        if any(value < 0 or value > 0x10FFFF or 0xD800 <= value <= 0xDFFF for value in normalized):
+            raise ValueError("Os codepoints ausentes devem ser valores escalares Unicode válidos.")
+        return normalized
+
+    @field_validator("axes")
+    @classmethod
+    def _normalize_axes(cls, values: list[FontAxis]) -> list[FontAxis]:
+        ordered = sorted(values, key=lambda axis: axis.tag)
+        if len({axis.tag for axis in ordered}) != len(ordered):
+            raise ValueError("Os eixos de uma fonte devem ter tags únicas.")
+        return ordered
+
+    @model_validator(mode="after")
+    def _coherent_metadata(self) -> Self:
+        if self.missing_codepoints and self.coverage_profile is None:
+            raise ValueError("Codepoints ausentes exigem um perfil de cobertura.")
+        if self.usage_policy in {"redistributable", "embeddable"} and (
+            self.license_id is None or self.license_sha256 is None
+        ):
+            raise ValueError(
+                "Uma fonte utilizável exige licença identificada e registrada por SHA-256."
+            )
+        return self
+
+
 class FontToken(CamelModel):
     """Fonte semântica confirmada, ligada ou não a um arquivo local."""
 
@@ -68,6 +126,7 @@ class FontToken(CamelModel):
     style: Literal["normal", "italic"] = "normal"
     source: Literal["file", "referenced-only", "fallback"]
     file_sha256: str | None = None
+    resource: FontResource | None = None
     evidence: list[Evidence]
 
 
@@ -117,7 +176,7 @@ class BrandInfo(CamelModel):
 class BrandIR(CamelModel):
     """Contrato imutável da marca consumido pelo kit, guard e renderer."""
 
-    schema_version: Literal["0.1.0"] = "0.1.0"
+    schema_version: Literal["0.1.0", "0.2.0"] = "0.2.0"
     brand: BrandInfo
     revision: RevisionInfo
     colors: dict[str, ColorToken]

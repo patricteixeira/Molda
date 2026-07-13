@@ -9,6 +9,8 @@ from brand_api.auth import hash_token, require_token
 from brand_api.config import Settings
 from brand_api.db import make_engine, make_session_factory
 from brand_api.exporters import FakeExporter
+from brand_api.fonts import build_font_resolver
+from brand_api.fonts.models import FontResolver
 from brand_api.models import Base, InviteToken
 from brand_api.routes.assets import router as assets_router
 from brand_api.routes.documents import router as documents_router
@@ -44,7 +46,7 @@ def _seed_bootstrap_token(session_factory, token: str | None) -> None:
         session.commit()
 
 
-def create_app(settings: Settings) -> FastAPI:
+def create_app(settings: Settings, *, font_resolver: FontResolver | None = None) -> FastAPI:
     """Constrói a app, o schema conhecido, o storage e suas dependências."""
     _create_data_directories(settings)
     engine = make_engine(settings.database_url)
@@ -58,6 +60,11 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.engine = engine
     app.state.storage = storage
     app.state.session_factory = session_factory
+    app.state.font_resolver = (
+        font_resolver
+        if font_resolver is not None
+        else build_font_resolver(settings.font_fetch_base_url)
+    )
     if settings.fake_exporter:
         app.state.exporter = FakeExporter()
 

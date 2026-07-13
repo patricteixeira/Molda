@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from brand_api.auth import require_token
 from brand_api.db import new_id
+from brand_api.fonts import resolve_draft_fonts
 from brand_api.media import asset_response, content_type_for
 from brand_api.models import Brand, BrandRevision, Draft
 from brand_api.unzip import UnzipError, safe_unpack
@@ -226,6 +227,12 @@ async def import_brand(
             max_image_pixels=request.app.state.settings.max_image_pixels,
         )
         draft = build_draft(package_dir)
+        await resolve_draft_fonts(
+            draft,
+            package_dir,
+            manifest,
+            request.app.state.font_resolver,
+        )
         _store_manifest(request, package_dir, manifest)
         serialized = draft.model_dump(mode="json", by_alias=True)
         with request.app.state.session_factory() as session:

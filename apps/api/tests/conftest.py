@@ -56,6 +56,7 @@ def make_client(pg_engine, db, tmp_path):
     clients = []
 
     def make(**overrides):
+        font_resolver = overrides.pop("font_resolver", None)
         settings = Settings(
             database_url=TEST_DB_URL,
             data_dir=tmp_path / "var",
@@ -63,7 +64,7 @@ def make_client(pg_engine, db, tmp_path):
             fake_exporter=True,
             **overrides,
         )
-        client = TestClient(create_app(settings))
+        client = TestClient(create_app(settings, font_resolver=font_resolver))
         client.headers["Authorization"] = "Bearer test-token"
         clients.append(client)
         return client
@@ -120,13 +121,16 @@ def _brand_pdf_bytes() -> bytes:
     return doc.tobytes()
 
 
-def _fixture_font_bytes() -> bytes:
+def _fixture_font_bytes(*, full_coverage: bool = False) -> bytes:
     import io
 
     from fontTools.fontBuilder import FontBuilder
     from fontTools.pens.ttGlyphPen import TTGlyphPen
 
-    codepoints = [*range(32, 127), *(ord(character) for character in "áíóãçéêúÁÉÍÓÚÇ")]
+    extra_characters = (
+        "ÁÀÂÃÉÊÍÓÔÕÚÜÇáàâãéêíóôõúüç “”‘’–—…•ºª°€" if full_coverage else "áíóãçéêúÁÉÍÓÚÇ"
+    )
+    codepoints = [*range(32, 127), *(ord(character) for character in extra_characters)]
     names = {codepoint: f"uni{codepoint:04X}" for codepoint in codepoints}
     glyph_order = [".notdef", *names.values()]
     glyphs = {}
@@ -166,6 +170,16 @@ def _fixture_font_bytes() -> bytes:
     buffer = io.BytesIO()
     font_builder.save(buffer)
     return buffer.getvalue()
+
+
+@pytest.fixture(scope="session")
+def fixture_font_bytes() -> bytes:
+    return _fixture_font_bytes()
+
+
+@pytest.fixture(scope="session")
+def coverage_font_bytes() -> bytes:
+    return _fixture_font_bytes(full_coverage=True)
 
 
 def _png_bytes(w: int = 1200, h: int = 1200, color=(10, 60, 120)) -> bytes:

@@ -353,32 +353,34 @@ def _declared_font_candidates(pdfs: list[Path]) -> dict[str, list[Candidate]]:
     return {role: list(candidates.values()) for role, candidates in merged.items()}
 
 
+def _font_value_identity(value: dict) -> tuple[str, int, str]:
+    """Identidade completa de variante usada em binding, dedupe e diagnóstico."""
+    return (
+        value["family"].strip().casefold(),
+        value["weight"],
+        value.get("style", "normal"),
+    )
+
+
 def _bind_dtcg_fonts_to_files(
     dtcg_candidates: list[Candidate], file_candidates: list[Candidate]
 ) -> list[Candidate]:
     """Liga intenção DTCG ao binário local compatível sem perder sua autoridade."""
     by_identity: dict[tuple[str, int, str], Candidate] = {}
     for candidate in file_candidates:
-        value = candidate.value
-        identity = (
-            value["family"].strip().casefold(),
-            value["weight"],
-            value.get("style", "normal"),
-        )
-        by_identity.setdefault(identity, candidate)
+        by_identity.setdefault(_font_value_identity(candidate.value), candidate)
 
     bound: list[Candidate] = []
     for candidate in dtcg_candidates:
-        value = candidate.value
-        identity = (
-            value["family"].strip().casefold(),
-            value["weight"],
-            value.get("style", "normal"),
-        )
-        file_candidate = by_identity.get(identity)
+        file_candidate = by_identity.get(_font_value_identity(candidate.value))
         copied = candidate.model_copy(deep=True)
         if file_candidate is not None:
-            copied.value = {**copied.value, "path": file_candidate.value["path"]}
+            inherited = {
+                key: file_candidate.value[key]
+                for key in ("path", "resource")
+                if key in file_candidate.value
+            }
+            copied.value = {**copied.value, **inherited}
             copied.evidence.extend(item.model_copy(deep=True) for item in file_candidate.evidence)
         bound.append(copied)
     return bound
@@ -401,12 +403,7 @@ def _unique_colors(*groups: list[Candidate]) -> list[Candidate]:
 
 def _font_key(candidate: Candidate) -> tuple[str, int, str, str | None]:
     value = candidate.value
-    return (
-        value["family"].casefold(),
-        value["weight"],
-        value.get("style", "normal"),
-        value.get("path"),
-    )
+    return (*_font_value_identity(value), value.get("path"))
 
 
 def _unique_fonts(*groups: list[Candidate]) -> list[Candidate]:
@@ -534,11 +531,13 @@ def _diagnostics(
                 message="Nenhum logo foi encontrado em assets/logos (SVG ou PNG).",
             )
         )
-    available = {c.value["family"].casefold() for c in file_fonts}
-    reported: set[str] = set()
+    available = {_font_value_identity(candidate.value) for candidate in file_fonts}
+    reported: set[tuple[str, int, str]] = set()
     for candidate in referenced_fonts:
         family = candidate.value["family"]
-        key = family.casefold()
+        weight = candidate.value["weight"]
+        style = candidate.value.get("style", "normal")
+        key = _font_value_identity(candidate.value)
         if key in available or key in reported:
             continue
         reported.add(key)
@@ -547,7 +546,7 @@ def _diagnostics(
                 code="FONT_FILE_MISSING",
                 target=family,
                 message=(
-                    f"A fonte «{family}» aparece nas diretrizes, "
+                    f"A fonte «{family}» ({weight}, {style}) aparece nas diretrizes, "
                     "mas o arquivo dela não veio no pacote."
                 ),
                 resolution="render-fallback",

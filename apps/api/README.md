@@ -39,6 +39,7 @@ docker compose -f compose.dev.yml up -d
 | `BRANDRT_TEST_DATABASE_URL` | Somente testes; padrão `postgresql+psycopg://brandrt:brandrt@127.0.0.1:5433/brandrt`. |
 | `BRANDRT_FAKE_EXPORTER` | Opcional; ativa o exporter de desenvolvimento/teste com `1` ou `true`. |
 | `BRANDRT_RENDER_DIST` | Opcional na API; build do renderer exigido pelo worker real. |
+| `BRANDRT_FONT_FETCH_BASE_URL` | Opcional; endpoint interno e restrito para aquisição do catálogo fixado. Ausente desativa a aquisição automática. |
 | `BRANDRT_MAX_UPLOAD_BYTES` | Opcional; padrão `104857600` (100 MiB). |
 | `BRANDRT_MAX_IMAGE_PIXELS` | Opcional; padrão `40000000`. |
 
@@ -90,6 +91,29 @@ $env:BRANDRT_RENDER_DIST = (Resolve-Path ../../packages/render/dist)
 
 O processo HTTP não importa Playwright nem exige `BRANDRT_RENDER_DIST`; somente o worker
 real valida e inicializa esse adapter.
+
+## Resolução automática de fontes abertas
+
+No Docker Compose da raiz, `BRANDRT_FONT_FETCH_BASE_URL` já aponta para o proxy
+interno `font-fetch`. A API continua sem acesso direto à internet: o proxy só
+alcança o commit do repositório Google Fonts registrado na ADR 0008.
+
+O fluxo é não bloqueante. Correspondência exata declarada no manual ou em DTCG
+é baixada, validada, recebe licença e cobertura e entra no draft como arquivo
+local. Falha de rede mantém o candidato apenas referenciado e acrescenta um
+diagnóstico; nunca inventa uma substituição. Não há Google API key para
+configurar ou armazenar.
+
+O catálogo é atualizado administrativamente, fora do runtime. Execute a partir
+da raiz do repositório:
+
+```powershell
+python -m pip install -r tools/requirements-font-catalog.txt
+python tools/sync_google_fonts_catalog.py `
+  --checkout C:\caminho\google-fonts `
+  --revision <sha-completo> `
+  --output apps/api/src/brand_api/fonts/google-fonts.catalog.json
+```
 
 ## Fluxo completo (curl)
 

@@ -16,6 +16,22 @@ interface Props {
   onRestart(): void
 }
 
+function automaticallyResolvedFont(question: DraftQuestion): unknown | null {
+  if (question.kind !== "pick-font") return null
+  const candidate = question.candidates.find((item) => {
+    if (typeof item.value !== "object" || item.value === null) return false
+    const value = item.value as {
+      path?: unknown
+      resource?: { usagePolicy?: unknown }
+    }
+    return (
+      typeof value.path === "string" &&
+      value.resource?.usagePolicy === "redistributable"
+    )
+  })
+  return candidate?.value ?? null
+}
+
 export function QuestionStep(props: Props) {
   const { draftId, question, index, total, answers, onConfirm, onSkip, onBack, onRestart } = props
   const [selection, setSelection] = useState<{ questionId: string; value: unknown } | null>(null)
@@ -23,7 +39,10 @@ export function QuestionStep(props: Props) {
   const storedAnswer = Object.prototype.hasOwnProperty.call(answers, question.id)
     ? answers[question.id]
     : null
-  const selected = selection?.questionId === question.id ? selection.value : storedAnswer
+  const selected =
+    selection?.questionId === question.id
+      ? selection.value
+      : storedAnswer ?? automaticallyResolvedFont(question)
   useEffect(() => headingRef.current?.focus(), [question.id])
   const optionProps = {
     candidates: question.candidates,

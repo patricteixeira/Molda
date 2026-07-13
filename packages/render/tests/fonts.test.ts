@@ -57,6 +57,17 @@ it("fonte com arquivo vira @font-face local por sha256", () => {
   expect(output.families["font.heading"]).toBe(`"br-font-heading", ${FALLBACK_FAMILY}`);
 });
 
+it("fonte variável declara a faixa real de peso", () => {
+  const ir = fixtureIr();
+  ir.fonts["font.heading"].resource = {
+    axes: [{ tag: "wght", minimum: 100, default: 900, maximum: 900 }],
+  };
+
+  const output = buildFontFaces(ir, "http://x/assets");
+
+  expect(output.css).toContain("font-weight: 100 900");
+});
+
 it("referenced-only não gera @font-face, usa genérica e registra fallback", () => {
   const output = buildFontFaces(fixtureIr(), "http://x/assets");
   expect(output.css).not.toContain("br-font-body");

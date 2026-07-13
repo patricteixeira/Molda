@@ -27,6 +27,26 @@ export interface FontCandidateValue {
   weight: number
   style: "normal" | "italic"
   path?: string | null
+  resource?: FontResource | null
+}
+
+export interface FontAxis {
+  tag: string
+  minimum: number
+  default: number
+  maximum: number
+}
+
+export interface FontResource {
+  provider: string
+  format: "ttf" | "otf" | "woff2"
+  upstreamRef?: string | null
+  licenseId?: string | null
+  licenseSha256?: string | null
+  usagePolicy: "redistributable" | "embeddable" | "restricted" | "unknown"
+  coverageProfile?: string | null
+  missingCodepoints: number[]
+  axes: FontAxis[]
 }
 
 export interface Diagnostic {
@@ -49,6 +69,7 @@ export interface BrandIr {
       style: "normal" | "italic"
       source: string
       fileSha256?: string | null
+      resource?: FontResource | null
       evidence: Evidence[]
     }
   >

@@ -35,6 +35,28 @@ services:
     networks:
       - backend
 
+  font-fetch:
+    build:
+      context: .
+      dockerfile: infra/docker/font-fetch.Dockerfile
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: on-failure
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,uid=101,gid=101
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - font-fetch
+      - font-egress
+
   api:
     build:
       context: .
@@ -43,12 +65,15 @@ services:
       BRANDRT_DATABASE_URL: postgresql+psycopg://brandrt:${BRANDRT_DB_PASSWORD:?Defina BRANDRT_DB_PASSWORD em .env ou no ambiente}@postgres:5432/brandrt
       BRANDRT_DATA_DIR: /data
       BRANDRT_BOOTSTRAP_TOKEN: ${BRANDRT_TOKEN:-brandrt-dev}
+      BRANDRT_FONT_FETCH_BASE_URL: http://font-fetch:8081/google-fonts/
     volumes:
       - data:/data
     depends_on:
       data-init:
         condition: service_completed_successfully
       postgres:
+        condition: service_healthy
+      font-fetch:
         condition: service_healthy
     healthcheck:
       test:
@@ -70,6 +95,7 @@ services:
       - ALL
     networks:
       - backend
+      - font-fetch
 
   worker:
     build:
@@ -124,4 +150,7 @@ volumes:
 networks:
   backend:
     internal: true
+  font-fetch:
+    internal: true
+  font-egress:
   edge:

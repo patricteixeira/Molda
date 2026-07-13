@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Literal
 
 from fontTools.ttLib import TTFont
 
-from brand_runtime.ir.models import CamelModel
+from brand_runtime.ir.models import CamelModel, FontAxis
 
 
 class FontInfo(CamelModel):
@@ -17,6 +18,16 @@ class FontInfo(CamelModel):
     family: str
     weight: int = 400
     style: Literal["normal", "italic"] = "normal"
+
+
+DEFAULT_COVERAGE_PROFILE = "pt-BR-ui-v1"
+_PT_BR_UI_CHARACTERS = (
+    "".join(chr(codepoint) for codepoint in range(0x20, 0x7F))
+    + "\u00a0ªº°ÁÀÂÃÉÊÍÓÔÕÚÜÇáàâãéêíóôõúüç“”‘’–—…•€"
+)
+_COVERAGE_PROFILES: dict[str, frozenset[int]] = {
+    DEFAULT_COVERAGE_PROFILE: frozenset(ord(character) for character in _PT_BR_UI_CHARACTERS),
+}
 
 
 _NAME_ID_FAMILY = 1
@@ -56,6 +67,62 @@ def font_info_from_ttfont(font: TTFont, *, source: str = "fonte") -> FontInfo:
         weight=os2.usWeightClass,
         style="italic" if italic else "normal",
     )
+
+
+def required_codepoints(coverage_profile: str = DEFAULT_COVERAGE_PROFILE) -> frozenset[int]:
+    """Retorna o conjunto versionado de caracteres exigidos por um perfil."""
+    try:
+        return _COVERAGE_PROFILES[coverage_profile]
+    except KeyError as exc:
+        raise ValueError(f"Perfil de cobertura de fonte desconhecido: {coverage_profile}") from exc
+
+
+def missing_codepoints(font: TTFont, required: Iterable[int]) -> list[int]:
+    """Lista deterministicamente os codepoints exigidos que não existem no cmap."""
+    cmap = font.getBestCmap() or {}
+    return sorted(frozenset(required).difference(cmap))
+
+
+def missing_codepoints_from_ttfont(
+    font: TTFont,
+    *,
+    coverage_profile: str = DEFAULT_COVERAGE_PROFILE,
+    required: Iterable[int] | None = None,
+) -> list[int]:
+    """Lista deterministicamente os caracteres exigidos que não existem no cmap."""
+    expected = required if required is not None else required_codepoints(coverage_profile)
+    return missing_codepoints(font, expected)
+
+
+def font_axes_from_ttfont(font: TTFont) -> list[FontAxis]:
+    """Extrai intervalos ``fvar`` em ordem estável; fontes estáticas retornam vazio."""
+    if "fvar" not in font:
+        return []
+    return sorted(
+        (
+            FontAxis(
+                tag=str(axis.axisTag),
+                minimum=float(axis.minValue),
+                default=float(axis.defaultValue),
+                maximum=float(axis.maxValue),
+            )
+            for axis in font["fvar"].axes
+        ),
+        key=lambda axis: axis.tag,
+    )
+
+
+def inspect_font_capabilities(
+    font_path: Path,
+    *,
+    coverage_profile: str = DEFAULT_COVERAGE_PROFILE,
+) -> tuple[list[FontAxis], list[int]]:
+    """Lê eixos variáveis e lacunas de cobertura numa única abertura validada."""
+    with TTFont(font_path) as font:
+        return (
+            font_axes_from_ttfont(font),
+            missing_codepoints_from_ttfont(font, coverage_profile=coverage_profile),
+        )
 
 
 def introspect_font(font_path: Path) -> FontInfo:

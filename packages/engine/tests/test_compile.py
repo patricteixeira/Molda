@@ -10,6 +10,22 @@ from brand_runtime.intake.draft import build_draft
 FIXED = datetime(2026, 7, 11, 12, 0, 0, tzinfo=timezone.utc)
 
 
+def _font_resource(upstream_ref="google/fonts@abc:ofl/fixture/fixture.ttf"):
+    return {
+        "provider": "google-fonts",
+        "format": "ttf",
+        "upstreamRef": upstream_ref,
+        "licenseId": "OFL-1.1",
+        "licenseSha256": "a" * 64,
+        "usagePolicy": "redistributable",
+        "coverageProfile": "pt-BR-ui-v1",
+        "missingCodepoints": [],
+        "axes": [
+            {"tag": "wght", "minimum": 100, "default": 400, "maximum": 900},
+        ],
+    }
+
+
 def _answers(draft):
     def first(qid):
         q = next(q for q in draft.questions if q.id == qid)
@@ -158,12 +174,69 @@ def test_manual_font_cannot_inject_file_path(brand_package, tmp_path):
         "weight": 700,
         "style": "normal",
         "path": str(outside),
+        "resource": _font_resource("forged"),
     }
 
     ir = compile_ir(draft, answers, "ACME", created_at=FIXED)
 
     assert ir.fonts["font.heading"].source == "referenced-only"
     assert ir.fonts["font.heading"].file_sha256 is None
+    assert ir.fonts["font.heading"].resource is None
+
+
+def test_font_resource_is_inherited_only_from_matched_candidate(brand_package):
+    draft = build_draft(brand_package)
+    heading = next(question for question in draft.questions if question.id == "font.heading")
+    file_candidate = next(
+        candidate for candidate in heading.candidates if "path" in candidate.value
+    )
+    file_candidate.value["resource"] = _font_resource()
+    answers = _answers(draft)
+    answers.values["font.heading"] = file_candidate.value
+
+    ir = compile_ir(draft, answers, "ACME", created_at=FIXED)
+
+    resource = ir.fonts["font.heading"].resource
+    assert resource is not None
+    assert resource.provider == "google-fonts"
+    assert resource.upstream_ref == "google/fonts@abc:ofl/fixture/fixture.ttf"
+    assert resource.axes[0].tag == "wght"
+
+
+def test_font_match_requires_the_same_style_as_the_file_candidate(brand_package):
+    draft = build_draft(brand_package)
+    answers = _answers(draft)
+    heading = next(question for question in draft.questions if question.id == "font.heading")
+    file_candidate = next(
+        candidate for candidate in heading.candidates if "path" in candidate.value
+    )
+    answers.values["font.heading"] = {**file_candidate.value, "style": "italic"}
+
+    ir = compile_ir(draft, answers, "ACME", created_at=FIXED)
+
+    assert ir.fonts["font.heading"].style == "italic"
+    assert ir.fonts["font.heading"].source == "referenced-only"
+    assert ir.fonts["font.heading"].file_sha256 is None
+
+
+def test_font_resource_participates_in_revision_identity(brand_package):
+    first_draft = build_draft(brand_package)
+    second_draft = first_draft.model_copy(deep=True)
+    first_heading = next(q for q in first_draft.questions if q.id == "font.heading")
+    second_heading = next(q for q in second_draft.questions if q.id == "font.heading")
+    first_file = next(
+        candidate for candidate in first_heading.candidates if "path" in candidate.value
+    )
+    second_file = next(
+        candidate for candidate in second_heading.candidates if "path" in candidate.value
+    )
+    first_file.value["resource"] = _font_resource("google/fonts@aaa:fixture.ttf")
+    second_file.value["resource"] = _font_resource("google/fonts@bbb:fixture.ttf")
+
+    first = compile_ir(first_draft, _answers(first_draft), "ACME", created_at=FIXED)
+    second = compile_ir(second_draft, _answers(second_draft), "ACME", created_at=FIXED)
+
+    assert first.revision.id != second.revision.id
 
 
 def test_file_candidate_wins_tie_when_its_path_was_selected(brand_package):

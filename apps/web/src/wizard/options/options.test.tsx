@@ -63,6 +63,37 @@ it("identifica quando o arquivo da fonte está incluído", () => {
   expect(screen.getByText("Arquivo da fonte incluído")).toBeInTheDocument()
 })
 
+it("explica quando a fonte foi incorporada automaticamente", () => {
+  render(
+    <ApiProvider client={fakeClient()}>
+      <FontOptions
+        draftId="d1"
+        candidates={[
+          candidate({
+            family: "Fraunces",
+            weight: 700,
+            style: "normal",
+            path: "resolved-fonts/fraunces.ttf",
+            resource: {
+              provider: "google-fonts",
+              format: "ttf",
+              usagePolicy: "redistributable",
+              missingCodepoints: [],
+              axes: [{ tag: "wght", minimum: 100, default: 900, maximum: 900 }],
+            },
+          }),
+        ]}
+        selected={null}
+        onSelect={vi.fn()}
+      />
+    </ApiProvider>,
+  )
+
+  expect(
+    screen.getByText("Identificada e incorporada automaticamente · Google Fonts"),
+  ).toBeInTheDocument()
+})
+
 it("logo é renderizado de verdade a partir do draft", () => {
   render(
     <ApiProvider client={fakeClient()}>

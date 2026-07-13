@@ -22,6 +22,8 @@ release pública.
   - CLI `brandrt` (`extract`, `compile`, `kit`, `guard`, `schemas`) e API Python
     pública para integração com os próximos planos.
 - Schemas públicos de Brand IR, Layout Spec, Content Spec e Guard Verdict.
+- Brand IR 0.2 e resolução automática de fontes abertas por catálogo oficial
+  fixado, com licença, cobertura pt-BR, eixos variáveis, CAS e egress isolado.
 - Renderer autoritativo TypeScript (`packages/render`) concluído no Plano 2:
   - DOM 1:1 px e fitting determinístico, com pipeline estável compartilhado
     por prévia e exportação;
@@ -29,15 +31,19 @@ release pública.
     isolamento contra estilos do app;
   - validação de payload hostil, contenção de origem e relatório medido de
     overflow/fallback;
-  - gate Biome, tipagem estrita, 49 testes unitários e build Vite reproduzível.
+  - gate Biome, tipagem estrita, 50 testes unitários e build Vite reproduzível.
 - Export PNG/PDF pelo Chromium pinado, com publicação atômica, PDF
   determinístico, equivalência RGBA prévia×exportação e Brand Guard estático +
   medido antes de publicar qualquer arquivo.
 - Padrões de engenharia (`ENGINEERING.md`), ADRs iniciais, CI e licenças
   (AGPL-3.0 para o app, MIT para os schemas).
 
-### Pendente no Marco 1
+### Segurança
 
-- API, persistência e jobs de export (Plano 3).
-- Wizard, editor por slots, Docker Compose e E2E (Plano 4).
-- Validação do kit com três marcas reais e mutation tests do Guard.
+- Bases Nginx do web e do proxy de fontes atualizadas para 1.30.3, com digest
+  fixado fora das faixas vulneráveis conhecidas da linha 1.27.
+
+### Próximas validações
+
+- Ampliar a validação do kit para três marcas reais e adicionar mutation tests
+  do Guard.

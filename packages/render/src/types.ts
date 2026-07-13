@@ -8,6 +8,14 @@ export interface FontToken {
   style: "normal" | "italic";
   source: "file" | "referenced-only" | "fallback";
   fileSha256?: string | null;
+  resource?: {
+    axes?: Array<{
+      tag: string;
+      minimum: number;
+      default: number;
+      maximum: number;
+    }>;
+  } | null;
 }
 
 export interface SemanticRole {

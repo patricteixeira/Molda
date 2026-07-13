@@ -37,6 +37,11 @@ export interface FontFaceBuild {
   }>;
 }
 
+function faceWeight(font: BrandIr["fonts"][string]): string {
+  const axis = font.resource?.axes?.find((item) => item.tag === "wght");
+  return axis ? `${axis.minimum} ${axis.maximum}` : String(font.weight);
+}
+
 export function buildFontFaces(ir: BrandIr, assetsBaseUrl: string): FontFaceBuild {
   const blocks: string[] = [];
   const families = Object.create(null) as Record<string, string>;
@@ -58,7 +63,7 @@ export function buildFontFaces(ir: BrandIr, assetsBaseUrl: string): FontFaceBuil
           "@font-face {",
           `  font-family: "${family}";`,
           `  src: url("${joinUrl(assetsBaseUrl, `fonts/${font.fileSha256}`)}");`,
-          `  font-weight: ${font.weight};`,
+          `  font-weight: ${faceWeight(font)};`,
           `  font-style: ${font.style};`,
           "  font-display: block;",
           "}",

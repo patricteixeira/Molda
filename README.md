@@ -43,13 +43,21 @@ docker compose down -v
 | Serviço | Responsabilidade | Porta publicada |
 | --- | --- | --- |
 | `postgres` | Revisões, documentos e fila persistente | nenhuma |
+| `font-fetch` | Egress restrito ao snapshot oficial de fontes abertas | nenhuma |
 | `api` | Intake, Brand IR, kit, Guard e jobs HTTP | nenhuma |
 | `worker` | Export PNG/PDF com Chromium headless | nenhuma |
 | `web` | SPA e proxy nginx autenticado | `127.0.0.1:8080` |
 
 O Compose também executa `data-init`, um job efêmero e sem rede que prepara a
 permissão do volume para API e worker não-root; ele termina com código 0 antes
-dos quatro serviços permanentes iniciarem.
+dos cinco serviços permanentes iniciarem.
+
+Fontes abertas declaradas no manual são resolvidas automaticamente por um
+catálogo Google Fonts fixado, conferidas contra o objeto Git esperado, validadas
+e armazenadas localmente junto com a licença. A API e o worker não recebem
+egress direto, e nenhuma API key é necessária. Fontes comerciais ou com
+redistribuição restrita continuam exigindo um arquivo/licença compatível; o
+sistema não as substitui silenciosamente.
 
 ## Estrutura do repositório
 

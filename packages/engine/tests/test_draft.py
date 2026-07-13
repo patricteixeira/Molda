@@ -1,6 +1,8 @@
 import pymupdf
 
-from brand_runtime.intake.draft import build_draft
+from brand_runtime.intake.base import Candidate
+from brand_runtime.intake.draft import _bind_dtcg_fonts_to_files, _diagnostics, build_draft
+from brand_runtime.ir.models import Evidence
 
 
 def test_question_set(brand_package):
@@ -36,6 +38,69 @@ def test_heading_candidates_prefer_font_files(brand_package):
     first = q.candidates[0]
     assert first.value["family"] == "Fixture Sans"
     assert first.evidence[0].source_type == "font-file"
+
+
+def test_dtcg_binding_preserves_font_resource_metadata():
+    dtcg = Candidate(
+        value={"family": "Example Sans", "weight": 700, "style": "normal"},
+        score=5,
+        evidence=[Evidence(source_type="dtcg-tokens", confidence=1)],
+    )
+    resource = {
+        "provider": "google-fonts",
+        "format": "ttf",
+        "upstreamRef": "google/fonts@abc:ofl/example/example.ttf",
+        "licenseId": "OFL-1.1",
+        "licenseSha256": "a" * 64,
+        "usagePolicy": "redistributable",
+        "coverageProfile": "pt-BR-ui-v1",
+        "missingCodepoints": [],
+        "axes": [],
+    }
+    file_candidate = Candidate(
+        value={
+            "family": "example sans",
+            "weight": 700,
+            "style": "normal",
+            "path": "fonts/example.ttf",
+            "resource": resource,
+        },
+        score=1,
+        evidence=[Evidence(source_type="font-file", confidence=1)],
+    )
+
+    bound = _bind_dtcg_fonts_to_files([dtcg], [file_candidate])
+
+    assert bound[0].value["path"] == "fonts/example.ttf"
+    assert bound[0].value["resource"] == resource
+    assert "path" not in dtcg.value
+
+
+def test_font_missing_diagnostic_uses_family_weight_and_style(tmp_path):
+    normal_file = Candidate(
+        value={"family": "Example Sans", "weight": 400, "style": "normal"},
+        score=1,
+        evidence=[],
+    )
+    italic_reference = Candidate(
+        value={"family": "example sans", "weight": 400, "style": "italic"},
+        score=1,
+        evidence=[],
+    )
+    logo = Candidate(value="assets/logos/example.svg", score=1, evidence=[])
+
+    diagnostics = _diagnostics(
+        [tmp_path / "manual.pdf"],
+        [logo],
+        [normal_file],
+        [italic_reference],
+        [],
+        tmp_path,
+    )
+
+    missing = [item for item in diagnostics if item.code == "FONT_FILE_MISSING"]
+    assert len(missing) == 1
+    assert "italic" in missing[0].message
 
 
 def test_logo_question_and_prompt(brand_package):

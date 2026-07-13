@@ -85,6 +85,7 @@
             "svg-asset",
             "raster-asset",
             "font-file",
+            "font-catalog",
             "dtcg-tokens",
             "wizard-confirmation",
             "manual-entry"
@@ -160,6 +161,139 @@
       "title": "Evidence",
       "type": "object"
     },
+    "FontAxis": {
+      "additionalProperties": false,
+      "description": "Intervalo de um eixo OpenType variável, preservado para reprodução.",
+      "properties": {
+        "tag": {
+          "maxLength": 4,
+          "minLength": 4,
+          "pattern": "^[A-Za-z0-9]{4}$",
+          "title": "Tag",
+          "type": "string"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "default": {
+          "type": "number",
+          "title": "Default"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        }
+      },
+      "required": [
+        "tag",
+        "minimum",
+        "default",
+        "maximum"
+      ],
+      "title": "FontAxis",
+      "type": "object"
+    },
+    "FontResource": {
+      "additionalProperties": false,
+      "description": "Binário de fonte resolvido com origem, licença e cobertura verificáveis.",
+      "properties": {
+        "provider": {
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "ttf",
+            "otf",
+            "woff2"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "upstreamRef": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Upstreamref"
+        },
+        "licenseId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Licenseid"
+        },
+        "licenseSha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Licensesha256"
+        },
+        "usagePolicy": {
+          "default": "unknown",
+          "enum": [
+            "redistributable",
+            "embeddable",
+            "restricted",
+            "unknown"
+          ],
+          "title": "Usagepolicy",
+          "type": "string"
+        },
+        "coverageProfile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverageprofile"
+        },
+        "missingCodepoints": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Missingcodepoints",
+          "type": "array"
+        },
+        "axes": {
+          "items": {
+            "$ref": "#/$defs/FontAxis"
+          },
+          "title": "Axes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "provider",
+        "format"
+      ],
+      "title": "FontResource",
+      "type": "object"
+    },
     "FontToken": {
       "additionalProperties": false,
       "description": "Fonte semântica confirmada, ligada ou não a um arquivo local.",
@@ -204,6 +338,17 @@
           ],
           "default": null,
           "title": "Filesha256"
+        },
+        "resource": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FontResource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "evidence": {
           "items": {
@@ -329,8 +474,11 @@
   "description": "Contrato imutável da marca consumido pelo kit, guard e renderer.",
   "properties": {
     "schemaVersion": {
-      "const": "0.1.0",
-      "default": "0.1.0",
+      "default": "0.2.0",
+      "enum": [
+        "0.1.0",
+        "0.2.0"
+      ],
       "title": "Schemaversion",
       "type": "string"
     },
