@@ -20,7 +20,7 @@ def get_job(job_id: str, request: Request) -> dict[str, Any]:
         if job is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Job de export não encontrado.",
+                detail="Job não encontrado.",
             )
         return {
             "id": job.id,

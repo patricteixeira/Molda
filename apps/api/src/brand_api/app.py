@@ -17,6 +17,7 @@ from brand_api.routes.documents import router as documents_router
 from brand_api.routes.intake import router as intake_router
 from brand_api.routes.jobs import router as jobs_router
 from brand_api.routes.revisions import router as revisions_router
+from brand_api.routes.roundtrip import router as roundtrip_router
 from brand_api.storage import Storage
 
 
@@ -83,5 +84,6 @@ def create_app(settings: Settings, *, font_resolver: FontResolver | None = None)
     app.include_router(assets_router)
     app.include_router(documents_router)
     app.include_router(jobs_router)
+    app.include_router(roundtrip_router)
 
     return app

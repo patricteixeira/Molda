@@ -81,7 +81,12 @@ def _bounds_changed(before: BoundsPt, after: BoundsPt, tolerance_pt: float = 0.0
 
 
 def _brand_findings(node: DocumentNode, ir: BrandIR) -> list[RoundtripFinding]:
-    if node.kind != "text" or node.role not in ir.roles:
+    if (
+        node.kind != "text"
+        or node.role not in ir.roles
+        or node.text is None
+        or not node.text.strip()
+    ):
         return []
     role = ir.roles[node.role]
     expected_font = ir.fonts[role.font].family

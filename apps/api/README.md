@@ -117,6 +117,34 @@ python ../../tools/build_native_templates.py
 python ../../tools/build_native_templates.py --check
 ```
 
+## Round-trip PPTX (M3)
+
+Um export PPTX concluído pode receber a cópia editada no PowerPoint ou Google
+Slides. A API valida o tipo pelos parts OOXML, armazena os bytes pelo SHA-256 e
+enfileira a análise:
+
+```powershell
+$analysis = curl.exe -sS -X POST `
+  "$base/v1/jobs/$($pptxJob.jobId)/roundtrips" `
+  -H $auth -F "file=@apresentacao-editada.pptx;type=application/octet-stream" `
+  | ConvertFrom-Json
+```
+
+Quando `GET /v1/jobs/{id}` terminar, `result` contém `baselineGraph`,
+`documentGraph`, `report` e `fixPlan`. Alterações de texto permanecem
+informativas; regras visuais corrigíveis viram operações auditáveis. A nova
+cópia só é criada por uma segunda ação:
+
+```powershell
+$fix = curl.exe -sS -X POST `
+  "$base/v1/jobs/$($analysis.jobId)/fixes" -H $auth | ConvertFrom-Json
+```
+
+O endpoint de correção não aceita plano nem path no body. O worker usa somente o
+`FixPlan` persistido no job anterior, verifica os hashes novamente e publica o
+PPTX corrigido no storage content-addressed. O resultado inclui `sha256`, `url`,
+`filename` e `fixResult` com o relint completo.
+
 ## Resolução automática de fontes abertas
 
 No Docker Compose da raiz, `BRANDRT_FONT_FETCH_BASE_URL` já aponta para o proxy

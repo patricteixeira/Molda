@@ -65,6 +65,9 @@ release pública.
 - Fix Plan e fixer PPTX conservador com verificação de SHA-256, deduplicação por
   propriedade, aplicação atômica apenas em cópia e relint completo do resultado;
   texto e findings estruturais nunca são corrigidos silenciosamente.
+- Upload de round-trip ligado ao job PPTX original, jobs separados de análise e
+  correção, persistência de graphs/relatório/plano e publicação do resultado pelo
+  worker sob o mesmo lease transacional dos exports.
 - Padrões de engenharia (`ENGINEERING.md`), ADRs iniciais, CI e licenças
   (AGPL-3.0 para o app, MIT para os schemas).
 
@@ -100,3 +103,6 @@ release pública.
 - O fixer da fixture real restaurou a cor do heading e a geometria do logo em uma
   nova cópia, preservou os dois textos editados e reduziu o relint a dois itens
   informativos, com zero warning, error, locked ou fixable.
+- O fluxo integrado API→worker exportou, reimportou, analisou e corrigiu um PPTX
+  nativo pelo storage real de teste, preservando o upload original e eliminando
+  todos os findings visuais corrigíveis.

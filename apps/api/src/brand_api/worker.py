@@ -12,6 +12,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import Any
 
 from sqlalchemy import and_, or_, select
 
@@ -28,7 +29,17 @@ from brand_api.exporters import (
 )
 from brand_api.models import BrandRevision, Document, Job
 from brand_api.storage import Storage
-from brand_runtime import BrandIR, ContentSpec, GuardCheck, LayoutSpec
+from brand_runtime import (
+    BrandIR,
+    ContentSpec,
+    FixPlan,
+    GuardCheck,
+    LayoutSpec,
+    apply_pptx_fix_plan,
+    build_fix_plan,
+    lint_roundtrip,
+    parse_pptx_document_graph,
+)
 from brand_runtime.kit.models import ImageValue
 
 _JOB_ID_RE = re.compile(r"^job_[0-9a-f]{12}$")
@@ -36,6 +47,7 @@ _LEASE_ID_RE = re.compile(r"^lease_[0-9a-f]{12}$")
 _LEASE_KEY = "_leaseId"
 _LEASE_TIMEOUT = timedelta(minutes=5)
 _HEARTBEAT_SECONDS = 30.0
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _WINDOWS_RESERVED_NAMES = {
     "CON",
     "PRN",
@@ -350,6 +362,55 @@ def _load_export_contract(session_factory, lease: _JobLease):
         )
 
 
+def _load_job_kind(session_factory, lease: _JobLease) -> str:
+    """Lê o discriminador do job somente quando o worker ainda possui o lease."""
+    with session_factory() as session:
+        job = session.get(Job, lease.job_id)
+        if job is None or not _owns_lease(job, lease.lease_id):
+            raise _LeaseLost("O job mudou de lease antes do processamento.")
+        return job.kind
+
+
+def _load_roundtrip_contract(
+    session_factory,
+    lease: _JobLease,
+    expected_kind: str,
+) -> tuple[str, BrandIR, str, str, FixPlan | None]:
+    """Carrega hashes, marca e plano persistidos para um job de round-trip."""
+    with session_factory() as session:
+        job = session.get(Job, lease.job_id)
+        if job is None or not _owns_lease(job, lease.lease_id) or job.kind != expected_kind:
+            raise RuntimeError("O job reivindicado não está disponível para round-trip.")
+        document = session.get(Document, job.document_id)
+        if document is None:
+            raise RuntimeError("O documento do round-trip não foi encontrado.")
+        revision = session.get(BrandRevision, document.brand_revision_id)
+        if revision is None:
+            raise RuntimeError("A revisão de marca do round-trip não foi encontrada.")
+        params = job.params if isinstance(job.params, dict) else {}
+        baseline_sha256 = params.get("baselineSha256")
+        edited_sha256 = params.get("editedSha256")
+        if (
+            not isinstance(baseline_sha256, str)
+            or _SHA256_RE.fullmatch(baseline_sha256) is None
+            or not isinstance(edited_sha256, str)
+            or _SHA256_RE.fullmatch(edited_sha256) is None
+        ):
+            raise RuntimeError("O job de round-trip não possui hashes válidos.")
+        plan = None
+        if expected_kind == "roundtrip-fix":
+            plan = FixPlan.model_validate(params.get("fixPlan"))
+            if plan.baseline_sha256 != baseline_sha256 or plan.edited_sha256 != edited_sha256:
+                raise RuntimeError("O plano persistido não corresponde aos blobs do job.")
+        return (
+            document.id,
+            BrandIR.model_validate(revision.ir),
+            baseline_sha256,
+            edited_sha256,
+            plan,
+        )
+
+
 def _safe_job_workdir(work_root: Path, lease: _JobLease) -> Path:
     """Deriva uma pasta por tentativa, sem colisão com um worker recuperado."""
     if not _JOB_ID_RE.fullmatch(lease.job_id) or not _LEASE_ID_RE.fullmatch(lease.lease_id):
@@ -379,6 +440,27 @@ def _read_exact_output(out_path: Path, workdir: Path, workdir_identity: Path) ->
     return out_path.read_bytes()
 
 
+def _materialize_roundtrip_workdir(
+    storage: Storage,
+    workdir: Path,
+    baseline_sha256: str,
+    edited_sha256: str,
+) -> Path:
+    """Materializa somente os dois blobs íntegros esperados pelo round-trip."""
+    _ensure_regular_directory(workdir)
+    identity = workdir.resolve(strict=True)
+    try:
+        _write_blob_safely(workdir, Path("baseline.pptx"), storage.get(baseline_sha256))
+        _write_blob_safely(workdir, Path("edited.pptx"), storage.get(edited_sha256))
+    except Exception:
+        with suppress(OSError, ValueError):
+            _validate_existing_ancestors(workdir)
+            if workdir.exists() and not _is_link(workdir) and workdir.resolve() == identity:
+                shutil.rmtree(workdir)
+        raise
+    return identity
+
+
 def _finish_success(
     session_factory,
     lease: _JobLease,
@@ -405,6 +487,24 @@ def _finish_success(
             "format": fmt,
             "filename": f"{document_id}.{fmt}",
         }
+        job.error = None
+        job.finished_at = datetime.now(UTC)
+        session.commit()
+
+
+def _finish_roundtrip_success(
+    session_factory,
+    lease: _JobLease,
+    result: dict[str, Any],
+) -> None:
+    """Persiste o contrato completo do round-trip sem alterar checks do documento."""
+    with session_factory() as session:
+        job = session.scalars(select(Job).where(Job.id == lease.job_id).with_for_update()).first()
+        if job is None or not _owns_lease(job, lease.lease_id):
+            raise _LeaseLost("O job mudou de lease antes de concluir o round-trip.")
+        job.status = "succeeded"
+        job.params = {key: value for key, value in job.params.items() if key != _LEASE_KEY}
+        job.result = result
         job.error = None
         job.finished_at = datetime.now(UTC)
         session.commit()
@@ -457,40 +557,104 @@ def run_next_job(
     workdir: Path | None = None
     workdir_identity: Path | None = None
     document_id: str | None = None
+    kind: str | None = None
     try:
-        (
-            document_id,
-            ir,
-            layout,
-            content,
-            manifest,
-            fmt,
-            native_template_version,
-        ) = _load_export_contract(session_factory, lease)
-        workdir = _safe_job_workdir(settings.work_dir, lease)
-        with _LeaseHeartbeat(session_factory, lease, heartbeat_seconds) as heartbeat:
-            build_export_workdir(manifest, ir, content, storage, workdir)
-            workdir_identity = workdir.resolve(strict=True)
-            out_path = workdir / f"out.{fmt}"
-            if out_path.exists() or _is_link(out_path):
-                raise ValueError("O manifest colide com o destino reservado do export.")
-            outcome: ExportOutcome = exporter.export(
-                ir=ir,
-                layout=layout,
-                content=content,
-                assets_dir=workdir,
-                fmt=fmt,
-                out_path=out_path,
-                native_template_version=native_template_version,
+        kind = _load_job_kind(session_factory, lease)
+        if kind == "export":
+            (
+                document_id,
+                ir,
+                layout,
+                content,
+                manifest,
+                fmt,
+                native_template_version,
+            ) = _load_export_contract(session_factory, lease)
+            workdir = _safe_job_workdir(settings.work_dir, lease)
+            with _LeaseHeartbeat(session_factory, lease, heartbeat_seconds) as heartbeat:
+                build_export_workdir(manifest, ir, content, storage, workdir)
+                workdir_identity = workdir.resolve(strict=True)
+                out_path = workdir / f"out.{fmt}"
+                if out_path.exists() or _is_link(out_path):
+                    raise ValueError("O manifest colide com o destino reservado do export.")
+                outcome: ExportOutcome = exporter.export(
+                    ir=ir,
+                    layout=layout,
+                    content=content,
+                    assets_dir=workdir,
+                    fmt=fmt,
+                    out_path=out_path,
+                    native_template_version=native_template_version,
+                )
+                checks = _serialize_checks(outcome.checks)
+                if any(check["status"] == "blocked" for check in checks):
+                    raise ExportRejected([GuardCheck.model_validate(check) for check in checks])
+                heartbeat.ensure_owned()
+                # Deliberadamente ignora outcome.path: só o destino pré-acordado é publicado.
+                sha256 = storage.put(_read_exact_output(out_path, workdir, workdir_identity))
+                heartbeat.ensure_owned()
+                _finish_success(session_factory, lease, document_id, checks, sha256, fmt)
+        elif kind in {"roundtrip-lint", "roundtrip-fix"}:
+            document_id, ir, baseline_sha256, edited_sha256, plan = _load_roundtrip_contract(
+                session_factory,
+                lease,
+                kind,
             )
-            checks = _serialize_checks(outcome.checks)
-            if any(check["status"] == "blocked" for check in checks):
-                raise ExportRejected([GuardCheck.model_validate(check) for check in checks])
-            heartbeat.ensure_owned()
-            # Deliberadamente ignora outcome.path: só o destino pré-acordado pode ser publicado.
-            sha256 = storage.put(_read_exact_output(out_path, workdir, workdir_identity))
-            heartbeat.ensure_owned()
-            _finish_success(session_factory, lease, document_id, checks, sha256, fmt)
+            workdir = _safe_job_workdir(settings.work_dir, lease)
+            with _LeaseHeartbeat(session_factory, lease, heartbeat_seconds) as heartbeat:
+                workdir_identity = _materialize_roundtrip_workdir(
+                    storage,
+                    workdir,
+                    baseline_sha256,
+                    edited_sha256,
+                )
+                baseline_graph = parse_pptx_document_graph(workdir / "baseline.pptx")
+                if kind == "roundtrip-lint":
+                    edited_graph = parse_pptx_document_graph(workdir / "edited.pptx")
+                    report = lint_roundtrip(baseline_graph, edited_graph, ir)
+                    fix_plan = build_fix_plan(edited_graph, report)
+                    heartbeat.ensure_owned()
+                    _finish_roundtrip_success(
+                        session_factory,
+                        lease,
+                        {
+                            "kind": kind,
+                            "baselineGraph": baseline_graph.model_dump(mode="json", by_alias=True),
+                            "documentGraph": edited_graph.model_dump(mode="json", by_alias=True),
+                            "report": report.model_dump(mode="json", by_alias=True),
+                            "fixPlan": fix_plan.model_dump(mode="json", by_alias=True),
+                        },
+                    )
+                else:
+                    if plan is None:  # pragma: no cover - contrato fechado pelo loader
+                        raise RuntimeError("O job de correção perdeu o Fix Plan.")
+                    out_path = workdir / "out.pptx"
+                    fix_result = apply_pptx_fix_plan(
+                        workdir / "edited.pptx",
+                        out_path,
+                        plan,
+                        baseline_graph,
+                        ir,
+                    )
+                    heartbeat.ensure_owned()
+                    sha256 = storage.put(_read_exact_output(out_path, workdir, workdir_identity))
+                    if sha256 != fix_result.fixed_sha256:
+                        raise RuntimeError("O blob publicado diverge do resultado do fixer.")
+                    heartbeat.ensure_owned()
+                    _finish_roundtrip_success(
+                        session_factory,
+                        lease,
+                        {
+                            "kind": kind,
+                            "sha256": sha256,
+                            "url": f"/v1/assets/{sha256}",
+                            "format": "pptx",
+                            "filename": f"{document_id}-corrigido.pptx",
+                            "fixResult": fix_result.model_dump(mode="json", by_alias=True),
+                        },
+                    )
+        else:
+            raise RuntimeError("O tipo persistido do job não é suportado pelo worker.")
     except ExportRejected as exc:
         checks = _serialize_checks(exc.checks)
         _finish_failure(
@@ -504,10 +668,11 @@ def run_next_job(
         # Outra tentativa possui o job; este worker só limpa seu workdir isolado.
         pass
     except Exception as exc:
+        operation = "export" if kind == "export" else "round-trip"
         _finish_failure(
             session_factory,
             lease,
-            error=f"Falha no export: {exc}",
+            error=f"Falha no {operation}: {exc}",
         )
     finally:
         if workdir is not None and workdir_identity is not None:

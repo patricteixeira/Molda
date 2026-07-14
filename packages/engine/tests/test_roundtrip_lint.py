@@ -1,3 +1,13 @@
+from datetime import UTC, datetime
+
+from brand_runtime.ir.models import (
+    BrandIR,
+    BrandInfo,
+    ColorToken,
+    FontToken,
+    RevisionInfo,
+    SemanticRole,
+)
 from brand_runtime.roundtrip.fix import build_fix_plan
 from brand_runtime.roundtrip.lint import lint_roundtrip
 from brand_runtime.roundtrip.models import (
@@ -95,3 +105,38 @@ def test_fix_plan_deduplicates_properties_and_defers_text():
     assert plan.operations[0].expected == heading.bounds_pt
     assert plan.operations[1].expected == "#111111"
     assert plan.deferred_finding_codes == ["text-changed"]
+
+
+def test_brand_lint_ignores_empty_text_placeholder():
+    empty = _node("body", "body", 3).model_copy(
+        update={"text": "", "font_family": None, "font_size_pt": None, "color": None}
+    )
+    baseline = _graph("a", [empty])
+    edited = _graph("b", [empty])
+    ir = BrandIR(
+        brand=BrandInfo(name="Marca"),
+        revision=RevisionInfo(id="brandrev_test", created_at=datetime.now(UTC)),
+        colors={"text": ColorToken(value="#111111", evidence=[])},
+        fonts={
+            "body": FontToken(
+                family="Arial",
+                source="fallback",
+                evidence=[],
+            )
+        },
+        roles={
+            "body": SemanticRole(
+                font="body",
+                color="text",
+                min_size_px=16,
+                max_size_px=32,
+                line_height=1.4,
+            )
+        },
+        assets={},
+    )
+
+    report = lint_roundtrip(baseline, edited, ir)
+
+    assert report.summary.status == "pass"
+    assert report.findings == []
