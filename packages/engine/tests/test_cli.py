@@ -158,6 +158,7 @@ def test_schemas_exports_all_published_contracts(tmp_path):
         "content-spec.schema.json",
         "guard-verdict.schema.json",
         "document-graph.schema.json",
+        "roundtrip-report.schema.json",
     }
     assert {path.name for path in out_dir.glob("*.json")} == schema_names
     assert (out_dir / "LICENSE").read_bytes() == license_bytes

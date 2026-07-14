@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "0.1.0",
+  "source": {
+    "format": "pptx",
+    "filename": "proof.pptx",
+    "sha256": "645da1f180b1d1c45a25b8cae50f698fd85ce5297e2281fb12b469d4ba8eed8b",
+    "sizeBytes": 638978,
+    "slideCount": 1
+  },
+  "nodes": [
+    {
+      "id": "slide-1/shape-2",
+      "slideIndex": 1,
+      "shapeId": 2,
+      "kind": "text",
+      "name": "br:heading:headline",
+      "role": "heading",
+      "slotId": "headline",
+      "brandRevisionId": "brandrev_m2_gate0_proof",
+      "semanticSource": "name",
+      "text": "A marca continua editável",
+      "fontFamily": "Arial",
+      "fontSizePt": 48.0,
+      "color": "#F5F2EC",
+      "boundsPt": {
+        "x": 42.6667,
+        "y": 90.0,
+        "width": 620.0,
+        "height": 110.0
+      }
+    },
+    {
+      "id": "slide-1/shape-3",
+      "slideIndex": 1,
+      "shapeId": 3,
+      "kind": "text",
+      "name": "br:body:body",
+      "role": "body",
+      "slotId": "body",
+      "brandRevisionId": "brandrev_m2_gate0_proof",
+      "semanticSource": "name",
+      "text": "Altere este título, a fonte e a cor. Depois salve como proof-powerpoint-edited.pptx.",
+      "fontFamily": "Arial",
+      "fontSizePt": 21.0,
+      "color": "#F5F2EC",
+      "boundsPt": {
+        "x": 42.6667,
+        "y": 250.0,
+        "width": 526.6667,
+        "height": 130.0
+      }
+    },
+    {
+      "id": "slide-1/shape-4",
+      "slideIndex": 1,
+      "shapeId": 4,
+      "kind": "picture",
+      "name": "br:logo:logo",
+      "role": "logo",
+      "slotId": "logo",
+      "brandRevisionId": "brandrev_m2_gate0_proof",
+      "semanticSource": "name",
+      "text": null,
+      "fontFamily": null,
+      "fontSizePt": null,
+      "color": null,
+      "boundsPt": {
+        "x": 589.3333,
+        "y": 422.0,
+        "width": 64.0,
+        "height": 60.0
+      }
+    }
+  ],
+  "diagnostics": []
+}

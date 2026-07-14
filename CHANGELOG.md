@@ -59,6 +59,9 @@ release pública.
 - Primeiro corte do M3 com parser defensivo de PPTX editado para `Document
   Graph 0.1.0`, schema público e recuperação explícita de roles, slots, revisão,
   conteúdo, estilo e geometria após save em editor externo.
+- Linter inicial de round-trip com baseline do artefato exportado, autoridade
+  opcional do Brand IR, severidades, resumo para API/web e valores esperados e
+  atuais suficientes para construir correções auditáveis.
 - Padrões de engenharia (`ENGINEERING.md`), ADRs iniciais, CI e licenças
   (AGPL-3.0 para o app, MIT para os schemas).
 
@@ -89,3 +92,5 @@ release pública.
   E2E Chromium baixando e reabrindo PNG/PDF/PPTX/DOCX contra a stack real.
 - A fixture real editada no Google Slides gerou Document Graph determinístico
   com heading, body e logo recuperados, zero diagnóstico e SHA-256 conferido.
+- O linter da mesma fixture distinguiu duas edições de conteúdo de duas mudanças
+  visuais corrigíveis, sem acusar quebra estrutural inexistente.

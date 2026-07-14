@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.dml import MSO_THEME_COLOR_INDEX
-from pptx.util import Inches
+from pptx.util import Inches, Pt
 from typer.testing import CliRunner
 
 from brand_runtime.cli import app
@@ -38,6 +38,7 @@ from brand_runtime.native.docx import render_docx
 from brand_runtime.native.ooxml import canonical_ooxml_manifest, validate_ooxml
 from brand_runtime.native.pptx import inspect_semantic_shapes, render_pptx
 from brand_runtime.roundtrip.pptx import parse_pptx_document_graph
+from brand_runtime.roundtrip.lint import lint_roundtrip
 from brand_runtime.native.preview import render_native_preview
 from brand_runtime.native.theme import derive_branded_template
 
@@ -396,6 +397,7 @@ def test_roundtrip_parser_builds_document_graph_after_google_style_save(
     slide_contracts,
 ):
     output = _render_pptx(tmp_path, pptx_template, native_brand, slide_contracts)
+    baseline = parse_pptx_document_graph(output)
     edited = tmp_path / "google-slides-edited.pptx"
     presentation = Presentation(output)
     for index, shape in enumerate(presentation.slides[0].shapes, start=1):
@@ -405,6 +407,7 @@ def test_roundtrip_parser_builds_document_graph_after_google_style_save(
             shape.text = "Continua sim"
             run = shape.text_frame.paragraphs[0].runs[0]
             run.font.name = "Arial"
+            run.font.size = Pt(48)
             run.font.color.rgb = RGBColor(0xE5, 0x79, 0x00)
         shape.name = f"Google Shape;{index};p13"
     presentation.save(edited)
@@ -424,6 +427,21 @@ def test_roundtrip_parser_builds_document_graph_after_google_style_save(
     assert heading.font_family == "Arial"
     assert heading.color == "#E57900"
     assert heading.bounds_pt.width > 0
+
+    report = lint_roundtrip(baseline, graph, native_brand)
+    codes = [finding.code for finding in report.findings]
+    assert codes == [
+        "text-changed",
+        "font-changed",
+        "color-changed",
+        "brand-font",
+        "brand-color",
+    ]
+    assert report.summary.status == "blocked"
+    assert report.summary.info == 1
+    assert report.summary.warning == 2
+    assert report.summary.error == 2
+    assert report.summary.fixable == 4
 
 
 def test_docx_template_fill_uses_semantic_styles_and_native_image(

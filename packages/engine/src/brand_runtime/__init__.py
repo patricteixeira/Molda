@@ -16,7 +16,12 @@ from brand_runtime.native import (
     render_pptx,
     validate_ooxml,
 )
-from brand_runtime.roundtrip import DocumentGraph, parse_pptx_document_graph
+from brand_runtime.roundtrip import (
+    DocumentGraph,
+    RoundtripReport,
+    lint_roundtrip,
+    parse_pptx_document_graph,
+)
 
 __version__ = "0.1.0"
 
@@ -31,6 +36,7 @@ __all__ = [
     "GuardVerdict",
     "KitGenerationError",
     "LayoutSpec",
+    "RoundtripReport",
     "build_draft",
     "canonical_ooxml_manifest",
     "compile_ir",
@@ -38,6 +44,7 @@ __all__ = [
     "export_schemas",
     "generate_kit",
     "inspect_semantic_shapes",
+    "lint_roundtrip",
     "parse_pptx_document_graph",
     "render_docx",
     "render_native_preview",

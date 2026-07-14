@@ -94,11 +94,15 @@ alterado:
 
 ```bash
 brandrt roundtrip-parse apresentacao-editada.pptx --out document-graph.json
+brandrt roundtrip-lint baseline-graph.json document-graph.json \
+  --brand-ir ir.json --out roundtrip-report.json
 ```
 
 O grafo registra identidade SHA-256, roles, slots, revisão de marca, texto,
 tipografia, cor e bounds. A origem semântica também é preservada (`name`,
 `description` ou `placeholder`) para o futuro linter avaliar cada vínculo.
+O relatório separa alterações informativas de avisos, erros de marca e regras
+travadas, preservando valores esperados e atuais para um fix plan auditável.
 
 Exemplo mínimo, partindo de um pacote em `./minha-marca`:
 
