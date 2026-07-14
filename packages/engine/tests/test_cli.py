@@ -161,6 +161,8 @@ def test_schemas_exports_all_published_contracts(tmp_path):
         "roundtrip-report.schema.json",
         "fix-plan.schema.json",
         "fix-result.schema.json",
+        "brand-package.schema.json",
+        "package-validation-report.schema.json",
     }
     assert {path.name for path in out_dir.glob("*.json")} == schema_names
     assert (out_dir / "LICENSE").read_bytes() == license_bytes
@@ -216,6 +218,7 @@ def test_extract_rejects_missing_package_and_help_lists_commands(tmp_path):
         "roundtrip-lint",
         "roundtrip-plan",
         "roundtrip-fix",
+        "package-validate",
     ):
         assert command in help_result.stdout
 
@@ -233,6 +236,9 @@ def test_master_api_is_exported_from_package_root():
         "FixResult",
         "build_fix_plan",
         "apply_pptx_fix_plan",
+        "validate_brand_package",
+        "BrandPackageManifest",
+        "PackageValidationReport",
     ):
         assert name in brand_runtime.__all__
         assert callable(getattr(brand_runtime, name)) or name in {"GuardCheck", "GuardVerdict"}

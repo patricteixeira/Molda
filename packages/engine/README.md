@@ -112,6 +112,21 @@ O plano contém somente propriedades visuais corrigíveis e o fixer sempre salva
 uma cópia, confere os hashes do plano, valida o OOXML e executa o linter outra
 vez. Alterações de texto nunca são revertidas automaticamente.
 
+### M4 — adapters por Brand Package
+
+Adapters comunitários rodam fora do core e entregam a convenção de intake com
+um manifesto `brand-package.json` integral. Valide a saída — sem executar o
+adapter — antes de importá-la:
+
+```bash
+brandrt package-validate ./pacote-do-adapter --out package-validation.json
+```
+
+O recibo fixa adapter, origem, contagem, bytes e SHA-256 determinístico do
+conjunto. Arquivo ausente, extra, adulterado, path não portável, symlink ou
+divergência entre role, diretório, extensão e media type retorna código `2`.
+O contrato e a fixture pública estão documentados em `docs/ecosystem/adapters.md`.
+
 Exemplo mínimo, partindo de um pacote em `./minha-marca`:
 
 ```bash
@@ -154,7 +169,7 @@ verdict válido com ao menos um `blocked`. Erros aparecem em PT-BR no `stderr`.
 Todos os artefatos são UTF-8 sem BOM, camelCase, indentados com dois espaços e
 newline final. Escritas usam substituição atômica. `schemas` publica os contratos
 de Brand IR, Layout Spec, Content Spec, Guard Verdict, Document Graph, relatório
-de round-trip, Fix Plan e Fix Result.
+de round-trip, Fix Plan, Fix Result, Brand Package e recibo de validação.
 
 ## API Python
 

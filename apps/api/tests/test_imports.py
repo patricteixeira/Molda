@@ -1,4 +1,7 @@
 import hashlib
+import io
+import json
+import zipfile
 
 
 def _post_zip(client, data: bytes):
@@ -6,6 +9,48 @@ def _post_zip(client, data: bytes):
         "/v1/brands/imports",
         files={"package": ("marca.zip", data, "application/zip")},
     )
+
+
+def _declared_package(package_zip: bytes, *, bad_hash: bool = False) -> bytes:
+    source = io.BytesIO(package_zip)
+    output = io.BytesIO()
+    with zipfile.ZipFile(source) as original, zipfile.ZipFile(output, "w") as declared:
+        files = []
+        for info in original.infolist():
+            data = original.read(info)
+            declared.writestr(info, data)
+            if info.filename.endswith(".pdf"):
+                role, media_type = "guideline", "application/pdf"
+            elif info.filename.endswith(".svg"):
+                role, media_type = "logo", "image/svg+xml"
+            else:
+                role, media_type = "font", "font/ttf"
+            digest = hashlib.sha256(data).hexdigest()
+            files.append(
+                {
+                    "path": info.filename,
+                    "role": role,
+                    "mediaType": media_type,
+                    "size": len(data),
+                    "sha256": "0" * 64 if bad_hash and role == "guideline" else digest,
+                }
+            )
+        declared.writestr(
+            "brand-package.json",
+            json.dumps(
+                {
+                    "schemaVersion": "0.1.0",
+                    "adapter": {
+                        "id": "org.brandruntime.reference",
+                        "name": "Adapter de referência",
+                        "version": "0.1.0",
+                    },
+                    "source": {"kind": "reference", "label": "Fixture ACME"},
+                    "files": files,
+                }
+            ),
+        )
+    return output.getvalue()
 
 
 def test_import_cria_draft_com_perguntas(client, package_zip):
@@ -26,6 +71,24 @@ def test_import_cria_draft_com_perguntas(client, package_zip):
         assert required in ids
     assert all(not question["required"] or question["candidates"] for question in body["questions"])
     assert body["ignoredEntries"] == []
+
+
+def test_import_aceita_brand_package_de_adapter_com_integridade(client, package_zip):
+    response = _post_zip(client, _declared_package(package_zip))
+
+    assert response.status_code == 201, response.text
+    assert response.json()["draftId"].startswith("draft_")
+    assert response.json()["ignoredEntries"] == []
+
+
+def test_import_recusa_brand_package_com_hash_divergente_sem_deixar_estado(
+    client, package_zip
+):
+    response = _post_zip(client, _declared_package(package_zip, bad_hash=True))
+
+    assert response.status_code == 400
+    assert "SHA-256" in response.json()["detail"]
+    assert list(client.app.state.settings.packages_dir.iterdir()) == []
 
 
 def test_import_expoe_contrato_tipado_no_openapi(client):

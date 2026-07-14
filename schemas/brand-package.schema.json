@@ -1,0 +1,271 @@
+{
+  "$defs": {
+    "AdapterIdentity": {
+      "additionalProperties": false,
+      "description": "Identidade versionada de quem produziu o pacote.",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "version"
+      ],
+      "title": "AdapterIdentity",
+      "type": "object"
+    },
+    "BrandPackageFile": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "logo"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "path": {
+                "pattern": "^assets/logos/.+\\.(?:svg|png)$"
+              },
+              "mediaType": {
+                "enum": [
+                  "image/svg+xml",
+                  "image/png"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "font"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "path": {
+                "pattern": "^fonts/.+\\.(?:ttf|otf)$"
+              },
+              "mediaType": {
+                "enum": [
+                  "font/ttf",
+                  "font/otf"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "tokens"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "path": {
+                "pattern": "^(?:tokens|[^/]+\\.tokens)\\.json$"
+              },
+              "mediaType": {
+                "const": "application/json"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "guideline"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "path": {
+                "pattern": "^[^/]+\\.pdf$"
+              },
+              "mediaType": {
+                "const": "application/pdf"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "role": {
+                "const": "reference"
+              }
+            },
+            "required": [
+              "role"
+            ]
+          },
+          "then": {
+            "properties": {
+              "path": {
+                "pattern": "^references/.+\\.pdf$"
+              },
+              "mediaType": {
+                "const": "application/pdf"
+              }
+            }
+          }
+        }
+      ],
+      "description": "Arquivo declarado pelo adapter e consumível pelo intake atual.",
+      "properties": {
+        "path": {
+          "maxLength": 240,
+          "minLength": 1,
+          "pattern": "^(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*:)(?!.*//).+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "guideline",
+            "logo",
+            "font",
+            "tokens",
+            "reference"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "mediaType": {
+          "enum": [
+            "application/pdf",
+            "image/svg+xml",
+            "image/png",
+            "font/ttf",
+            "font/otf",
+            "application/json"
+          ],
+          "title": "Mediatype",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 209715200,
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "role",
+        "mediaType",
+        "size",
+        "sha256"
+      ],
+      "title": "BrandPackageFile",
+      "type": "object"
+    },
+    "BrandPackageSource": {
+      "additionalProperties": false,
+      "description": "Origem externa, sem exigir URL, token ou identificador sensível.",
+      "properties": {
+        "kind": {
+          "pattern": "^[a-z][a-z0-9-]{1,63}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "BrandPackageSource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Manifesto completo e determinístico produzido por um adapter.",
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "adapter": {
+      "$ref": "#/$defs/AdapterIdentity"
+    },
+    "source": {
+      "$ref": "#/$defs/BrandPackageSource"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/BrandPackageFile"
+      },
+      "maxItems": 200,
+      "minItems": 1,
+      "title": "Files",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "adapter",
+    "source",
+    "files"
+  ],
+  "title": "BrandPackageManifest",
+  "type": "object"
+}

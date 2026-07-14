@@ -11,6 +11,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from brand_runtime._io import publish_file_set
+from brand_runtime.ecosystem.package import BrandPackageManifest, PackageValidationReport
 from brand_runtime.guard.static_checks import GuardVerdict
 from brand_runtime.ir.models import BrandIR
 from brand_runtime.kit.models import ContentSpec, LayoutSpec
@@ -27,6 +28,8 @@ _SCHEMAS: list[tuple[str, type[BaseModel]]] = [
     ("roundtrip-report.schema.json", RoundtripReport),
     ("fix-plan.schema.json", FixPlan),
     ("fix-result.schema.json", FixResult),
+    ("brand-package.schema.json", BrandPackageManifest),
+    ("package-validation-report.schema.json", PackageValidationReport),
 ]
 
 

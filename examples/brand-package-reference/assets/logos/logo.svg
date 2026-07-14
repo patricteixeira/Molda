@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" role="img" aria-labelledby="title">
+  <title id="title">Marca de referência</title>
+  <rect width="48" height="48" fill="#1844D8"/>
+  <path d="M12 12h24v6H18v6h15v6H18v6h18v6H12z" fill="#FBFAF6"/>
+  <path d="M64 14h10l8 20 8-20h10L86 42h-8z" fill="#171815"/>
+  <circle cx="124" cy="28" r="14" fill="#1844D8"/>
+</svg>

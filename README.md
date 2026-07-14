@@ -83,6 +83,7 @@ apps/api/          API FastAPI e worker transacional de export
 apps/web/          Wizard e editor React por slots
 infra/docker/      Imagens e proxy da instância self-hosted
 schemas/           JSON Schemas públicos do motor (licença MIT)
+examples/          Fixtures portáteis para adapters e SDKs (licença MIT)
 docs/              Spec fundadora, planos de implementação e ADRs
 ENGINEERING.md     Padrões de engenharia e segurança do projeto
 ```
@@ -114,6 +115,7 @@ Os demais componentes têm instruções próprias:
 - **Planos de implementação** — tarefas com testes-como-contrato: `docs/superpowers/plans/`
 - **Decisões arquiteturais (ADRs)** — `docs/adr/`
 - **Padrões de engenharia** — [`ENGINEERING.md`](ENGINEERING.md)
+- **Adapters comunitários** — [`docs/ecosystem/adapters.md`](docs/ecosystem/adapters.md)
 
 ## Licenças
 

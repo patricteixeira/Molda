@@ -358,6 +358,12 @@ Round-trip completo: upload de arquivo editado fora → parser → Document Grap
 
 Importador Figma (quando o acesso à API for viável), adapters comunitários de importação, biblioteca pública de kits, instância pública multi-tenant, add-in PowerPoint (avaliar custo/benefício na época).
 
+**Estado em 14/07/2026:** o primeiro fundamento independente foi iniciado com
+o contrato `Brand Package 0.1`: adapters rodam fora do core, produzem uma árvore
+de intake integralmente declarada e hashada, e podem validar a saída pela CLI
+antes de enviá-la à API. Isso prepara o importador Figma e adapters comunitários
+sem antecipar marketplace ou execução de plugins no servidor.
+
 ---
 
 ## 7. Stack

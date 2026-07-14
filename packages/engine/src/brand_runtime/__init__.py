@@ -1,5 +1,11 @@
 """API pública do motor de marca do brand-runtime."""
 
+from brand_runtime.ecosystem import (
+    BrandPackageManifest,
+    PackageValidationError,
+    PackageValidationReport,
+    validate_brand_package,
+)
 from brand_runtime.guard.static_checks import GuardCheck, GuardVerdict, run_static_checks
 from brand_runtime.intake.compile import Answers, CompileError, compile_ir
 from brand_runtime.intake.draft import BrandDraft, build_draft
@@ -33,6 +39,7 @@ __all__ = [
     "Answers",
     "BrandDraft",
     "BrandIR",
+    "BrandPackageManifest",
     "CompileError",
     "ContentSpec",
     "DocumentGraph",
@@ -42,6 +49,8 @@ __all__ = [
     "GuardVerdict",
     "KitGenerationError",
     "LayoutSpec",
+    "PackageValidationError",
+    "PackageValidationReport",
     "RoundtripReport",
     "apply_pptx_fix_plan",
     "build_draft",
@@ -59,4 +68,5 @@ __all__ = [
     "render_pptx",
     "run_static_checks",
     "validate_ooxml",
+    "validate_brand_package",
 ]

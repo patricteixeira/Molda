@@ -38,10 +38,13 @@ from brand_runtime import (
     Answers,
     BrandDraft,
     CompileError,
+    PackageValidationError,
     build_draft,
     compile_ir,
     generate_kit,
+    validate_brand_package,
 )
+from brand_runtime.ecosystem import MANIFEST_FILENAME
 from brand_runtime.intake.draft import DraftQuestion
 from brand_runtime.intake.base import Candidate
 from brand_runtime.intake.dtcg import DtcgError
@@ -254,6 +257,18 @@ async def import_brand(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     manifest = dict(unpacked.manifest)
+    if MANIFEST_FILENAME in manifest:
+        try:
+            if unpacked.ignored:
+                raise PackageValidationError(
+                    "FILE_UNSUPPORTED",
+                    "O Brand Package declarado contém arquivo não suportado.",
+                    path=unpacked.ignored[0],
+                )
+            validate_brand_package(package_dir)
+        except PackageValidationError as exc:
+            shutil.rmtree(package_dir, ignore_errors=True)
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     try:
         _sanitize_svgs(package_dir, manifest)
     except (SvgInvalid, OSError) as exc:

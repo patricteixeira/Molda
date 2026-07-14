@@ -71,6 +71,9 @@ release pública.
 - Mesa de conferência no editor web para receber o PPTX editado, traduzir o
   relatório de round-trip em sinais compreensíveis, preservar alterações de
   texto e baixar uma nova cópia com os ajustes seguros aplicados.
+- Primeiro fundamento do M4 com Brand Package 0.1 para adapters externos,
+  schemas MIT, validação determinística por CLI, fixture pública e verificação
+  opcional no intake HTTP antes de qualquer sanitização ou persistência.
 - Padrões de engenharia (`ENGINEERING.md`), ADRs iniciais, CI e licenças
   (AGPL-3.0 para o app, MIT para os schemas).
 
@@ -94,6 +97,9 @@ release pública.
 - Round-trip manual do PPTX no Google Slides web preservou edição nativa,
   descrições semânticas, tema, logo substituível e reinspeção sem finding
   bloqueante; PowerPoint Desktop continua pendente e indisponível no ambiente.
+- Contrato M4.1 validado com fixture pública determinística, 257 testes do
+  motor e 154 da API; a interface web permaneceu em 95 testes e o E2E Docker
+  completo incluiu a volta do PPTX pelo novo round-trip.
 - Regressão do corte M2.1 passou com 216 testes do motor, 152 da API/worker e
   92 do app web; a imagem de produção do worker contém e valida os quatro
   templates nativos versionados.

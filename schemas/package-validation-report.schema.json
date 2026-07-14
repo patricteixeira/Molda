@@ -1,0 +1,112 @@
+{
+  "$defs": {
+    "AdapterIdentity": {
+      "additionalProperties": false,
+      "description": "Identidade versionada de quem produziu o pacote.",
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 3,
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "version"
+      ],
+      "title": "AdapterIdentity",
+      "type": "object"
+    },
+    "BrandPackageSource": {
+      "additionalProperties": false,
+      "description": "Origem externa, sem exigir URL, token ou identificador sensível.",
+      "properties": {
+        "kind": {
+          "pattern": "^[a-z][a-z0-9-]{1,63}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "BrandPackageSource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Recibo determinístico emitido pelo validador de conformidade.",
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "status": {
+      "const": "pass",
+      "default": "pass",
+      "title": "Status",
+      "type": "string"
+    },
+    "adapter": {
+      "$ref": "#/$defs/AdapterIdentity"
+    },
+    "source": {
+      "$ref": "#/$defs/BrandPackageSource"
+    },
+    "fileCount": {
+      "maximum": 200,
+      "minimum": 1,
+      "title": "Filecount",
+      "type": "integer"
+    },
+    "totalBytes": {
+      "minimum": 0,
+      "title": "Totalbytes",
+      "type": "integer"
+    },
+    "packageSha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Packagesha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "adapter",
+    "source",
+    "fileCount",
+    "totalBytes",
+    "packageSha256"
+  ],
+  "title": "PackageValidationReport",
+  "type": "object"
+}

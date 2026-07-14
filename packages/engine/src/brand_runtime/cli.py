@@ -13,6 +13,7 @@ from fontTools.ttLib import TTLibError
 from pydantic import BaseModel, ValidationError
 
 from brand_runtime._io import atomic_write_text, publish_file_set
+from brand_runtime.ecosystem.package import PackageValidationError, validate_brand_package
 from brand_runtime.export import ExportBlocked, ExportError, export_document
 from brand_runtime.guard.static_checks import GuardVerdict, run_static_checks
 from brand_runtime.intake.compile import Answers, CompileError, compile_ir
@@ -69,7 +70,26 @@ _EXPECTED_ERRORS = (
     OoxmlError,
     PptxParseError,
     RoundtripFixError,
+    PackageValidationError,
 )
+
+
+@app.command("package-validate")
+def package_validate_command(
+    package_dir: Path = typer.Argument(..., help="Diretório produzido por um adapter M4."),
+    out: Path | None = typer.Option(None, "--out", help="Recibo JSON da validação."),
+) -> None:
+    """Confere o manifesto, o inventário e os hashes de um Brand Package 0.1."""
+    try:
+        report = validate_brand_package(package_dir)
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    payload = _model_json(report)
+    if out is None:
+        typer.echo(payload, nl=False)
+        return
+    atomic_write_text(out, payload)
+    typer.echo(str(out))
 
 
 @app.command("roundtrip-parse")
@@ -167,7 +187,10 @@ def roundtrip_fix_command(
 
 def _error_message(error: Exception) -> str:
     """Retorne uma mensagem PT-BR para uma falha operacional esperada."""
-    if isinstance(error, (CliInputError, CompileError, KitGenerationError, ExportError)):
+    if isinstance(
+        error,
+        (CliInputError, CompileError, KitGenerationError, ExportError, PackageValidationError),
+    ):
         return str(error)
     if isinstance(error, ValidationError):
         return "O JSON informado não corresponde ao contrato esperado."
@@ -325,7 +348,7 @@ def schemas_command(
         if out_dir.exists() and not out_dir.is_dir():
             raise CliInputError(f"O destino «{out_dir}» não é um diretório.")
         paths = export_schemas(out_dir)
-        if len(paths) != 8:
+        if len(paths) != 10:
             raise CliInputError("A publicação de schemas não produziu os contratos esperados.")
     except _EXPECTED_ERRORS as error:
         _fail(error)

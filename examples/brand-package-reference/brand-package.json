@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "0.1.0",
+  "adapter": {
+    "id": "org.brandruntime.reference",
+    "name": "Adapter de referência",
+    "version": "0.1.0"
+  },
+  "source": {
+    "kind": "dtcg",
+    "label": "Exemplo público sem credenciais"
+  },
+  "files": [
+    {
+      "path": "tokens.json",
+      "role": "tokens",
+      "mediaType": "application/json",
+      "size": 629,
+      "sha256": "7c2d9bccb7bbc779af301aac13b950f94d1894973ec061c34c0f99eac25e1fde"
+    },
+    {
+      "path": "assets/logos/logo.svg",
+      "role": "logo",
+      "mediaType": "image/svg+xml",
+      "size": 379,
+      "sha256": "c8b99b4b51918c52ed605c2cfb361cbfe9009122ef368e39d1f601255cefd348"
+    }
+  ]
+}
