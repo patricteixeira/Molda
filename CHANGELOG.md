@@ -56,9 +56,18 @@ release pública.
 - Bases Nginx do web e do proxy de fontes atualizadas para 1.30.3, com digest
   fixado fora das faixas vulneráveis conhecidas da linha 1.27.
 
+### Corrigido
+
+- `native-inspect` agora resolve cores de color scheme e famílias major/minor
+  herdadas do tema após regravação em editores externos, em vez de falhar ou
+  retornar fonte nula quando RGB e typeface não estão explícitos no run.
+
 ### Validações de fechamento
 
 - Kit validado com Digital Artisan, Fofo's Massage Therapy e VitaCannMed; as
   três revisões exportam provas estruturalmente distintas pelo mesmo pipeline.
 - Dezoito violações semeadas cobertas por mutation tests do Guard, incluindo
   contrato, slots, referências, contraste, acento, resolução e integridade.
+- Round-trip manual do PPTX no Google Slides web preservou edição nativa,
+  descrições semânticas, tema, logo substituível e reinspeção sem finding
+  bloqueante; PowerPoint Desktop continua pendente e indisponível no ambiente.

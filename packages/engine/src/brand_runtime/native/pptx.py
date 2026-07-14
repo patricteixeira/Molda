@@ -7,9 +7,11 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from lxml import etree
 from PIL import Image
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_COLOR_TYPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
 from pptx.slide import SlideLayout
 from pptx.util import Emu, Pt
@@ -24,6 +26,8 @@ _BODY_TYPES = {
     PP_PLACEHOLDER.OBJECT,
     PP_PLACEHOLDER.SUBTITLE,
 }
+_A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+_P_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
 
 
 @dataclass(frozen=True, slots=True)
@@ -257,6 +261,85 @@ def _first_text_run(shape):
     return None
 
 
+def _theme_style(slide) -> tuple[dict[str, str], dict[str, str]]:
+    """Resolve cores e fontes herdadas do tema usado pelo slide."""
+    master = slide.slide_layout.slide_master
+    theme_part = next(
+        (
+            relationship.target_part
+            for relationship in master.part.rels.values()
+            if relationship.reltype.endswith("/theme")
+        ),
+        None,
+    )
+    if theme_part is None:
+        return {}, {}
+
+    parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False)
+    theme_root = etree.fromstring(theme_part.blob, parser=parser)
+    scheme = theme_root.find(
+        ".//a:themeElements/a:clrScheme",
+        {"a": _A_NS},
+    )
+    colors: dict[str, str] = {}
+    if scheme is not None:
+        for slot in scheme:
+            color_nodes = list(slot)
+            if not color_nodes:
+                continue
+            color_node = color_nodes[0]
+            color_kind = etree.QName(color_node).localname
+            value = (
+                color_node.get("val")
+                if color_kind == "srgbClr"
+                else color_node.get("lastClr")
+                if color_kind == "sysClr"
+                else None
+            )
+            if value is not None and len(value) == 6:
+                colors[etree.QName(slot).localname] = f"#{value.upper()}"
+
+    master_root = etree.fromstring(master.part.blob, parser=parser)
+    color_map = master_root.find(".//p:clrMap", {"p": _P_NS})
+    if color_map is not None:
+        for alias, target in color_map.attrib.items():
+            resolved = colors.get(target)
+            if resolved is not None:
+                colors[alias] = resolved
+
+    fonts: dict[str, str] = {}
+    for role, xpath in {
+        "major": ".//a:fontScheme/a:majorFont/a:latin",
+        "minor": ".//a:fontScheme/a:minorFont/a:latin",
+    }.items():
+        font = theme_root.find(xpath, {"a": _A_NS})
+        typeface = font.get("typeface") if font is not None else None
+        if typeface:
+            fonts[role] = typeface
+    return colors, fonts
+
+
+def _run_color(run, theme_colors: dict[str, str]) -> str | None:
+    color_format = run.font.color
+    if color_format.type == MSO_COLOR_TYPE.RGB:
+        return f"#{color_format.rgb}"
+    if color_format.type == MSO_COLOR_TYPE.SCHEME:
+        color_node = getattr(color_format._color, "_xClr", None)
+        scheme_name = color_node.get("val") if color_node is not None else None
+        if scheme_name is None:
+            return None
+        return theme_colors.get(scheme_name, f"theme:{scheme_name}")
+    return None
+
+
+def _run_font_family(run, role: str, theme_fonts: dict[str, str]) -> str | None:
+    family = run.font.name
+    if family not in {None, "", "+mj-lt", "+mn-lt"}:
+        return family
+    theme_role = "major" if family == "+mj-lt" or role == "heading" else "minor"
+    return theme_fonts.get(theme_role)
+
+
 def _shape_role(shape) -> str | None:
     if shape.name.startswith("br:"):
         parts = shape.name.split(":", 2)
@@ -288,25 +371,22 @@ def inspect_semantic_shapes(path: Path) -> list[SemanticShape]:
     presentation = Presentation(path)
     findings: list[SemanticShape] = []
     for slide in presentation.slides:
+        theme_colors, theme_fonts = _theme_style(slide)
         for shape in slide.shapes:
             role = _shape_role(shape)
             if role is None:
                 continue
             run = _first_text_run(shape)
-            color = None
-            if (
-                run is not None
-                and run.font.color.type is not None
-                and run.font.color.rgb is not None
-            ):
-                color = f"#{run.font.color.rgb}"
+            color = _run_color(run, theme_colors) if run is not None else None
             findings.append(
                 SemanticShape(
                     role=role,
                     name=shape.name,
                     kind=("picture" if shape.shape_type == MSO_SHAPE_TYPE.PICTURE else "text"),
                     text=(shape.text if getattr(shape, "has_text_frame", False) else None),
-                    font_family=(run.font.name if run is not None else None),
+                    font_family=(
+                        _run_font_family(run, role, theme_fonts) if run is not None else None
+                    ),
                     font_size_pt=(run.font.size.pt if run is not None and run.font.size else None),
                     color=color,
                 )

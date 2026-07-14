@@ -1,0 +1,50 @@
+{
+  "date": "2026-07-14",
+  "editor": "Google Slides web",
+  "operatorConfirmedEditor": true,
+  "sourceArtifact": "out/m2-gate0/proof-google-slides-edited.pptx",
+  "sha256": "4e1f4a60f061dc47555e7a20b802cff665e2641abb99019ae57d0efeb0bc0225",
+  "packageType": "pptx",
+  "canonicalParts": 39,
+  "diagnostics": [],
+  "semanticShapes": [
+    {
+      "role": "heading",
+      "name": "Google Shape;84;p13",
+      "kind": "text",
+      "text": "Continua sim",
+      "fontFamily": "Arial",
+      "fontSizePt": 48.0,
+      "color": "#E57900"
+    },
+    {
+      "role": "body",
+      "name": "Google Shape;85;p13",
+      "kind": "text",
+      "text": "acabei de alterar o item e a cor da fonte",
+      "fontFamily": "Arial",
+      "fontSizePt": 21.0,
+      "color": "#F5F2EC"
+    },
+    {
+      "role": "logo",
+      "name": "Google Shape;86;p13",
+      "kind": "picture",
+      "text": null,
+      "fontFamily": null,
+      "fontSizePt": null,
+      "color": null
+    }
+  ],
+  "visualQa": {
+    "isolatedPreview": "passed",
+    "overflow": false,
+    "diagnostics": []
+  },
+  "gateImpact": {
+    "googleSlidesCompatibility": "passed",
+    "powerPointDesktopRequired": true,
+    "powerPointDesktopAvailable": false,
+    "gate0Closed": false
+  }
+}

@@ -11,6 +11,7 @@ from docx import Document
 from PIL import Image, ImageDraw
 from pptx import Presentation
 from pptx.dml.color import RGBColor
+from pptx.enum.dml import MSO_THEME_COLOR_INDEX
 from pptx.util import Inches
 from typer.testing import CliRunner
 
@@ -311,6 +312,34 @@ def test_pptx_round_trip_recovers_role_and_changed_formatting(
     assert shape.text == "Título alterado fora do renderer"
     assert shape.font_family == "Courier New"
     assert shape.color == "#A13220"
+    assert not [item for item in validate_ooxml(edited) if item.blocking]
+
+
+def test_pptx_round_trip_resolves_theme_color_after_powerpoint_save(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    output = _render_pptx(
+        tmp_path,
+        pptx_template,
+        native_brand,
+        slide_contracts,
+    )
+    edited = tmp_path / "edited-theme-color.pptx"
+    presentation = Presentation(output)
+    title = next(
+        shape for shape in presentation.slides[0].shapes if shape.name.startswith("br:heading:")
+    )
+    run = title.text_frame.paragraphs[0].runs[0]
+    run.font.name = None
+    run.font.color.theme_color = MSO_THEME_COLOR_INDEX.ACCENT_1
+    presentation.save(edited)
+
+    shape = next(item for item in inspect_semantic_shapes(edited) if item.role == "heading")
+    assert shape.font_family == "Georgia"
+    assert shape.color == "#173F2C"
     assert not [item for item in validate_ooxml(edited) if item.blocking]
 
 
