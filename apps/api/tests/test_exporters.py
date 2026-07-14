@@ -2,7 +2,13 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from brand_api.exporters import ExportOutcome, ExportRejected, FakeExporter, PlaywrightExporter
+from brand_api.exporters import (
+    DispatchingExporter,
+    ExportOutcome,
+    ExportRejected,
+    FakeExporter,
+    PlaywrightExporter,
+)
 from brand_runtime import BrandIR, ContentSpec, LayoutSpec, run_static_checks
 from brand_runtime.guard.static_checks import GuardCheck
 
@@ -143,3 +149,33 @@ def test_playwright_exporter_converte_bloqueio_sem_perder_checks(
 def test_playwright_exporter_falha_cedo_sem_build_do_renderer(tmp_path):
     with pytest.raises(RuntimeError, match="render.html"):
         PlaywrightExporter(tmp_path / "render-dist-ausente")
+
+
+def test_dispatcher_encaminha_web_e_office_sem_mudar_o_contrato(
+    client, compiled, tmp_path
+):
+    ir, layout, content = _contracts(client, compiled)
+    seen = []
+
+    class Spy:
+        def __init__(self, name):
+            self.name = name
+
+        def export(self, *, out_path, **kwargs):
+            seen.append((self.name, kwargs["fmt"], kwargs["native_template_version"]))
+            out_path.write_bytes(b"ok")
+            return ExportOutcome(out_path, [])
+
+    exporter = DispatchingExporter(Spy("web"), Spy("office"))
+    for fmt in ("png", "pptx"):
+        exporter.export(
+            ir=ir,
+            layout=layout,
+            content=content,
+            assets_dir=tmp_path,
+            fmt=fmt,
+            out_path=tmp_path / f"out.{fmt}",
+            native_template_version="v1" if fmt == "pptx" else None,
+        )
+
+    assert seen == [("web", "png", None), ("office", "pptx", "v1")]

@@ -1,6 +1,10 @@
 from typer.testing import CliRunner
+from docx import Document as WordDocument
+from pptx import Presentation
 
 from brand_api.models import Document, Job
+from brand_api.native_templates import CURRENT_NATIVE_TEMPLATE_VERSION
+from brand_runtime import inspect_semantic_shapes, validate_ooxml
 from tests.conftest import _png_bytes
 
 
@@ -140,6 +144,98 @@ def test_export_pdf_do_one_pager(client, compiled):
     pdf = client.get(body["result"]["url"])
     assert pdf.content[:4] == b"%PDF"
     assert pdf.headers["content-type"] == "application/pdf"
+
+
+def test_export_pptx_nativo_pela_api_worker_e_storage(client, compiled, tmp_path):
+    document_id = _make_doc(client, compiled)
+    response = client.post(f"/v1/documents/{document_id}/exports", json={"format": "pptx"})
+    assert response.status_code == 202, response.text
+    job_id = response.json()["jobId"]
+    with client.app.state.session_factory() as session:
+        job = session.get(Job, job_id)
+        assert job is not None
+        assert job.params == {
+            "format": "pptx",
+            "nativeTemplateVersion": CURRENT_NATIVE_TEMPLATE_VERSION,
+        }
+
+    assert _run_one(client) is True
+    body = client.get(f"/v1/jobs/{job_id}").json()
+    assert body["status"] == "succeeded", body
+    assert body["result"]["format"] == "pptx"
+    assert body["result"]["filename"] == f"{document_id}.pptx"
+    downloaded = client.get(body["result"]["url"])
+    assert downloaded.status_code == 200
+    assert downloaded.headers["content-type"] == (
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
+
+    output = tmp_path / "api-native.pptx"
+    output.write_bytes(downloaded.content)
+    assert not [item for item in validate_ooxml(output) if item.blocking]
+    presentation = Presentation(output)
+    assert len(presentation.slides) == 1
+    assert presentation.slide_width == presentation.slide_height
+    assert presentation.slides[0].slide_layout.name == "Title and Content"
+    shapes = {shape.role: shape for shape in inspect_semantic_shapes(output)}
+    assert shapes["heading"].text == "Lançamento em agosto"
+    assert shapes["logo"].kind == "picture"
+
+
+def test_export_docx_nativo_pela_api_worker_e_storage(client, compiled, tmp_path):
+    document_id = _make_doc(
+        client,
+        compiled,
+        layout="one-pager-doc-a4",
+        values={
+            "title": {"kind": "text", "text": "Relatório nativo"},
+            "body": {"kind": "text", "text": "Corpo editável do documento."},
+        },
+    )
+    response = client.post(f"/v1/documents/{document_id}/exports", json={"format": "docx"})
+    assert response.status_code == 202, response.text
+    job_id = response.json()["jobId"]
+
+    assert _run_one(client) is True
+    body = client.get(f"/v1/jobs/{job_id}").json()
+    assert body["status"] == "succeeded", body
+    assert body["result"]["format"] == "docx"
+    assert body["result"]["filename"] == f"{document_id}.docx"
+    downloaded = client.get(body["result"]["url"])
+    assert downloaded.status_code == 200
+    assert downloaded.headers["content-type"] == (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+
+    output = tmp_path / "api-native.docx"
+    output.write_bytes(downloaded.content)
+    assert not [item for item in validate_ooxml(output) if item.blocking]
+    document = WordDocument(output)
+    paragraphs = {paragraph.text: paragraph for paragraph in document.paragraphs}
+    assert paragraphs["Relatório nativo"].style.name == "Brand Heading"
+    assert paragraphs["Corpo editável do documento."].style.name == "Brand Body"
+    assert len(document.inline_shapes) == 1
+    assert not any("{{slot:" in paragraph.text for paragraph in document.paragraphs)
+
+
+def test_formatos_nativos_respeitam_o_perfil_do_layout(client, compiled):
+    social_id = _make_doc(client, compiled)
+    response = client.post(f"/v1/documents/{social_id}/exports", json={"format": "docx"})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Exporte DOCX apenas para documentos (A4)."
+
+    document_id = _make_doc(
+        client,
+        compiled,
+        layout="one-pager-doc-a4",
+        values={
+            "title": {"kind": "text", "text": "Relatório"},
+            "body": {"kind": "text", "text": "Corpo do documento."},
+        },
+    )
+    response = client.post(f"/v1/documents/{document_id}/exports", json={"format": "pptx"})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Exporte PPTX apenas para layouts sociais."
 
 
 def test_job_que_estoura_vira_failed(client, compiled):

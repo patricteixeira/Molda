@@ -48,6 +48,11 @@ release pública.
 - Export PNG/PDF pelo Chromium pinado, com publicação atômica, PDF
   determinístico, equivalência RGBA prévia×exportação e Brand Guard estático +
   medido antes de publicar qualquer arquivo.
+- Export PPTX/DOCX nativo integrado à API e ao worker transacional, com
+  templates `v1` empacotados por perfil, versão persistida no job, tema
+  derivado do Brand IR, logo SVG convertido apenas no workdir, MIME OOXML e
+  filename estável no resultado; PPTX também preserva fundo, texto e imagens
+  substituíveis como objetos nativos.
 - Padrões de engenharia (`ENGINEERING.md`), ADRs iniciais, CI e licenças
   (AGPL-3.0 para o app, MIT para os schemas).
 
@@ -71,3 +76,6 @@ release pública.
 - Round-trip manual do PPTX no Google Slides web preservou edição nativa,
   descrições semânticas, tema, logo substituível e reinspeção sem finding
   bloqueante; PowerPoint Desktop continua pendente e indisponível no ambiente.
+- Regressão do corte M2.1 passou com 216 testes do motor, 152 da API/worker e
+  92 do app web; a imagem de produção do worker contém e valida os quatro
+  templates nativos versionados.

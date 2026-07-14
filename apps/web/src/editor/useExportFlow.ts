@@ -3,6 +3,7 @@ import { ApiError } from "../api/client"
 import type {
   ApiClient,
   ContentSpec,
+  ExportFormat,
   GuardCheck,
   JobResult,
 } from "../api/types"
@@ -55,7 +56,7 @@ function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
 export function useExportFlow(
   client: ApiClient,
   content: ContentSpec,
-  format: "png" | "pdf",
+  format: ExportFormat,
   pollIntervalMs: number,
 ): ExportFlowState {
   const [checks, setChecks] = useState<GuardCheck[]>([])

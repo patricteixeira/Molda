@@ -65,7 +65,12 @@ export function ExportControls({
         </p>
       ) : null}
       {flow.download ? (
-        <a className="download-link" data-testid="download-link" href={flow.download.url} download>
+        <a
+          className="download-link"
+          data-testid="download-link"
+          href={flow.download.url}
+          download={flow.download.filename}
+        >
           Baixar arquivo
         </a>
       ) : null}

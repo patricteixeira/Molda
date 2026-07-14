@@ -12,6 +12,7 @@ from pydantic.alias_generators import to_camel
 from brand_api.auth import require_token
 from brand_api.db import new_id
 from brand_api.models import BrandRevision, Document, Job
+from brand_api.native_templates import CURRENT_NATIVE_TEMPLATE_VERSION
 from brand_runtime import BrandIR, ContentSpec, LayoutSpec, run_static_checks
 from brand_runtime.kit.models import ImageValue
 
@@ -35,7 +36,7 @@ class ExportBody(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    format: Literal["png", "pdf"]
+    format: Literal["png", "pdf", "pptx", "docx"]
 
 
 def _layout_from_revision(revision: BrandRevision, layout_id: str) -> LayoutSpec:
@@ -139,10 +140,15 @@ def enqueue_export(
             )
 
         layout = _layout_from_revision(revision, document.layout_id)
-        if body.format == "pdf" and layout.profile != "doc-a4":
+        if body.format in {"pdf", "docx"} and layout.profile != "doc-a4":
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="Exporte PDF apenas para documentos (A4).",
+                detail=f"Exporte {body.format.upper()} apenas para documentos (A4).",
+            )
+        if body.format == "pptx" and layout.profile == "doc-a4":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="Exporte PPTX apenas para layouts sociais.",
             )
 
         ir = BrandIR.model_validate(revision.ir)
@@ -164,12 +170,15 @@ def enqueue_export(
             )
 
         job_id = new_id("job")
+        params = {"format": body.format}
+        if body.format in {"pptx", "docx"}:
+            params["nativeTemplateVersion"] = CURRENT_NATIVE_TEMPLATE_VERSION
         session.add(
             Job(
                 id=job_id,
                 kind="export",
                 document_id=document.id,
-                params={"format": body.format},
+                params=params,
                 status="queued",
                 checks=serialized_checks,
             )

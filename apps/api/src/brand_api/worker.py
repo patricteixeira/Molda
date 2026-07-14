@@ -18,10 +18,12 @@ from sqlalchemy import and_, or_, select
 from brand_api.config import Settings
 from brand_api.db import make_engine, make_session_factory, new_id
 from brand_api.exporters import (
+    DispatchingExporter,
     Exporter,
     ExportOutcome,
     ExportRejected,
     FakeExporter,
+    NativeOfficeExporter,
     PlaywrightExporter,
 )
 from brand_api.models import BrandRevision, Document, Job
@@ -315,9 +317,16 @@ def _load_export_contract(session_factory, lease: _JobLease):
         revision = session.get(BrandRevision, document.brand_revision_id)
         if revision is None:
             raise RuntimeError("A revisão de marca do documento não foi encontrada.")
-        fmt = job.params.get("format") if isinstance(job.params, dict) else None
-        if fmt not in {"png", "pdf"}:
+        params = job.params if isinstance(job.params, dict) else {}
+        fmt = params.get("format")
+        if fmt not in {"png", "pdf", "pptx", "docx"}:
             raise RuntimeError("O formato persistido no job é inválido.")
+        native_template_version = params.get("nativeTemplateVersion")
+        if fmt in {"pptx", "docx"}:
+            if not isinstance(native_template_version, str) or not native_template_version:
+                raise RuntimeError("O job nativo não informa a versão do template.")
+        elif native_template_version is not None:
+            raise RuntimeError("Um job web não pode informar template nativo.")
         ir = BrandIR.model_validate(revision.ir)
         content = ContentSpec.model_validate(document.content)
         raw_layout = next(
@@ -337,6 +346,7 @@ def _load_export_contract(session_factory, lease: _JobLease):
             content,
             dict(revision.manifest),
             fmt,
+            native_template_version,
         )
 
 
@@ -375,6 +385,7 @@ def _finish_success(
     document_id: str,
     checks: list[dict],
     sha256: str,
+    fmt: str,
 ) -> None:
     """Persiste o resultado publicado e o verdict completo em uma transação."""
     with session_factory() as session:
@@ -388,7 +399,12 @@ def _finish_success(
         document.checks = checks
         job.status = "succeeded"
         job.params = {key: value for key, value in job.params.items() if key != _LEASE_KEY}
-        job.result = {"sha256": sha256, "url": f"/v1/assets/{sha256}"}
+        job.result = {
+            "sha256": sha256,
+            "url": f"/v1/assets/{sha256}",
+            "format": fmt,
+            "filename": f"{document_id}.{fmt}",
+        }
         job.error = None
         job.finished_at = datetime.now(UTC)
         session.commit()
@@ -442,14 +458,22 @@ def run_next_job(
     workdir_identity: Path | None = None
     document_id: str | None = None
     try:
-        document_id, ir, layout, content, manifest, fmt = _load_export_contract(
-            session_factory, lease
-        )
+        (
+            document_id,
+            ir,
+            layout,
+            content,
+            manifest,
+            fmt,
+            native_template_version,
+        ) = _load_export_contract(session_factory, lease)
         workdir = _safe_job_workdir(settings.work_dir, lease)
         with _LeaseHeartbeat(session_factory, lease, heartbeat_seconds) as heartbeat:
             build_export_workdir(manifest, ir, content, storage, workdir)
             workdir_identity = workdir.resolve(strict=True)
             out_path = workdir / f"out.{fmt}"
+            if out_path.exists() or _is_link(out_path):
+                raise ValueError("O manifest colide com o destino reservado do export.")
             outcome: ExportOutcome = exporter.export(
                 ir=ir,
                 layout=layout,
@@ -457,6 +481,7 @@ def run_next_job(
                 assets_dir=workdir,
                 fmt=fmt,
                 out_path=out_path,
+                native_template_version=native_template_version,
             )
             checks = _serialize_checks(outcome.checks)
             if any(check["status"] == "blocked" for check in checks):
@@ -465,7 +490,7 @@ def run_next_job(
             # Deliberadamente ignora outcome.path: só o destino pré-acordado pode ser publicado.
             sha256 = storage.put(_read_exact_output(out_path, workdir, workdir_identity))
             heartbeat.ensure_owned()
-            _finish_success(session_factory, lease, document_id, checks, sha256)
+            _finish_success(session_factory, lease, document_id, checks, sha256, fmt)
     except ExportRejected as exc:
         checks = _serialize_checks(exc.checks)
         _finish_failure(
@@ -512,7 +537,10 @@ def run_worker(
     else:
         if settings.render_dist is None:
             raise RuntimeError("Defina BRANDRT_RENDER_DIST para iniciar o worker de export real.")
-        exporter = PlaywrightExporter(settings.render_dist)
+        exporter = DispatchingExporter(
+            PlaywrightExporter(settings.render_dist),
+            NativeOfficeExporter(),
+        )
 
     storage = Storage(settings.storage_dir)
     engine = make_engine(settings.database_url)

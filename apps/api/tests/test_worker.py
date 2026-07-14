@@ -411,6 +411,27 @@ def test_worker_falha_na_materializacao_sem_deixar_workdir_parcial(client, compi
     assert not (state.settings.work_dir / job_id).exists()
 
 
+def test_worker_recusa_manifest_que_colide_com_destino_do_export(client, compiled):
+    state = client.app.state
+    collision_sha = state.storage.put("não pode virar saída".encode())
+    job_id = _queue_job(client, compiled, manifest={"out.png": collision_sha})
+
+    class ShouldNotRun:
+        def export(self, **kwargs):
+            raise AssertionError("O exporter não pode sobrescrever um arquivo do manifest.")
+
+    assert run_next_job(
+        state.session_factory,
+        storage=state.storage,
+        exporter=ShouldNotRun(),
+        settings=state.settings,
+    )
+    job = _job(client, job_id)
+    assert job["status"] == "failed"
+    assert job["result"] is None
+    assert "colide" in job["error"]
+
+
 def test_run_worker_real_falha_cedo_quando_render_dist_invalido(tmp_path):
     settings = Settings(
         database_url="postgresql+psycopg://invalido",

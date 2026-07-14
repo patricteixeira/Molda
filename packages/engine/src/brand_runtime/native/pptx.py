@@ -17,7 +17,7 @@ from pptx.slide import SlideLayout
 from pptx.util import Emu, Pt
 
 from brand_runtime.ir.models import BrandIR, SemanticRole
-from brand_runtime.kit.models import ContentSpec, LayoutSpec, Slot, TextValue
+from brand_runtime.kit.models import ContentSpec, ImageValue, LayoutSpec, Slot, TextValue
 from brand_runtime.native.ooxml import OoxmlError, validate_ooxml
 
 _TITLE_TYPES = {PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE}
@@ -77,6 +77,14 @@ def _tag_shape(shape, *, role: str, revision_id: str, slot_id: str) -> None:
         "descr",
         f"brand-role={role};brand-revision={revision_id};slot={slot_id}",
     )
+
+
+def _send_to_back(shape) -> None:
+    """Mantém imagens de conteúdo atrás dos placeholders de texto e do logo."""
+    shape_tree = shape._element.getparent()
+    shape_tree.remove(shape._element)
+    # Os dois primeiros filhos do spTree são propriedades do grupo, não shapes.
+    shape_tree.insert(2, shape._element)
 
 
 def _set_text(shape, value: TextValue, role: SemanticRole, ir: BrandIR) -> None:
@@ -183,6 +191,12 @@ def render_pptx(
     presentation = Presentation(template_path)
     native_layout = _select_layout(presentation, native_layout_name)
     slide = presentation.slides.add_slide(native_layout)
+    if layout.background.kind == "color" and layout.background.color_token is not None:
+        background = ir.colors.get(layout.background.color_token)
+        if background is not None:
+            fill = slide.background.fill
+            fill.solid()
+            fill.fore_color.rgb = RGBColor.from_string(background.value.removeprefix("#"))
     text_values = _text_slots(layout, content)
     if not text_values:
         raise PptxRenderError("O slide precisa de ao menos um slot de texto preenchido.")
@@ -216,6 +230,32 @@ def render_pptx(
     else:
         body_shape.text = ""
         _tag_shape(body_shape, role="body", revision_id=ir.revision.id, slot_id="body")
+
+    for extra_slot, extra_value in text_values[2:]:
+        left, top, width, height = _normalized_box(presentation, layout, extra_slot)
+        text_box = slide.shapes.add_textbox(left, top, width, height)
+        _set_text(text_box, extra_value, ir.roles[extra_slot.role], ir)
+        _tag_shape(
+            text_box,
+            role=extra_slot.role,
+            revision_id=ir.revision.id,
+            slot_id=extra_slot.id,
+        )
+
+    for image_slot in (slot for slot in layout.slots if slot.kind == "image"):
+        value = content.values.get(image_slot.id)
+        if not isinstance(value, ImageValue):
+            continue
+        asset = _resolve_asset(value.path, asset_root)
+        left, top, width, height = _normalized_box(presentation, layout, image_slot)
+        picture = slide.shapes.add_picture(str(asset), left, top, width=width, height=height)
+        _tag_shape(
+            picture,
+            role="image",
+            revision_id=ir.revision.id,
+            slot_id=image_slot.id,
+        )
+        _send_to_back(picture)
 
     logo_slot = next((slot for slot in layout.slots if slot.kind == "logo"), None)
     if logo_slot is not None:

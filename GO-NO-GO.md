@@ -76,6 +76,12 @@ Desktop.
 
 - Golden tests com XML canonicalizado cobrem theme, masters, layouts, slides,
   relações, styles e mídia.
+- O corte M2.1 integra `pptx` e `docx` ao contrato API → job → worker → storage;
+  a versão `v1` do template fica persistida no job e cada perfil social mantém
+  seu aspect ratio nativo. O download serve MIME e filename próprios.
+- Templates de produção são recursos imutáveis e reproduzíveis do pacote. O
+  worker valida os quatro no boot, rasteriza SVG somente em diretório efêmero e
+  recusa colisão do manifest com `out.<formato>`.
 - O validador bloqueia path traversal, macros, executáveis, OLE/embeddings,
   relações externas, XML inválido e slide sem layout.
 - O template original nunca é sobrescrito; toda escrita final usa arquivo

@@ -195,9 +195,13 @@ export interface GuardCheck {
   detail: Record<string, unknown>
 }
 
+export type ExportFormat = "png" | "pdf" | "pptx" | "docx"
+
 export interface JobResult {
   sha256: string
   url: string
+  format: ExportFormat
+  filename: string
 }
 
 export interface JobInfo {
@@ -252,7 +256,7 @@ export interface ApiClient {
   getBrandRevision(revisionId: string): Promise<BrandIr>
   getKit(revisionId: string): Promise<LayoutSpec[]>
   createDocument(content: ContentSpec): Promise<DocumentResult>
-  requestExport(documentId: string, format: "png" | "pdf"): Promise<{ jobId: string }>
+  requestExport(documentId: string, format: ExportFormat): Promise<{ jobId: string }>
   getJob(jobId: string): Promise<JobInfo>
   uploadAsset(file: File): Promise<AssetUpload>
   draftAssetUrl(draftId: string, path: string): string

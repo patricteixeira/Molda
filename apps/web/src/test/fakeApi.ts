@@ -394,7 +394,12 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     getJob: vi.fn(async (): Promise<JobInfo> => ({
       id: "job_x",
       status: "succeeded",
-      result: { sha256, url: `/v1/assets/${sha256}` },
+      result: {
+        sha256,
+        url: `/v1/assets/${sha256}`,
+        format: "png",
+        filename: "doc_x.png",
+      },
       checks: [],
       error: null,
     })),

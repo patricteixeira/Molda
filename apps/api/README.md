@@ -92,6 +92,31 @@ $env:BRANDRT_RENDER_DIST = (Resolve-Path ../../packages/render/dist)
 O processo HTTP não importa Playwright nem exige `BRANDRT_RENDER_DIST`; somente o worker
 real valida e inicializa esse adapter.
 
+## Export nativo (M2.1)
+
+O mesmo endpoint assíncrono aceita quatro formatos. A matriz é fechada:
+
+| Formato | Perfis aceitos |
+| --- | --- |
+| `png` | todos os perfis |
+| `pdf` | `doc-a4` |
+| `pptx` | `post-1x1`, `post-4x5`, `story-9x16` |
+| `docx` | `doc-a4` |
+
+Jobs PPTX/DOCX persistem `nativeTemplateVersion: "v1"`. O worker seleciona o
+template do mesmo aspect ratio, deriva o tema pelo Brand IR, preenche os slots e
+valida o pacote OOXML antes de publicar. O resultado do job inclui `format` e
+`filename`, além de `sha256` e `url`.
+
+Os quatro templates são recursos do pacote em
+`src/brand_api/native_templates/v1`. Para reconstruí-los ou verificar que os
+binários versionados correspondem ao builder:
+
+```powershell
+python ../../tools/build_native_templates.py
+python ../../tools/build_native_templates.py --check
+```
+
 ## Resolução automática de fontes abertas
 
 No Docker Compose da raiz, `BRANDRT_FONT_FETCH_BASE_URL` já aponta para o proxy

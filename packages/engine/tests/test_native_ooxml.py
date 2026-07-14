@@ -74,7 +74,8 @@ def native_brand(tmp_path: Path) -> BrandIR:
     draw = ImageDraw.Draw(image)
     draw.ellipse((18, 18, 162, 162), fill="#173F2C")
     draw.ellipse((60, 60, 120, 120), fill="#D4A72C")
-    image.save(logo_path, optimize=False)
+    # Sem compressão, os mesmos pixels produzem bytes idênticos em Windows e Linux.
+    image.save(logo_path, compress_level=0)
     digest = hashlib.sha256(logo_path.read_bytes()).hexdigest()
     evidence = [
         Evidence(
@@ -270,6 +271,7 @@ def test_pptx_template_fill_preserves_native_structure_and_source(
     assert len(presentation.slide_layouts) >= 2
     assert len(presentation.slides) == 1
     assert presentation.slides[0].slide_layout.name == "Title and Content"
+    assert str(presentation.slides[0].background.fill.fore_color.rgb) == "F6F0E5"
     shapes = {shape.role: shape for shape in inspect_semantic_shapes(output)}
     assert shapes["heading"].text == "A marca continua editável"
     assert shapes["heading"].font_family == "Georgia"
@@ -313,6 +315,49 @@ def test_pptx_round_trip_recovers_role_and_changed_formatting(
     assert shape.font_family == "Courier New"
     assert shape.color == "#A13220"
     assert not [item for item in validate_ooxml(edited) if item.blocking]
+
+
+def test_pptx_preserva_slot_de_imagem_como_picture_editavel(
+    tmp_path,
+    pptx_template,
+    native_brand,
+):
+    logo = native_brand.assets["logo.primary"]
+    layout = LayoutSpec(
+        id="quote-post-1x1",
+        profile="post-1x1",
+        name_pt="Imagem nativa",
+        canvas=Canvas(width_px=1080, height_px=1080, safe_area_px=48),
+        background=Background(kind="image-slot"),
+        slots=[
+            Slot(id="quote", kind="text", role="heading", area=(64, 120, 720, 220)),
+            Slot(id="photo", kind="image", area=(0, 420, 1080, 660), fit="fixed"),
+        ],
+    )
+    content = ContentSpec(
+        layout_id=layout.id,
+        brand_revision_id=native_brand.revision.id,
+        values={
+            "quote": TextValue(text="Imagem substituível"),
+            "photo": {"kind": "image", "path": logo.path, "sha256": logo.sha256},
+        },
+    )
+    branded = tmp_path / "branded-image-template.pptx"
+    derive_branded_template(pptx_template, branded, native_brand)
+    output = render_pptx(
+        branded,
+        tmp_path / "native-image.pptx",
+        native_brand,
+        layout,
+        content,
+        native_layout_name="Title and Content",
+    )
+
+    shapes = inspect_semantic_shapes(output)
+    assert any(shape.role == "image" and shape.kind == "picture" for shape in shapes)
+    roles = [shape.role for shape in shapes]
+    assert roles.index("image") < roles.index("heading")
+    assert not [item for item in validate_ooxml(output) if item.blocking]
 
 
 def test_pptx_round_trip_resolves_theme_color_after_powerpoint_save(

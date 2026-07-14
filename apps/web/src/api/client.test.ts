@@ -95,7 +95,12 @@ it("requestExport e getJob usam as rotas e o shape de job do Plano 3", async () 
       jsonResponse({
         id: "job1",
         status: "succeeded",
-        result: { sha256: sha, url: `/v1/assets/${sha}` },
+        result: {
+          sha256: sha,
+          url: `/v1/assets/${sha}`,
+          format: "png",
+          filename: "doc1.png",
+        },
         checks: [],
         error: null,
       }),

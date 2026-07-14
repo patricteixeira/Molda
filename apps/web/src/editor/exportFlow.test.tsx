@@ -68,7 +68,12 @@ it("export feliz: documento → job → link de download", async () => {
     .mockResolvedValue({
       id: "job1",
       status: "succeeded",
-      result: { sha256: sha, url: `/v1/assets/${sha}` },
+      result: {
+        sha256: sha,
+        url: `/v1/assets/${sha}`,
+        format: "png",
+        filename: "doc1.png",
+      },
       checks: [],
       error: null,
     })
@@ -78,7 +83,7 @@ it("export feliz: documento → job → link de download", async () => {
   await userEvent.click(screen.getByTestId("exportar-png"))
   const link = await screen.findByTestId("download-link", {}, { timeout: 3000 })
   expect(link).toHaveAttribute("href", `/v1/assets/${sha}`)
-  expect(link).toHaveAttribute("download")
+  expect(link).toHaveAttribute("download", "doc1.png")
   expect(screen.getByTestId("export-status")).toHaveTextContent("Arquivo pronto.")
   expect(createDocument).toHaveBeenCalledWith({
     layoutId: "statement-post-1x1",
@@ -177,7 +182,12 @@ it("congela os slots enquanto o arquivo está sendo gerado", async () => {
   let finishJob!: (job: {
     id: string
     status: "succeeded"
-    result: { sha256: string; url: string }
+    result: {
+      sha256: string
+      url: string
+      format: "png"
+      filename: string
+    }
     checks: []
     error: null
   }) => void
@@ -186,7 +196,12 @@ it("congela os slots enquanto o arquivo está sendo gerado", async () => {
       new Promise<{
         id: string
         status: "succeeded"
-        result: { sha256: string; url: string }
+        result: {
+          sha256: string
+          url: string
+          format: "png"
+          filename: string
+        }
         checks: []
         error: null
       }>((resolve) => {
@@ -205,7 +220,12 @@ it("congela os slots enquanto o arquivo está sendo gerado", async () => {
   finishJob({
     id: "job_x",
     status: "succeeded",
-    result: { sha256, url: `/v1/assets/${sha256}` },
+    result: {
+      sha256,
+      url: `/v1/assets/${sha256}`,
+      format: "png",
+      filename: "doc_x.png",
+    },
     checks: [],
     error: null,
   })
