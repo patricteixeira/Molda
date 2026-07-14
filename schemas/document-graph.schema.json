@@ -1,0 +1,284 @@
+{
+  "$defs": {
+    "BoundsPt": {
+      "additionalProperties": false,
+      "description": "Caixa do objeto em pontos, independente da unidade OOXML interna.",
+      "properties": {
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "number"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "BoundsPt",
+      "type": "object"
+    },
+    "DocumentDiagnostic": {
+      "additionalProperties": false,
+      "description": "Finding estrutural encontrado antes da leitura semântica.",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "part": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Part"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "DocumentDiagnostic",
+      "type": "object"
+    },
+    "DocumentNode": {
+      "additionalProperties": false,
+      "description": "Objeto editável reencontrado no arquivo externo.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "slideIndex": {
+          "minimum": 1,
+          "title": "Slideindex",
+          "type": "integer"
+        },
+        "shapeId": {
+          "minimum": 1,
+          "title": "Shapeid",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "text",
+            "picture"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "slotId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Slotid"
+        },
+        "brandRevisionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Brandrevisionid"
+        },
+        "semanticSource": {
+          "enum": [
+            "name",
+            "description",
+            "placeholder"
+          ],
+          "title": "Semanticsource",
+          "type": "string"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        },
+        "fontFamily": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fontfamily"
+        },
+        "fontSizePt": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fontsizept"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "boundsPt": {
+          "$ref": "#/$defs/BoundsPt"
+        }
+      },
+      "required": [
+        "id",
+        "slideIndex",
+        "shapeId",
+        "kind",
+        "name",
+        "role",
+        "semanticSource",
+        "boundsPt"
+      ],
+      "title": "DocumentNode",
+      "type": "object"
+    },
+    "DocumentSource": {
+      "additionalProperties": false,
+      "description": "Identidade imutável do arquivo analisado.",
+      "properties": {
+        "format": {
+          "const": "pptx",
+          "default": "pptx",
+          "title": "Format",
+          "type": "string"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "sizeBytes": {
+          "exclusiveMinimum": 0,
+          "title": "Sizebytes",
+          "type": "integer"
+        },
+        "slideCount": {
+          "minimum": 1,
+          "title": "Slidecount",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "filename",
+        "sha256",
+        "sizeBytes",
+        "slideCount"
+      ],
+      "title": "DocumentSource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Representação semântica consumida pelos futuros linter e fixer.",
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/DocumentSource"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/DocumentNode"
+      },
+      "title": "Nodes",
+      "type": "array"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/DocumentDiagnostic"
+      },
+      "title": "Diagnostics",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source",
+    "nodes",
+    "diagnostics"
+  ],
+  "title": "DocumentGraph",
+  "type": "object"
+}

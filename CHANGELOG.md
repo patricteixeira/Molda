@@ -56,6 +56,9 @@ release pública.
 - Editor web com saída final PNG/PDF e saída editável PPTX/DOCX no mesmo fluxo
   protegido pelo Guard; a interface orienta explicitamente a continuação no
   Google Slides ou Google Docs e congela os slots durante qualquer exportação.
+- Primeiro corte do M3 com parser defensivo de PPTX editado para `Document
+  Graph 0.1.0`, schema público e recuperação explícita de roles, slots, revisão,
+  conteúdo, estilo e geometria após save em editor externo.
 - Padrões de engenharia (`ENGINEERING.md`), ADRs iniciais, CI e licenças
   (AGPL-3.0 para o app, MIT para os schemas).
 
@@ -84,3 +87,5 @@ release pública.
   templates nativos versionados.
 - Regressão do corte M2.2 passou com 93 testes do app web, build de produção e
   E2E Chromium baixando e reabrindo PNG/PDF/PPTX/DOCX contra a stack real.
+- A fixture real editada no Google Slides gerou Document Graph determinístico
+  com heading, body e logo recuperados, zero diagnóstico e SHA-256 conferido.

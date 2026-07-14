@@ -28,6 +28,7 @@ from brand_runtime.native.ooxml import OoxmlError, canonical_ooxml_manifest, val
 from brand_runtime.native.pptx import inspect_semantic_shapes, render_pptx
 from brand_runtime.native.preview import render_native_preview
 from brand_runtime.native.theme import derive_branded_template
+from brand_runtime.roundtrip.pptx import PptxParseError, parse_pptx_document_graph
 
 app = typer.Typer(
     add_completion=False,
@@ -58,7 +59,26 @@ _EXPECTED_ERRORS = (
     OSError,
     ValueError,
     OoxmlError,
+    PptxParseError,
 )
+
+
+@app.command("roundtrip-parse")
+def roundtrip_parse_command(
+    source: Path = typer.Argument(..., help="PPTX editado externamente."),
+    out: Path | None = typer.Option(None, "--out", help="JSON do Document Graph."),
+) -> None:
+    """Converte um PPTX editado no Document Graph versionado do M3."""
+    try:
+        graph = parse_pptx_document_graph(source)
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    payload = graph.model_dump_json(by_alias=True, indent=2) + "\n"
+    if out is None:
+        typer.echo(payload, nl=False)
+        return
+    atomic_write_text(out, payload)
+    typer.echo(str(out))
 
 
 def _error_message(error: Exception) -> str:
@@ -216,15 +236,13 @@ def export_command(
 def schemas_command(
     out_dir: Path = typer.Option(..., "--out-dir", help="Diretório dos JSON Schemas."),
 ) -> None:
-    """Publica os quatro schemas compartilhados do motor."""
+    """Publica os schemas compartilhados do motor."""
     try:
         if out_dir.exists() and not out_dir.is_dir():
             raise CliInputError(f"O destino «{out_dir}» não é um diretório.")
         paths = export_schemas(out_dir)
-        if len(paths) != 4:
-            raise CliInputError(
-                "A publicação de schemas não produziu os quatro contratos esperados."
-            )
+        if len(paths) != 5:
+            raise CliInputError("A publicação de schemas não produziu os contratos esperados.")
     except _EXPECTED_ERRORS as error:
         _fail(error)
 

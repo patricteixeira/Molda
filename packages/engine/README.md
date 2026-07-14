@@ -86,6 +86,20 @@ docker run --rm --network none --read-only --cap-drop ALL \
 `native-preview` retorna código `4` quando a conversão falha, sem invalidar nem
 alterar o OOXML estruturalmente correto.
 
+### M3 — round-trip PPTX
+
+O primeiro corte do M3 valida um PPTX editado externamente e recupera seus
+objetos semânticos em um `Document Graph 0.1.0`. O arquivo-fonte nunca é
+alterado:
+
+```bash
+brandrt roundtrip-parse apresentacao-editada.pptx --out document-graph.json
+```
+
+O grafo registra identidade SHA-256, roles, slots, revisão de marca, texto,
+tipografia, cor e bounds. A origem semântica também é preservada (`name`,
+`description` ou `placeholder`) para o futuro linter avaliar cada vínculo.
+
 Exemplo mínimo, partindo de um pacote em `./minha-marca`:
 
 ```bash

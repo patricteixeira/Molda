@@ -16,6 +16,7 @@ from brand_runtime.native import (
     render_pptx,
     validate_ooxml,
 )
+from brand_runtime.roundtrip import DocumentGraph, parse_pptx_document_graph
 
 __version__ = "0.1.0"
 
@@ -25,6 +26,7 @@ __all__ = [
     "BrandIR",
     "CompileError",
     "ContentSpec",
+    "DocumentGraph",
     "GuardCheck",
     "GuardVerdict",
     "KitGenerationError",
@@ -36,6 +38,7 @@ __all__ = [
     "export_schemas",
     "generate_kit",
     "inspect_semantic_shapes",
+    "parse_pptx_document_graph",
     "render_docx",
     "render_native_preview",
     "render_pptx",

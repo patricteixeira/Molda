@@ -37,6 +37,7 @@ from brand_runtime.kit.models import (
 from brand_runtime.native.docx import render_docx
 from brand_runtime.native.ooxml import canonical_ooxml_manifest, validate_ooxml
 from brand_runtime.native.pptx import inspect_semantic_shapes, render_pptx
+from brand_runtime.roundtrip.pptx import parse_pptx_document_graph
 from brand_runtime.native.preview import render_native_preview
 from brand_runtime.native.theme import derive_branded_template
 
@@ -388,6 +389,43 @@ def test_pptx_round_trip_resolves_theme_color_after_powerpoint_save(
     assert not [item for item in validate_ooxml(edited) if item.blocking]
 
 
+def test_roundtrip_parser_builds_document_graph_after_google_style_save(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    output = _render_pptx(tmp_path, pptx_template, native_brand, slide_contracts)
+    edited = tmp_path / "google-slides-edited.pptx"
+    presentation = Presentation(output)
+    for index, shape in enumerate(presentation.slides[0].shapes, start=1):
+        if not shape.name.startswith("br:"):
+            continue
+        if shape.name.startswith("br:heading:"):
+            shape.text = "Continua sim"
+            run = shape.text_frame.paragraphs[0].runs[0]
+            run.font.name = "Arial"
+            run.font.color.rgb = RGBColor(0xE5, 0x79, 0x00)
+        shape.name = f"Google Shape;{index};p13"
+    presentation.save(edited)
+
+    graph = parse_pptx_document_graph(edited)
+
+    assert graph.schema_version == "0.1.0"
+    assert graph.source.filename == edited.name
+    assert graph.source.slide_count == 1
+    assert len(graph.source.sha256) == 64
+    assert [node.role for node in graph.nodes] == ["heading", "body", "logo"]
+    heading = graph.nodes[0]
+    assert heading.slot_id == "headline"
+    assert heading.brand_revision_id == native_brand.revision.id
+    assert heading.semantic_source == "description"
+    assert heading.text == "Continua sim"
+    assert heading.font_family == "Arial"
+    assert heading.color == "#E57900"
+    assert heading.bounds_pt.width > 0
+
+
 def test_docx_template_fill_uses_semantic_styles_and_native_image(
     tmp_path,
     docx_template,
@@ -558,6 +596,20 @@ def test_native_cli_exposes_theme_pptx_and_docx_product_slice(
         "body",
         "logo",
     ]
+    graph_path = tmp_path / "document-graph.json"
+    result = RUNNER.invoke(
+        app,
+        [
+            "roundtrip-parse",
+            str(tmp_path / "cli.pptx"),
+            "--out",
+            str(graph_path),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    assert graph["schemaVersion"] == "0.1.0"
+    assert [node["role"] for node in graph["nodes"]] == ["heading", "body", "logo"]
 
     themed_docx = tmp_path / "themed.docx"
     result = RUNNER.invoke(

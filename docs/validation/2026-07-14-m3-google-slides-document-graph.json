@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "0.1.0",
+  "source": {
+    "format": "pptx",
+    "filename": "proof.pptx",
+    "sha256": "4e1f4a60f061dc47555e7a20b802cff665e2641abb99019ae57d0efeb0bc0225",
+    "sizeBytes": 645962,
+    "slideCount": 1
+  },
+  "nodes": [
+    {
+      "id": "slide-1/shape-84",
+      "slideIndex": 1,
+      "shapeId": 84,
+      "kind": "text",
+      "name": "Google Shape;84;p13",
+      "role": "heading",
+      "slotId": "headline",
+      "brandRevisionId": "brandrev_m2_gate0_proof",
+      "semanticSource": "description",
+      "text": "Continua sim",
+      "fontFamily": "Arial",
+      "fontSizePt": 48.0,
+      "color": "#E57900",
+      "boundsPt": {
+        "x": 42.6667,
+        "y": 90.0,
+        "width": 620.0,
+        "height": 110.0
+      }
+    },
+    {
+      "id": "slide-1/shape-85",
+      "slideIndex": 1,
+      "shapeId": 85,
+      "kind": "text",
+      "name": "Google Shape;85;p13",
+      "role": "body",
+      "slotId": "body",
+      "brandRevisionId": "brandrev_m2_gate0_proof",
+      "semanticSource": "description",
+      "text": "acabei de alterar o item e a cor da fonte",
+      "fontFamily": "Arial",
+      "fontSizePt": 21.0,
+      "color": "#F5F2EC",
+      "boundsPt": {
+        "x": 42.6667,
+        "y": 250.0,
+        "width": 526.6667,
+        "height": 130.0
+      }
+    },
+    {
+      "id": "slide-1/shape-86",
+      "slideIndex": 1,
+      "shapeId": 86,
+      "kind": "picture",
+      "name": "Google Shape;86;p13",
+      "role": "logo",
+      "slotId": "logo",
+      "brandRevisionId": "brandrev_m2_gate0_proof",
+      "semanticSource": "description",
+      "text": null,
+      "fontFamily": null,
+      "fontSizePt": null,
+      "color": null,
+      "boundsPt": {
+        "x": 444.7164,
+        "y": 286.4232,
+        "width": 263.6161,
+        "height": 247.1417
+      }
+    }
+  ],
+  "diagnostics": []
+}
