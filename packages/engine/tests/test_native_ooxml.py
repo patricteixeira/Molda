@@ -1,0 +1,508 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import zipfile
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pytest
+from docx import Document
+from PIL import Image, ImageDraw
+from pptx import Presentation
+from pptx.dml.color import RGBColor
+from pptx.util import Inches
+from typer.testing import CliRunner
+
+from brand_runtime.cli import app
+from brand_runtime.ir.models import (
+    BrandIR,
+    BrandInfo,
+    ColorToken,
+    Evidence,
+    FontToken,
+    LogoAsset,
+    RevisionInfo,
+    SemanticRole,
+)
+from brand_runtime.kit.models import (
+    Background,
+    Canvas,
+    ContentSpec,
+    LayoutSpec,
+    Slot,
+    TextValue,
+)
+from brand_runtime.native.docx import render_docx
+from brand_runtime.native.ooxml import canonical_ooxml_manifest, validate_ooxml
+from brand_runtime.native.pptx import inspect_semantic_shapes, render_pptx
+from brand_runtime.native.preview import render_native_preview
+from brand_runtime.native.theme import derive_branded_template
+
+FIXED = datetime(2026, 7, 14, 12, 0, tzinfo=UTC)
+GOLDEN = Path(__file__).parent / "golden" / "native-ooxml.json"
+RUNNER = CliRunner()
+
+
+def _golden_parts(package_type: str, hashes: dict[str, str]) -> dict[str, str]:
+    if package_type == "pptx":
+        prefixes = (
+            "ppt/presentation.xml",
+            "ppt/_rels/presentation.xml.rels",
+            "ppt/theme/",
+            "ppt/slideMasters/",
+            "ppt/slideLayouts/",
+            "ppt/slides/",
+            "ppt/media/",
+        )
+    else:
+        prefixes = (
+            "word/document.xml",
+            "word/_rels/document.xml.rels",
+            "word/styles.xml",
+            "word/theme/",
+            "word/media/",
+        )
+    return {name: digest for name, digest in hashes.items() if name.startswith(prefixes)}
+
+
+@pytest.fixture
+def native_brand(tmp_path: Path) -> BrandIR:
+    logo_path = tmp_path / "logo.png"
+    image = Image.new("RGBA", (180, 180), "#F6F0E5")
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((18, 18, 162, 162), fill="#173F2C")
+    draw.ellipse((60, 60, 120, 120), fill="#D4A72C")
+    image.save(logo_path, optimize=False)
+    digest = hashlib.sha256(logo_path.read_bytes()).hexdigest()
+    evidence = [
+        Evidence(
+            source_type="manual-entry",
+            path="tests/fixture",
+            confidence=1,
+            authoritative=True,
+            confirmed_at=FIXED,
+        )
+    ]
+    return BrandIR(
+        schema_version="0.3.0",
+        brand=BrandInfo(name="Marca Fixture"),
+        revision=RevisionInfo(id="brandrev_native_fixture", created_at=FIXED),
+        colors={
+            "color.primary": ColorToken(value="#173F2C", evidence=evidence),
+            "color.secondary": ColorToken(value="#D4A72C", evidence=evidence),
+            "color.background": ColorToken(value="#F6F0E5", evidence=evidence),
+            "color.text": ColorToken(value="#10231A", evidence=evidence),
+        },
+        fonts={
+            "font.heading": FontToken(
+                family="Georgia",
+                weight=700,
+                source="referenced-only",
+                evidence=evidence,
+            ),
+            "font.body": FontToken(
+                family="Arial",
+                weight=400,
+                source="referenced-only",
+                evidence=evidence,
+            ),
+        },
+        roles={
+            "heading": SemanticRole(
+                font="font.heading",
+                color="color.text",
+                min_size_px=36,
+                max_size_px=64,
+                line_height=1.05,
+            ),
+            "body": SemanticRole(
+                font="font.body",
+                color="color.text",
+                min_size_px=16,
+                max_size_px=24,
+                line_height=1.4,
+            ),
+        },
+        assets={
+            "logo.primary": LogoAsset(
+                path=str(logo_path),
+                sha256=digest,
+                format="png",
+                evidence=evidence,
+            )
+        },
+    )
+
+
+@pytest.fixture
+def slide_contracts(native_brand: BrandIR) -> tuple[LayoutSpec, ContentSpec]:
+    layout = LayoutSpec(
+        id="statement-post-1x1",
+        profile="post-1x1",
+        name_pt="Prova nativa",
+        canvas=Canvas(width_px=1080, height_px=1080, safe_area_px=48),
+        background=Background(kind="color", color_token="color.background"),
+        slots=[
+            Slot(
+                id="headline",
+                kind="text",
+                role="heading",
+                area=(64, 180, 800, 260),
+            ),
+            Slot(
+                id="body",
+                kind="text",
+                role="body",
+                area=(64, 480, 800, 300),
+            ),
+            Slot(
+                id="logo",
+                kind="logo",
+                asset_token="logo.primary",
+                area=(884, 884, 132, 132),
+                fit="fixed",
+            ),
+        ],
+    )
+    content = ContentSpec(
+        layout_id=layout.id,
+        brand_revision_id=native_brand.revision.id,
+        values={
+            "headline": TextValue(text="A marca continua editável"),
+            "body": TextValue(text="Texto, imagem, master e layout seguem nativos."),
+        },
+    )
+    return layout, content
+
+
+@pytest.fixture
+def document_contracts(native_brand: BrandIR) -> tuple[LayoutSpec, ContentSpec]:
+    layout = LayoutSpec(
+        id="one-pager-doc-a4",
+        profile="doc-a4",
+        name_pt="Documento nativo",
+        canvas=Canvas(width_px=794, height_px=1123, safe_area_px=76),
+        background=Background(kind="color", color_token="color.background"),
+        slots=[
+            Slot(id="title", kind="text", role="heading", area=(76, 76, 642, 120)),
+            Slot(id="body", kind="text", role="body", area=(76, 226, 642, 725)),
+            Slot(
+                id="logo",
+                kind="logo",
+                asset_token="logo.primary",
+                area=(622, 951, 96, 96),
+                fit="fixed",
+            ),
+        ],
+    )
+    content = ContentSpec(
+        layout_id=layout.id,
+        brand_revision_id=native_brand.revision.id,
+        values={
+            "title": TextValue(text="Documento de marca"),
+            "body": TextValue(text="Um documento de fluxo contínuo com estilos semânticos."),
+        },
+    )
+    return layout, content
+
+
+@pytest.fixture
+def pptx_template(tmp_path: Path) -> Path:
+    path = tmp_path / "source-template.pptx"
+    presentation = Presentation()
+    presentation.slide_width = Inches(13.333333)
+    presentation.slide_height = Inches(7.5)
+    presentation.save(path)
+    return path
+
+
+@pytest.fixture
+def docx_template(tmp_path: Path) -> Path:
+    path = tmp_path / "source-template.docx"
+    document = Document()
+    document.add_paragraph("{{slot:title}}")
+    document.add_paragraph("{{slot:body}}")
+    document.add_paragraph("{{slot:logo}}")
+    document.save(path)
+    return path
+
+
+def _render_pptx(
+    tmp_path: Path,
+    pptx_template: Path,
+    native_brand: BrandIR,
+    slide_contracts: tuple[LayoutSpec, ContentSpec],
+    name: str = "native.pptx",
+) -> Path:
+    layout, content = slide_contracts
+    branded_template = tmp_path / f"branded-{name}"
+    derive_branded_template(pptx_template, branded_template, native_brand)
+    return render_pptx(
+        branded_template,
+        tmp_path / name,
+        native_brand,
+        layout,
+        content,
+        native_layout_name="Title and Content",
+    )
+
+
+def test_pptx_template_fill_preserves_native_structure_and_source(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    original_hash = hashlib.sha256(pptx_template.read_bytes()).hexdigest()
+    output = _render_pptx(
+        tmp_path,
+        pptx_template,
+        native_brand,
+        slide_contracts,
+    )
+
+    assert hashlib.sha256(pptx_template.read_bytes()).hexdigest() == original_hash
+    assert not [item for item in validate_ooxml(output) if item.blocking]
+    presentation = Presentation(output)
+    assert len(presentation.slide_masters) >= 1
+    assert len(presentation.slide_layouts) >= 2
+    assert len(presentation.slides) == 1
+    assert presentation.slides[0].slide_layout.name == "Title and Content"
+    shapes = {shape.role: shape for shape in inspect_semantic_shapes(output)}
+    assert shapes["heading"].text == "A marca continua editável"
+    assert shapes["heading"].font_family == "Georgia"
+    assert shapes["body"].kind == "text"
+    assert shapes["logo"].kind == "picture"
+
+
+def test_pptx_round_trip_recovers_role_and_changed_formatting(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    output = _render_pptx(
+        tmp_path,
+        pptx_template,
+        native_brand,
+        slide_contracts,
+    )
+    edited = tmp_path / "edited.pptx"
+    presentation = Presentation(output)
+    title = next(
+        shape for shape in presentation.slides[0].shapes if shape.name.startswith("br:heading:")
+    )
+    title.text = "Título alterado fora do renderer"
+    run = title.text_frame.paragraphs[0].runs[0]
+    run.font.name = "Courier New"
+    run.font.color.rgb = RGBColor(0xA1, 0x32, 0x20)
+    # LibreOffice rewrites native placeholder names and drops their descr.
+    # The inspector must still recover the semantic role from placeholder type.
+    for shape in presentation.slides[0].shapes:
+        if shape.is_placeholder:
+            shape.name = f"PlaceHolder {shape.placeholder_format.idx + 1}"
+            nodes = shape._element.xpath(".//p:cNvPr")
+            if nodes:
+                nodes[0].attrib.pop("descr", None)
+    presentation.save(edited)
+
+    shape = next(item for item in inspect_semantic_shapes(edited) if item.role == "heading")
+    assert shape.text == "Título alterado fora do renderer"
+    assert shape.font_family == "Courier New"
+    assert shape.color == "#A13220"
+    assert not [item for item in validate_ooxml(edited) if item.blocking]
+
+
+def test_docx_template_fill_uses_semantic_styles_and_native_image(
+    tmp_path,
+    docx_template,
+    native_brand,
+    document_contracts,
+):
+    layout, content = document_contracts
+    branded_template = tmp_path / "branded-template.docx"
+    derive_branded_template(docx_template, branded_template, native_brand)
+    output = render_docx(
+        branded_template,
+        tmp_path / "native.docx",
+        native_brand,
+        layout,
+        content,
+    )
+
+    assert not [item for item in validate_ooxml(output) if item.blocking]
+    document = Document(output)
+    title = next(
+        paragraph for paragraph in document.paragraphs if paragraph.text == "Documento de marca"
+    )
+    body = next(
+        paragraph for paragraph in document.paragraphs if paragraph.text.startswith("Um documento")
+    )
+    assert title.style.name == "Brand Heading"
+    assert body.style.name == "Brand Body"
+    assert len(document.inline_shapes) == 1
+    assert not any("{{slot:" in paragraph.text for paragraph in document.paragraphs)
+
+
+def test_canonical_ooxml_goldens_are_deterministic(
+    tmp_path,
+    pptx_template,
+    docx_template,
+    native_brand,
+    slide_contracts,
+    document_contracts,
+):
+    first_pptx = _render_pptx(
+        tmp_path,
+        pptx_template,
+        native_brand,
+        slide_contracts,
+        "first.pptx",
+    )
+    second_pptx = _render_pptx(
+        tmp_path,
+        pptx_template,
+        native_brand,
+        slide_contracts,
+        "second.pptx",
+    )
+    first_manifest = canonical_ooxml_manifest(first_pptx)
+    second_manifest = canonical_ooxml_manifest(second_pptx)
+    assert first_manifest.part_hashes == second_manifest.part_hashes
+
+    layout, content = document_contracts
+    branded_docx = tmp_path / "branded.docx"
+    derive_branded_template(docx_template, branded_docx, native_brand)
+    output_docx = render_docx(
+        branded_docx,
+        tmp_path / "native.docx",
+        native_brand,
+        layout,
+        content,
+    )
+    actual = {
+        "pptx": _golden_parts("pptx", first_manifest.part_hashes),
+        "docx": _golden_parts("docx", canonical_ooxml_manifest(output_docx).part_hashes),
+    }
+    expected = json.loads(GOLDEN.read_text(encoding="utf-8"))
+    assert actual == expected
+
+
+def test_external_relationship_is_blocking(tmp_path, pptx_template):
+    unsafe = tmp_path / "unsafe.pptx"
+    with zipfile.ZipFile(pptx_template) as source, zipfile.ZipFile(unsafe, "w") as destination:
+        for info in source.infolist():
+            payload = source.read(info.filename)
+            if info.filename == "_rels/.rels":
+                payload = payload.replace(
+                    b"</Relationships>",
+                    b'<Relationship Id="rExternal" '
+                    b'Type="http://example.com/external" '
+                    b'Target="https://example.com" TargetMode="External"/>'
+                    b"</Relationships>",
+                )
+            destination.writestr(info, payload)
+    diagnostics = validate_ooxml(unsafe)
+    assert any(item.code == "ooxml.external_relationship" and item.blocking for item in diagnostics)
+
+
+def test_preview_failure_is_non_destructive_and_explicit(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    output = _render_pptx(
+        tmp_path,
+        pptx_template,
+        native_brand,
+        slide_contracts,
+    )
+    original_hash = hashlib.sha256(output.read_bytes()).hexdigest()
+    result = render_native_preview(
+        output,
+        tmp_path / "preview",
+        converter_path=tmp_path / "missing-soffice.exe",
+    )
+    assert not result.ok
+    assert any(item.code == "preview.converter_unavailable" for item in result.diagnostics)
+    assert hashlib.sha256(output.read_bytes()).hexdigest() == original_hash
+
+
+def test_native_cli_exposes_theme_pptx_and_docx_product_slice(
+    tmp_path,
+    pptx_template,
+    docx_template,
+    native_brand,
+    slide_contracts,
+    document_contracts,
+):
+    ir_path = tmp_path / "brand-ir.json"
+    ir_path.write_text(native_brand.model_dump_json(by_alias=True), encoding="utf-8")
+    slide_layout, slide_content = slide_contracts
+    doc_layout, doc_content = document_contracts
+    paths = {}
+    for name, model in {
+        "slide-layout": slide_layout,
+        "slide-content": slide_content,
+        "doc-layout": doc_layout,
+        "doc-content": doc_content,
+    }.items():
+        path = tmp_path / f"{name}.json"
+        path.write_text(model.model_dump_json(by_alias=True), encoding="utf-8")
+        paths[name] = path
+
+    themed_pptx = tmp_path / "themed.pptx"
+    result = RUNNER.invoke(
+        app,
+        ["native-theme", str(ir_path), str(pptx_template), "--out", str(themed_pptx)],
+    )
+    assert result.exit_code == 0, result.output
+    result = RUNNER.invoke(
+        app,
+        [
+            "native-pptx",
+            str(ir_path),
+            str(paths["slide-layout"]),
+            str(paths["slide-content"]),
+            str(themed_pptx),
+            "--assets-dir",
+            str(tmp_path),
+            "--native-layout",
+            "Title and Content",
+            "--out",
+            str(tmp_path / "cli.pptx"),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    result = RUNNER.invoke(app, ["native-inspect", str(tmp_path / "cli.pptx")])
+    assert result.exit_code == 0, result.output
+    inspection = json.loads(result.output)
+    assert [shape["role"] for shape in inspection["semanticShapes"]] == [
+        "heading",
+        "body",
+        "logo",
+    ]
+
+    themed_docx = tmp_path / "themed.docx"
+    result = RUNNER.invoke(
+        app,
+        ["native-theme", str(ir_path), str(docx_template), "--out", str(themed_docx)],
+    )
+    assert result.exit_code == 0, result.output
+    result = RUNNER.invoke(
+        app,
+        [
+            "native-docx",
+            str(ir_path),
+            str(paths["doc-layout"]),
+            str(paths["doc-content"]),
+            str(themed_docx),
+            "--assets-dir",
+            str(tmp_path),
+            "--out",
+            str(tmp_path / "cli.docx"),
+        ],
+    )
+    assert result.exit_code == 0, result.output

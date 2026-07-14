@@ -1,8 +1,8 @@
 # brand-runtime-engine
 
 Motor de marca do brand-runtime: intake de pacote informal de marca, extração
-com evidência, perguntas de wizard, Brand IR imutável, kit de Layout Specs e
-guard estático — exposto pela CLI `brandrt`.
+com evidência, Brand IR imutável, kit, Guard e arquivos OOXML nativos por
+template-fill — exposto pela CLI `brandrt`.
 
 Sem I/O de rede e sem banco de dados: tudo arquivo→arquivo.
 
@@ -46,6 +46,45 @@ brandrt schemas --out-dir schemas
 brandrt export ir.json kit/statement-post-1x1.json content.json \
   --assets-dir PACKAGE_DIR --render-dist ../render/dist --out out/post.png
 ```
+
+### M2 — PPTX e DOCX nativos
+
+O tema é derivado uma vez em uma cópia do template; o template original nunca é
+sobrescrito. Em seguida, `native-pptx` ou `native-docx` preenche os placeholders
+com o mesmo Brand IR, Layout Spec e Content Spec do M1:
+
+```bash
+brandrt native-theme ir.json template.pptx --out marca-theme.pptx
+brandrt native-pptx ir.json kit/announce-post-1x1.json slide-content.json \
+  marca-theme.pptx --assets-dir PACKAGE_DIR \
+  --native-layout "Title and Content" --out out/apresentacao.pptx
+
+brandrt native-theme ir.json template.docx --out marca-theme.docx
+brandrt native-docx ir.json kit/one-pager-doc-a4.json doc-content.json \
+  marca-theme.docx --assets-dir PACKAGE_DIR --out out/documento.docx
+
+brandrt native-inspect out/apresentacao-editada.pptx
+brandrt native-preview out/apresentacao.pptx --out-dir out/preview
+```
+
+O DOCX usa placeholders de parágrafo `{{slot:<id>}}`, por exemplo
+`{{slot:title}}`, `{{slot:body}}` e `{{slot:logo}}`. O PPTX exige um layout
+nativo com placeholders de título e corpo; os shapes recebem tags redundantes
+`br:<role>:<slot>` e descrição semântica para serem reencontrados depois de um
+save externo.
+
+O preview requer LibreOffice. A imagem isolada do spike pode ser construída com:
+
+```bash
+docker build -f infra/docker/native-preview.Dockerfile -t brandrt-native-preview .
+docker run --rm --network none --read-only --cap-drop ALL \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=256m \
+  -v "$PWD/out:/work" brandrt-native-preview \
+  native-preview /work/apresentacao.pptx --out-dir /work/preview
+```
+
+`native-preview` retorna código `4` quando a conversão falha, sem invalidar nem
+alterar o OOXML estruturalmente correto.
 
 Exemplo mínimo, partindo de um pacote em `./minha-marca`:
 
@@ -96,5 +135,13 @@ newline final. Escritas usam substituição atômica. `schemas` publica:
 As operações do plano-mestre também são reexportadas na raiz do pacote:
 
 ```python
-from brand_runtime import build_draft, compile_ir, generate_kit, run_static_checks
+from brand_runtime import (
+    build_draft,
+    compile_ir,
+    derive_branded_template,
+    generate_kit,
+    render_docx,
+    render_pptx,
+    run_static_checks,
+)
 ```

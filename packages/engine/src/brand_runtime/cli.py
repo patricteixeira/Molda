@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import NoReturn, TypeVar
 
@@ -22,6 +23,11 @@ from brand_runtime.ir.models import BrandIR
 from brand_runtime.ir.schema import export_schemas
 from brand_runtime.kit.generator import KitGenerationError, generate_kit
 from brand_runtime.kit.models import ContentSpec, LayoutSpec
+from brand_runtime.native.docx import render_docx
+from brand_runtime.native.ooxml import OoxmlError, canonical_ooxml_manifest, validate_ooxml
+from brand_runtime.native.pptx import inspect_semantic_shapes, render_pptx
+from brand_runtime.native.preview import render_native_preview
+from brand_runtime.native.theme import derive_branded_template
 
 app = typer.Typer(
     add_completion=False,
@@ -51,6 +57,7 @@ _EXPECTED_ERRORS = (
     UnicodeError,
     OSError,
     ValueError,
+    OoxmlError,
 )
 
 
@@ -220,6 +227,165 @@ def schemas_command(
             )
     except _EXPECTED_ERRORS as error:
         _fail(error)
+
+
+@app.command("native-theme")
+def native_theme_command(
+    ir_json: Path = typer.Argument(..., help="Brand IR confirmado em JSON."),
+    template: Path = typer.Argument(..., help="Template PPTX ou DOCX de origem."),
+    out: Path = typer.Option(..., "--out", help="Template temático de saída."),
+) -> None:
+    """Deriva uma cópia temática do template sem alterar o arquivo original."""
+    try:
+        ir = _read_model(ir_json, BrandIR)
+        result = derive_branded_template(template, out, ir)
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    typer.echo(result)
+
+
+@app.command("native-pptx")
+def native_pptx_command(
+    ir_json: Path = typer.Argument(..., help="Brand IR confirmado em JSON."),
+    layout_json: Path = typer.Argument(..., help="Layout Spec em JSON."),
+    content_json: Path = typer.Argument(..., help="Content Spec em JSON."),
+    template: Path = typer.Argument(..., help="Template PPTX temático."),
+    assets_dir: Path = typer.Option(..., "--assets-dir", help="Raiz autorizada dos assets."),
+    out: Path = typer.Option(..., "--out", help="PPTX nativo de saída."),
+    native_layout: str | None = typer.Option(
+        None,
+        "--native-layout",
+        help="Nome do layout do template; omita para escolher o primeiro compatível.",
+    ),
+) -> None:
+    """Preenche um slide nativo a partir dos contratos do M1."""
+    try:
+        ir = _read_model(ir_json, BrandIR)
+        layout = _read_model(layout_json, LayoutSpec)
+        content = _read_model(content_json, ContentSpec)
+        if not assets_dir.is_dir():
+            raise CliInputError(f"O diretório de assets «{assets_dir}» não existe.")
+        result = render_pptx(
+            template,
+            out,
+            ir,
+            layout,
+            content,
+            asset_root=assets_dir,
+            native_layout_name=native_layout,
+        )
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    typer.echo(result)
+
+
+@app.command("native-docx")
+def native_docx_command(
+    ir_json: Path = typer.Argument(..., help="Brand IR confirmado em JSON."),
+    layout_json: Path = typer.Argument(..., help="Layout Spec em JSON."),
+    content_json: Path = typer.Argument(..., help="Content Spec em JSON."),
+    template: Path = typer.Argument(..., help="Template DOCX temático."),
+    assets_dir: Path = typer.Option(..., "--assets-dir", help="Raiz autorizada dos assets."),
+    out: Path = typer.Option(..., "--out", help="DOCX nativo de saída."),
+) -> None:
+    """Preenche um documento nativo com placeholders e estilos semânticos."""
+    try:
+        ir = _read_model(ir_json, BrandIR)
+        layout = _read_model(layout_json, LayoutSpec)
+        content = _read_model(content_json, ContentSpec)
+        if not assets_dir.is_dir():
+            raise CliInputError(f"O diretório de assets «{assets_dir}» não existe.")
+        result = render_docx(
+            template,
+            out,
+            ir,
+            layout,
+            content,
+            asset_root=assets_dir,
+        )
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    typer.echo(result)
+
+
+@app.command("native-preview")
+def native_preview_command(
+    source: Path = typer.Argument(..., help="PPTX ou DOCX nativo de origem."),
+    out_dir: Path = typer.Option(..., "--out-dir", help="Diretório do PDF e dos PNGs."),
+) -> None:
+    """Gera preview derivado por LibreOffice, mantendo o OOXML imutável."""
+    try:
+        result = render_native_preview(source, out_dir)
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    typer.echo(
+        json.dumps(
+            {
+                "ok": result.ok,
+                "pdfPath": str(result.pdf_path) if result.pdf_path else None,
+                "pngPaths": [str(path) for path in result.png_paths],
+                "diagnostics": [
+                    {
+                        "code": item.code,
+                        "severity": item.severity,
+                        "message": item.message,
+                        "part": item.part,
+                    }
+                    for item in result.diagnostics
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    if not result.ok:
+        raise typer.Exit(code=4)
+
+
+@app.command("native-inspect")
+def native_inspect_command(
+    source: Path = typer.Argument(..., help="PPTX ou DOCX nativo a inspecionar."),
+) -> None:
+    """Emite evidência estrutural e, em PPTX, roles recuperadas após round-trip."""
+    try:
+        diagnostics = validate_ooxml(source)
+        manifest = canonical_ooxml_manifest(source)
+        shapes = inspect_semantic_shapes(source) if source.suffix.lower() == ".pptx" else []
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    typer.echo(
+        json.dumps(
+            {
+                "packageType": manifest.package_type,
+                "canonicalParts": len(manifest.part_hashes),
+                "diagnostics": [
+                    {
+                        "code": item.code,
+                        "severity": item.severity,
+                        "message": item.message,
+                        "part": item.part,
+                    }
+                    for item in diagnostics
+                ],
+                "semanticShapes": [
+                    {
+                        "role": shape.role,
+                        "name": shape.name,
+                        "kind": shape.kind,
+                        "text": shape.text,
+                        "fontFamily": shape.font_family,
+                        "fontSizePt": shape.font_size_pt,
+                        "color": shape.color,
+                    }
+                    for shape in shapes
+                ],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    if any(item.blocking for item in diagnostics):
+        raise typer.Exit(code=3)
 
 
 if __name__ == "__main__":  # pragma: no cover - entry point instalado cobre este caminho

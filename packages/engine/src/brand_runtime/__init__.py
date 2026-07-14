@@ -7,6 +7,15 @@ from brand_runtime.ir.models import BrandIR
 from brand_runtime.ir.schema import export_schemas
 from brand_runtime.kit.generator import KitGenerationError, generate_kit
 from brand_runtime.kit.models import ContentSpec, LayoutSpec
+from brand_runtime.native import (
+    canonical_ooxml_manifest,
+    derive_branded_template,
+    inspect_semantic_shapes,
+    render_docx,
+    render_native_preview,
+    render_pptx,
+    validate_ooxml,
+)
 
 __version__ = "0.1.0"
 
@@ -21,8 +30,15 @@ __all__ = [
     "KitGenerationError",
     "LayoutSpec",
     "build_draft",
+    "canonical_ooxml_manifest",
     "compile_ir",
+    "derive_branded_template",
     "export_schemas",
     "generate_kit",
+    "inspect_semantic_shapes",
+    "render_docx",
+    "render_native_preview",
+    "render_pptx",
     "run_static_checks",
+    "validate_ooxml",
 ]
