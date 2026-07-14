@@ -212,6 +212,13 @@ class MotifRule(CamelModel):
     evidence: list[Evidence] = Field(default_factory=list)
 
 
+class LayoutStyleRule(CamelModel):
+    """Arquétipo fechado de composição sustentado por declaração explícita."""
+
+    kind: Literal["ornamental-divider", "restrained-clinical-grid"]
+    evidence: list[Evidence] = Field(default_factory=list)
+
+
 class NumberingRule(CamelModel):
     """Tratamento editorial fechado para índices e sequências."""
 
@@ -227,6 +234,7 @@ class CompositionRules(CamelModel):
     color_ratios: list[ColorRatioRule] = Field(default_factory=list)
     accent: AccentRule | None = None
     motifs: list[MotifRule] = Field(default_factory=list)
+    layout_style: LayoutStyleRule | None = None
     numbering: NumberingRule | None = None
 
     @model_validator(mode="after")

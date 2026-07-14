@@ -7,6 +7,11 @@ import pytest
 
 from brand_runtime.intake.compile import Answers, CompileError, compile_ir
 from brand_runtime.intake.draft import build_draft
+from brand_runtime.intake.pdf_composition import (
+    CompositionDeclarations,
+    DeclaredLayoutStyle,
+)
+from brand_runtime.ir.models import Evidence
 
 FIXED = datetime(2026, 7, 11, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -179,6 +184,32 @@ def test_composition_rules_and_logo_variants_compile_with_precise_provenance(bra
         for evidence in rules.modes.light.evidence
         if evidence.path is not None
     )
+
+
+def test_declared_layout_style_compiles_with_portable_evidence(brand_package):
+    draft = build_draft(brand_package)
+    draft.composition_declarations = CompositionDeclarations(
+        layout_style=DeclaredLayoutStyle(
+            kind="ornamental-divider",
+            evidence=[
+                Evidence(
+                    source_type="pdf-guideline",
+                    path=str(brand_package / "manual.pdf"),
+                    page=1,
+                    detail="composição declarada",
+                    confidence=0.98,
+                    authoritative=True,
+                )
+            ],
+        )
+    )
+
+    ir = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
+
+    assert ir.composition_rules is not None
+    assert ir.composition_rules.layout_style is not None
+    assert ir.composition_rules.layout_style.kind == "ornamental-divider"
+    assert ir.composition_rules.layout_style.evidence[0].path == "manual.pdf"
 
 
 def test_revision_id_is_deterministic(brand_package):

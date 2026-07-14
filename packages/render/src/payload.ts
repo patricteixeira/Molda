@@ -243,7 +243,7 @@ function validateCompositionRules(raw: unknown, colors: object, assets: object):
   const rules = record(raw, "brandIr.compositionRules");
   onlyFields(
     rules,
-    ["modes", "colorRatios", "accent", "motifs", "numbering"],
+    ["modes", "colorRatios", "accent", "motifs", "layoutStyle", "numbering"],
     "brandIr.compositionRules",
   );
   const modes =
@@ -333,6 +333,14 @@ function validateCompositionRules(raw: unknown, colors: object, assets: object):
     if (hasDiagonalLines) invalid("brandIr.compositionRules.motifs contém kind duplicado.");
     hasDiagonalLines = true;
   });
+
+  if (rules.layoutStyle !== undefined && rules.layoutStyle !== null) {
+    const style = record(rules.layoutStyle, "brandIr.compositionRules.layoutStyle");
+    onlyFields(style, ["kind", "evidence"], "brandIr.compositionRules.layoutStyle");
+    if (style.kind !== "ornamental-divider" && style.kind !== "restrained-clinical-grid") {
+      invalid("brandIr.compositionRules.layoutStyle.kind é inválido.");
+    }
+  }
 
   if (rules.numbering !== undefined && rules.numbering !== null) {
     const numbering = record(rules.numbering, "brandIr.compositionRules.numbering");

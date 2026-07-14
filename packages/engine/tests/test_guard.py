@@ -627,3 +627,150 @@ def test_guard_verdict_schema_is_published(tmp_path):
     assert "guard-verdict.schema.json" in names
     schema = json.loads((tmp_path / "guard-verdict.schema.json").read_text(encoding="utf-8"))
     assert schema["properties"]["checks"]["items"]["$ref"].endswith("/$defs/GuardCheck")
+
+
+_SEEDED_EDITORIAL_MUTATIONS = [
+    ("layout-id", "document-contract", None),
+    ("brand-revision-id", "document-contract", None),
+    ("unknown-slot", "unknown-slot", "fantasma"),
+    ("wrong-content-kind", "content-type", "headline"),
+    ("missing-required-slot", "required-slot", "headline"),
+    ("text-overflow", "text-length", "headline"),
+    ("missing-emphasis", "emphasis", "headline"),
+    ("ambiguous-emphasis", "emphasis", "headline"),
+    ("missing-background-token", "layout-reference", None),
+    ("undeclared-motif", "layout-reference", None),
+    ("missing-locked-logo", "layout-reference", None),
+    ("undersized-locked-logo", "asset-size", None),
+    ("accent-overuse", "accent-ratio", None),
+    ("low-contrast", "contrast", "headline"),
+]
+
+
+def _seed_editorial_mutation(name, ir, layout, content):
+    headline = next(slot for slot in layout.slots if slot.id == "headline")
+    brand_mark = next(layer for layer in layout.locked_layers if layer.id == "brand-mark")
+    motif = next(layer for layer in layout.locked_layers if layer.kind == "motif")
+    if name == "layout-id":
+        content.layout_id = "layout-alheio"
+    elif name == "brand-revision-id":
+        content.brand_revision_id = "brandrev_alheia"
+    elif name == "unknown-slot":
+        content.values["fantasma"] = TextValue(text="Não pertence ao layout")
+    elif name == "wrong-content-kind":
+        content.values["headline"] = ImageValue(path="imagem.png")
+    elif name == "missing-required-slot":
+        content.values.pop("headline")
+    elif name == "text-overflow":
+        content.values["headline"] = TextValue(text="A" * (headline.max_chars + 1), emphasis="A")
+    elif name == "missing-emphasis":
+        content.values["headline"].emphasis = None
+    elif name == "ambiguous-emphasis":
+        content.values["headline"] = TextValue(text="ECO ENCONTRA ECO", emphasis="ECO")
+    elif name == "missing-background-token":
+        layout.background.color_token = "color.inexistente"
+    elif name == "undeclared-motif":
+        ir.composition_rules.motifs = []
+        assert motif.motif == "diagonal-lines"
+    elif name == "missing-locked-logo":
+        brand_mark.asset_token = "logo.inexistente"
+    elif name == "undersized-locked-logo":
+        brand_mark.area = (920, 104, 12, 52)
+    elif name == "accent-overuse":
+        ir.composition_rules.accent.max_ratio = 0.001
+    elif name == "low-contrast":
+        headline.color_token = layout.background.color_token
+    else:
+        raise AssertionError(f"Mutação desconhecida: {name}")
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_id", "expected_slot"),
+    _SEEDED_EDITORIAL_MUTATIONS,
+    ids=[item[0] for item in _SEEDED_EDITORIAL_MUTATIONS],
+)
+def test_every_seeded_editorial_violation_is_intercepted(
+    brand_package,
+    mutation,
+    expected_id,
+    expected_slot,
+):
+    ir = _composition_ir(brand_package)
+    layout = _layout(ir, "editorial-light-post-4x5")
+    content = _editorial_content(ir, layout)
+    assert not [
+        check
+        for check in run_static_checks(ir, layout, content, brand_package)
+        if check.status == "blocked"
+    ]
+
+    _seed_editorial_mutation(mutation, ir, layout, content)
+    blocked = {
+        (check.id, check.slot_id)
+        for check in run_static_checks(ir, layout, content, brand_package)
+        if check.status == "blocked"
+    }
+
+    assert (expected_id, expected_slot) in blocked
+
+
+_SEEDED_IMAGE_MUTATIONS = [
+    ("missing-file", "image-resolution"),
+    ("corrupt-raster", "image-resolution"),
+    ("low-resolution", "image-resolution"),
+    ("wrong-sha256", "asset-integrity"),
+]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_id"),
+    _SEEDED_IMAGE_MUTATIONS,
+    ids=[item[0] for item in _SEEDED_IMAGE_MUTATIONS],
+)
+def test_every_seeded_image_violation_is_intercepted(
+    brand_package,
+    tmp_path,
+    mutation,
+    expected_id,
+):
+    ir = _ir(brand_package)
+    layout = _layout(ir, "quote-post-1x1")
+    valid = tmp_path / "valid.png"
+    Image.new("RGB", (1080, 1080), (10, 10, 10)).save(valid)
+    actual_sha256 = hashlib.sha256(valid.read_bytes()).hexdigest()
+    image = ImageValue(path=valid.name, sha256=actual_sha256)
+    content = ContentSpec(
+        layout_id=layout.id,
+        brand_revision_id=ir.revision.id,
+        values={"photo": image, "quote": TextValue(text="Frase")},
+    )
+    assert not [
+        check
+        for check in run_static_checks(ir, layout, content, tmp_path)
+        if check.status == "blocked"
+    ]
+
+    if mutation == "missing-file":
+        image.path = "ausente.png"
+        image.sha256 = None
+    elif mutation == "corrupt-raster":
+        corrupt = tmp_path / "corrupt.png"
+        corrupt.write_bytes(b"nao e png")
+        image.path = corrupt.name
+        image.sha256 = None
+    elif mutation == "low-resolution":
+        small = tmp_path / "small.png"
+        Image.new("RGB", (200, 200), (10, 10, 10)).save(small)
+        image.path = small.name
+        image.sha256 = None
+    elif mutation == "wrong-sha256":
+        image.sha256 = "0" * 64
+    else:
+        raise AssertionError(f"Mutação desconhecida: {mutation}")
+
+    blocked = {
+        check.id
+        for check in run_static_checks(ir, layout, content, tmp_path)
+        if check.status == "blocked"
+    }
+    assert expected_id in blocked

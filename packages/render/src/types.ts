@@ -57,6 +57,10 @@ export interface CompositionRules {
     kind: "diagonal-lines";
     evidence?: unknown[];
   }>;
+  layoutStyle?: {
+    kind: "ornamental-divider" | "restrained-clinical-grid";
+    evidence?: unknown[];
+  } | null;
   numbering?: {
     style: "zero-padded";
     minDigits?: number;

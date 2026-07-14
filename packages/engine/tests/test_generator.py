@@ -2,6 +2,7 @@ import pytest
 
 from brand_runtime.intake.compile import compile_ir
 from brand_runtime.intake.draft import build_draft
+from brand_runtime.ir.models import CompositionRules, LayoutStyleRule
 from brand_runtime.kit.generator import KitGenerationError, generate_kit
 from brand_runtime.kit.models import PROFILES
 from tests.test_compile import FIXED, _answers, _composition_ir
@@ -222,3 +223,59 @@ def test_partial_composition_never_invents_editorial_layouts(brand_package):
     ir = composition_ir.model_copy(deep=True)
     ir.assets["logo.onLight"].min_width_px = 96
     assert len(generate_kit(ir)) == 10
+
+
+@pytest.mark.parametrize(
+    ("style", "layout_id", "layer_ids", "headline_area"),
+    [
+        (
+            "ornamental-divider",
+            "signature-ornamental-post-4x5",
+            ["divider-left", "divider-dot", "divider-right"],
+            (100, 270, 880, 300),
+        ),
+        (
+            "restrained-clinical-grid",
+            "signature-clinical-post-4x5",
+            ["grid-panel", "accent-rule", "body-rule", "accent-dot"],
+            (80, 250, 680, 330),
+        ),
+    ],
+)
+def test_declared_layout_style_adds_one_distinct_signature_layout(
+    brand_package,
+    style,
+    layout_id,
+    layer_ids,
+    headline_area,
+):
+    ir = _ir(brand_package).model_copy(deep=True)
+    ir.colors["color.secondary"] = ir.colors["color.primary"].model_copy(deep=True)
+    ir.composition_rules = CompositionRules(
+        layout_style=LayoutStyleRule(kind=style),
+    )
+
+    kit = generate_kit(ir)
+    layout = kit[-1]
+
+    assert len(kit) == 11
+    assert layout.id == layout_id
+    assert layout.profile == "post-4x5"
+    assert [layer.id for layer in layout.locked_layers] == layer_ids
+    assert next(slot for slot in layout.slots if slot.id == "headline").area == headline_area
+    assert next(slot for slot in layout.slots if slot.kind == "logo").fit == "fixed"
+
+
+def test_ornamental_signature_respects_declared_logo_minimum(brand_package):
+    ir = _ir(brand_package).model_copy(deep=True)
+    ir.colors["color.secondary"] = ir.colors["color.primary"].model_copy(deep=True)
+    ir.composition_rules = CompositionRules(
+        layout_style=LayoutStyleRule(kind="ornamental-divider"),
+    )
+    ir.assets["logo.primary"].min_width_px = 180
+
+    layout = generate_kit(ir)[-1]
+    logo = next(slot for slot in layout.slots if slot.kind == "logo")
+
+    assert logo.area[2:] == (180, 180)
+    assert logo.area[0] == 450

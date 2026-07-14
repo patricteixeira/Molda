@@ -30,6 +30,7 @@ from brand_runtime.ir.models import (
     Diagnostic,
     Evidence,
     FontToken,
+    LayoutStyleRule,
     LogoAsset,
     MotifRule,
     NumberingRule,
@@ -50,7 +51,7 @@ _IDENTITY_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 # A revisão persiste IR e kit como um único bundle write-once. Mudanças
 # semânticas no gerador precisam trocar este domínio para não ressuscitar um
 # kit antigo sob o mesmo id depois de um upgrade.
-_REVISION_BUNDLE_DOMAIN = b"brand-ir-0.3-kit-v2\0"
+_REVISION_BUNDLE_DOMAIN = b"brand-ir-0.3-kit-v3\0"
 
 
 class Answers(CamelModel):
@@ -455,6 +456,14 @@ def _compile_composition_rules(
         )
         for item in declarations.motifs
     ]
+    layout_style = (
+        LayoutStyleRule(
+            kind=declarations.layout_style.kind,
+            evidence=_portable_evidence_list(declarations.layout_style.evidence, package_dir),
+        )
+        if declarations.layout_style is not None
+        else None
+    )
     numbering = (
         NumberingRule(
             style="zero-padded",
@@ -469,6 +478,7 @@ def _compile_composition_rules(
         color_ratios=ratios,
         accent=accent,
         motifs=motifs,
+        layout_style=layout_style,
         numbering=numbering,
     )
 
@@ -489,6 +499,8 @@ def _revision_id(ir: BrandIR) -> str:
         )
         evidence_groups.extend(item.evidence for item in rules.color_ratios)
         evidence_groups.extend(item.evidence for item in rules.motifs)
+        if rules.layout_style is not None:
+            evidence_groups.append(rules.layout_style.evidence)
         if rules.accent is not None:
             evidence_groups.append(rules.accent.evidence)
         if rules.numbering is not None:

@@ -34,6 +34,9 @@ release pública.
   somente quando o manual declara modos, proporção, limite de acento, padrão e
   numeração; o editor expõe apenas conteúdo e o Guard protege contraste,
   destaque, tamanho do símbolo e presença cromática.
+- Arquétipos fechados `ornamental-divider` e `restrained-clinical-grid`,
+  selecionados somente por prescrições textuais completas do manual e
+  materializados como provas 4:5 sem CSS livre nem coordenadas editáveis.
 - Renderer autoritativo TypeScript (`packages/render`) concluído no Plano 2:
   - DOM 1:1 px e fitting determinístico, com pipeline estável compartilhado
     por prévia e exportação;
@@ -53,7 +56,9 @@ release pública.
 - Bases Nginx do web e do proxy de fontes atualizadas para 1.30.3, com digest
   fixado fora das faixas vulneráveis conhecidas da linha 1.27.
 
-### Próximas validações
+### Validações de fechamento
 
-- Ampliar a validação do kit para três marcas reais e adicionar mutation tests
-  do Guard.
+- Kit validado com Digital Artisan, Fofo's Massage Therapy e VitaCannMed; as
+  três revisões exportam provas estruturalmente distintas pelo mesmo pipeline.
+- Dezoito violações semeadas cobertas por mutation tests do Guard, incluindo
+  contrato, slots, referências, contraste, acento, resolução e integridade.

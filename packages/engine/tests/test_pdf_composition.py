@@ -1,6 +1,12 @@
 import pymupdf
+import pytest
 
-from brand_runtime.intake.pdf_composition import extract_pdf_composition
+from brand_runtime.intake.pdf_composition import (
+    CompositionDeclarations,
+    DeclaredLayoutStyle,
+    extract_pdf_composition,
+    merge_composition_declarations,
+)
 
 
 def _manual(tmp_path, text):
@@ -75,3 +81,50 @@ O numero 01 aparece em um exemplo de post.
     declarations = extract_pdf_composition(path)
 
     assert not declarations.has_rules()
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (
+            """Two motifs recur: the lotus as a divider ornament.
+Gold hairline rule
+1 px gradient, dot or lotus centered.
+""",
+            "ornamental-divider",
+        ),
+        (
+            """Grade base de 8px, cantos arquitetônicos e restritos,
+sombras verde-escuras suaves — profundidade sugerida, não dramatizada.
+""",
+            "restrained-clinical-grid",
+        ),
+    ],
+)
+def test_extracts_closed_layout_style_only_from_complete_declaration(tmp_path, text, expected):
+    declarations = extract_pdf_composition(_manual(tmp_path, text))
+
+    assert declarations.layout_style is not None
+    assert declarations.layout_style.kind == expected
+    assert declarations.layout_style.evidence[0].authoritative is True
+
+
+def test_partial_layout_language_does_not_select_an_archetype(tmp_path):
+    declarations = extract_pdf_composition(
+        _manual(tmp_path, "A página contém uma grade e uma linha dourada decorativa.")
+    )
+
+    assert declarations.layout_style is None
+
+
+def test_conflicting_layout_styles_cancel_selection_instead_of_guessing():
+    declarations = [
+        CompositionDeclarations(
+            layout_style=DeclaredLayoutStyle(kind="ornamental-divider", evidence=[])
+        ),
+        CompositionDeclarations(
+            layout_style=DeclaredLayoutStyle(kind="restrained-clinical-grid", evidence=[])
+        ),
+    ]
+
+    assert merge_composition_declarations(declarations).layout_style is None

@@ -20,6 +20,7 @@ from brand_runtime.ir.models import CamelModel, Evidence
 
 DeclaredColorRole = Literal["primary", "background", "accent"]
 DeclaredMotif = Literal["diagonal-lines"]
+DeclaredLayoutStyleKind = Literal["ornamental-divider", "restrained-clinical-grid"]
 
 _MODE_LIGHT = re.compile(r"\bfundo\s+claro\b.{0,24}\bpositivo\b", re.DOTALL)
 _MODE_DARK = re.compile(r"\bfundo\s+escuro\b.{0,24}\bnegativo\b", re.DOTALL)
@@ -29,6 +30,17 @@ _ACCENT_LIMIT = re.compile(
 )
 _DIAGONAL = re.compile(r"\bpadrao\s+diagonal\b")
 _ZERO_PADDED = re.compile(r"\bzero\s+a\s+esquerda\b")
+_ORNAMENTAL_DIVIDER = re.compile(
+    r"\blotus\s+as\s+a\s+divider\s+ornament\b.{0,700}?"
+    r"\bgold\s+hairline\s+rule\b.{0,160}?\bdot\s+or\s+lotus\s+centered\b",
+    re.DOTALL,
+)
+_RESTRAINED_CLINICAL_GRID = re.compile(
+    r"\bgrade\s+base\s+de\s+8\s*px\b.{0,240}?"
+    r"\bcantos\s+arquitetonicos\s+e\s+restritos\b.{0,240}?"
+    r"\bprofundidade\s+sugerida,?\s+nao\s+dramatizada\b",
+    re.DOTALL,
+)
 _LOGO_MINIMUM = re.compile(r"\bminimo\s+digital\b.{0,40}?(?P<value>\d{1,3})\s*px", re.DOTALL)
 _CLEAR_SPACE_COMPACT = re.compile(r"areadeprotecao=(?:1[/⁄]4|¼)daaltura")
 _RATIO_PATTERNS: dict[DeclaredColorRole, re.Pattern[str]] = {
@@ -60,6 +72,13 @@ class DeclaredMotifRule(CamelModel):
     evidence: list[Evidence]
 
 
+class DeclaredLayoutStyle(CamelModel):
+    """Arquétipo identificado por uma prescrição textual completa do manual."""
+
+    kind: DeclaredLayoutStyleKind
+    evidence: list[Evidence]
+
+
 class DeclaredLogoGeometry(CamelModel):
     """Limites dimensionais declarados para preservar a marca."""
 
@@ -77,6 +96,7 @@ class CompositionDeclarations(CamelModel):
     color_ratios: list[DeclaredColorRatio] = Field(default_factory=list)
     accent: DeclaredAccentLimit | None = None
     motifs: list[DeclaredMotifRule] = Field(default_factory=list)
+    layout_style: DeclaredLayoutStyle | None = None
     numbering_evidence: list[Evidence] = Field(default_factory=list)
     logo_geometry: DeclaredLogoGeometry | None = None
 
@@ -88,6 +108,7 @@ class CompositionDeclarations(CamelModel):
             or self.color_ratios
             or self.accent
             or self.motifs
+            or self.layout_style
             or self.numbering_evidence
             or self.logo_geometry
         )
@@ -160,6 +181,28 @@ def extract_pdf_composition(pdf_path: Path) -> CompositionDeclarations:
             result.numbering_evidence.append(
                 _evidence(pdf_path, page_number, "numeração declarada: zero à esquerda")
             )
+        if result.layout_style is None and _ORNAMENTAL_DIVIDER.search(text):
+            result.layout_style = DeclaredLayoutStyle(
+                kind="ornamental-divider",
+                evidence=[
+                    _evidence(
+                        pdf_path,
+                        page_number,
+                        "composição declarada: divisor dourado com ponto ou lótus central",
+                    )
+                ],
+            )
+        if result.layout_style is None and _RESTRAINED_CLINICAL_GRID.search(text):
+            result.layout_style = DeclaredLayoutStyle(
+                kind="restrained-clinical-grid",
+                evidence=[
+                    _evidence(
+                        pdf_path,
+                        page_number,
+                        "composição declarada: grade clínica de 8px com profundidade restrita",
+                    )
+                ],
+            )
         minimum_match = _LOGO_MINIMUM.search(text)
         clear_space_match = _CLEAR_SPACE_COMPACT.search(compact)
         if minimum_match is not None or clear_space_match is not None:
@@ -226,10 +269,22 @@ def merge_composition_declarations(
     merged = CompositionDeclarations()
     ratios: dict[DeclaredColorRole, DeclaredColorRatio] = {}
     motifs: dict[DeclaredMotif, DeclaredMotifRule] = {}
+    style_conflict = False
     for declaration in declarations:
         merged.light_mode_evidence.extend(declaration.light_mode_evidence)
         merged.dark_mode_evidence.extend(declaration.dark_mode_evidence)
         merged.numbering_evidence.extend(declaration.numbering_evidence)
+        if declaration.layout_style is not None:
+            if merged.layout_style is None and not style_conflict:
+                merged.layout_style = declaration.layout_style.model_copy(deep=True)
+            elif (
+                merged.layout_style is not None
+                and merged.layout_style.kind == declaration.layout_style.kind
+            ):
+                merged.layout_style.evidence.extend(declaration.layout_style.evidence)
+            else:
+                merged.layout_style = None
+                style_conflict = True
         if declaration.logo_geometry is not None:
             if merged.logo_geometry is None:
                 merged.logo_geometry = declaration.logo_geometry.model_copy(deep=True)

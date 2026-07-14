@@ -48,6 +48,7 @@ _HEADING_LABELS = (
     "estrutura & impacto",
     "estrutura e impacto",
     "acento autoral",
+    "accent",
     "titulos",
     "titulo",
     "display",
@@ -61,6 +62,8 @@ _BODY_LABELS = (
     "body",
 )
 _IGNORED_FAMILY_LINES = frozenset({"digital", "artisan", "primarias", "hex", "rgb", "cmyk"})
+_INLINE_DECLARATION_SEPARATOR = re.compile(r"\s*[·•|]\s*")
+_FAMILY_WORD = re.compile(r"[A-ZÀ-ÖØ-Þ][\wÀ-ÖØ-öø-ÿ'’.-]*", re.IGNORECASE)
 
 
 def _consume_tokens(text: str) -> tuple[int | None, bool, bool]:
@@ -164,6 +167,62 @@ def _declared_family_after(lines: list[str], index: int) -> str | None:
     return None
 
 
+def _compact_name(value: str) -> str:
+    """Normaliza um nome para comparar texto corrido e letras espaçadas."""
+    return re.sub(r"[^a-z0-9]+", "", _searchable(value))
+
+
+def _recover_family_spelling(compact_family: str, lines: list[str]) -> str | None:
+    """Recupera espaços/capitalização usando outra menção legível na mesma página."""
+    target = _compact_name(compact_family)
+    for line in lines:
+        words = [word.strip(".,;:()[]") for word in _FAMILY_WORD.findall(line)]
+        for size in range(1, min(4, len(words)) + 1):
+            for start in range(len(words) - size + 1):
+                phrase = " ".join(words[start : start + size])
+                if _compact_name(phrase) == target and _FAMILY_LINE.fullmatch(phrase):
+                    return phrase
+    if len(target) >= 3 and " " not in compact_family and compact_family.isalpha():
+        return compact_family.title()
+    return None
+
+
+def _inline_declared_font(
+    line: str,
+    lines: list[str],
+) -> tuple[str, str, int, str] | None:
+    """Lê declarações ``ROLE · FAMILY · WEIGHTS`` inclusive letterspaced."""
+    segments = [segment.strip() for segment in _INLINE_DECLARATION_SEPARATOR.split(line)]
+    if len(segments) < 2:
+        return None
+
+    compact_label = _compact_name(segments[0])
+    role: str | None = None
+    if _matches_role_label(compact_label, _HEADING_LABELS):
+        role = "heading"
+    elif _matches_role_label(compact_label, _BODY_LABELS):
+        role = "body"
+    if role is None:
+        return None
+
+    raw_family = re.sub(r"\s+", "", segments[1])
+    family_without_style, _weight_token, italic = _strip_trailing_tokens(raw_family)
+    family = _recover_family_spelling(family_without_style, lines)
+    if family is None or not _valid_family(family):
+        return None
+
+    weight_text = re.sub(r"\s+", "", " ".join(segments[2:]))
+    declared_weights = [int(value) for value in re.findall(r"(?<!\d)([1-9]00)(?!\d)", weight_text)]
+    is_accent = compact_label in {"accent", "acentoautoral"}
+    weight = (
+        min(declared_weights, default=400) if role == "body" else max(declared_weights, default=400)
+    )
+    if is_accent and not declared_weights:
+        weight = 400
+    style = "italic" if italic or is_accent else "normal"
+    return role, family, weight, style
+
+
 def _matches_role_label(compact_line: str, labels: tuple[str, ...]) -> bool:
     """Distingue um rótulo editorial de um nome como ``Clash Display``."""
     return any(
@@ -190,6 +249,25 @@ def extract_pdf_declared_fonts(pdf_path: Path) -> dict[str, list[Candidate]]:
         for page_index, page in enumerate(doc):
             lines = [line.strip() for line in page.get_text().splitlines()]
             for index, line in enumerate(lines):
+                inline = _inline_declared_font(line, lines)
+                if inline is not None:
+                    role, family, weight, style = inline
+                    key = (family.casefold(), weight, style)
+                    if key not in by_role[role]:
+                        by_role[role][key] = Candidate(
+                            value={"family": family, "weight": weight, "style": style},
+                            score=1.0 / (len(by_role[role]) + 1),
+                            evidence=[
+                                Evidence(
+                                    source_type="pdf-guideline",
+                                    path=str(pdf_path),
+                                    page=page_index + 1,
+                                    detail=f"fonte declarada para {role}: {family}",
+                                    confidence=_DECLARED_CONFIDENCE,
+                                )
+                            ],
+                        )
+                    continue
                 searchable = _searchable(line)
                 compact = searchable.replace(" ", "")
                 role: str | None = None

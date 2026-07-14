@@ -83,6 +83,20 @@ def _logo_slot(ir: BrandIR, canvas: Canvas) -> Slot:
     return Slot(id="logo", kind="logo", area=(x, y, size, size), fit="fixed")
 
 
+def _centered_logo_slot(ir: BrandIR, canvas: Canvas) -> Slot:
+    """Centraliza o logo sem violar o mínimo ou a área segura declarados."""
+    minimum = ir.assets["logo.primary"].min_width_px
+    size = max(minimum, round(canvas.width_px * 0.14))
+    x = round((canvas.width_px - size) / 2)
+    y = min(round(canvas.height_px * 0.8), canvas.height_px - canvas.safe_area_px - size)
+    if size <= 0 or x < canvas.safe_area_px or y < canvas.safe_area_px:
+        raise KitGenerationError(
+            "O tamanho mínimo do logo não cabe centralizado na área segura do perfil "
+            f"{canvas.width_px}×{canvas.height_px}px."
+        )
+    return Slot(id="logo", kind="logo", area=(x, y, size, size), fit="fixed")
+
+
 def _statement(ir: BrandIR, profile: Profile) -> LayoutSpec:
     """Gera o arquétipo de frase de impacto para um perfil social."""
     canvas = _canvas(profile)
@@ -394,6 +408,167 @@ def _editorial_layout(ir: BrandIR, mode_name: Literal["light", "dark"]) -> Layou
     )
 
 
+def _signature_ready(ir: BrandIR) -> bool:
+    """Exige um arquétipo declarado e o token de acento que materializa seus detalhes."""
+    rules = ir.composition_rules
+    return bool(
+        rules is not None and rules.layout_style is not None and "color.secondary" in ir.colors
+    )
+
+
+def _signature_layout(ir: BrandIR) -> LayoutSpec:
+    """Materializa uma prova 4:5 fechada para o tratamento declarado pelo manual."""
+    rules = ir.composition_rules
+    if rules is None or rules.layout_style is None:
+        raise KitGenerationError("O arquétipo de composição não foi declarado.")
+
+    canvas = _canvas("post-4x5")
+    style = rules.layout_style.kind
+    accent = "color.secondary"
+    foreground = "color.text"
+
+    if style == "ornamental-divider":
+        return LayoutSpec(
+            id="signature-ornamental-post-4x5",
+            profile="post-4x5",
+            name_pt="Editorial com divisor ornamental",
+            canvas=canvas,
+            background=Background(kind="color", color_token="color.background"),
+            locked_layers=[
+                ShapeLayer(
+                    id="divider-left",
+                    shape="rectangle",
+                    area=(180, 674, 330, 2),
+                    color_token=accent,
+                    z_index=2,
+                ),
+                ShapeLayer(
+                    id="divider-dot",
+                    shape="circle",
+                    area=(536, 671, 8, 8),
+                    color_token=accent,
+                    z_index=2,
+                ),
+                ShapeLayer(
+                    id="divider-right",
+                    shape="rectangle",
+                    area=(570, 674, 330, 2),
+                    color_token=accent,
+                    z_index=2,
+                ),
+            ],
+            slots=[
+                Slot(
+                    id="kicker",
+                    kind="text",
+                    role="caption",
+                    max_chars=48,
+                    area=(120, 160, 840, 54),
+                    required=False,
+                    text_align="center",
+                    text_transform="uppercase",
+                    letter_spacing_em=0.16,
+                ),
+                Slot(
+                    id="headline",
+                    kind="text",
+                    role="heading",
+                    max_chars=90,
+                    area=(100, 270, 880, 300),
+                    text_align="center",
+                ),
+                Slot(
+                    id="body",
+                    kind="text",
+                    role="body",
+                    max_chars=220,
+                    area=(180, 740, 720, 180),
+                    required=False,
+                    text_align="center",
+                ),
+                _centered_logo_slot(ir, canvas),
+            ],
+        )
+
+    return LayoutSpec(
+        id="signature-clinical-post-4x5",
+        profile="post-4x5",
+        name_pt="Editorial em grade clínica",
+        canvas=canvas,
+        background=Background(kind="color", color_token="color.background"),
+        locked_layers=[
+            ShapeLayer(
+                id="grid-panel",
+                shape="rectangle",
+                area=(760, 0, 320, 1350),
+                color_token="color.primary",
+                opacity=0.06,
+                z_index=0,
+            ),
+            ShapeLayer(
+                id="accent-rule",
+                shape="rectangle",
+                area=(80, 200, 72, 3),
+                color_token=accent,
+                z_index=2,
+            ),
+            ShapeLayer(
+                id="body-rule",
+                shape="rectangle",
+                area=(80, 790, 560, 1),
+                color_token=foreground,
+                opacity=0.2,
+                z_index=1,
+            ),
+            ShapeLayer(
+                id="accent-dot",
+                shape="circle",
+                area=(940, 190, 8, 8),
+                color_token=accent,
+                z_index=2,
+            ),
+        ],
+        slots=[
+            Slot(
+                id="kicker",
+                kind="text",
+                role="caption",
+                max_chars=48,
+                area=(80, 104, 680, 40),
+                required=False,
+                text_transform="uppercase",
+                letter_spacing_em=0.18,
+            ),
+            Slot(
+                id="headline",
+                kind="text",
+                role="heading",
+                max_chars=96,
+                area=(80, 250, 680, 330),
+            ),
+            Slot(
+                id="body",
+                kind="text",
+                role="body",
+                max_chars=220,
+                area=(80, 640, 560, 130),
+                required=False,
+            ),
+            Slot(
+                id="fact",
+                kind="text",
+                role="heading",
+                color_token="color.primary",
+                max_chars=20,
+                area=(780, 560, 280, 80),
+                required=False,
+                text_align="center",
+            ),
+            _logo_slot(ir, canvas),
+        ],
+    )
+
+
 def generate_kit(ir: BrandIR) -> list[LayoutSpec]:
     """Gera os dez layouts canônicos e editoriais quando há regras explícitas."""
     _validate_ir(ir)
@@ -411,4 +586,6 @@ def generate_kit(ir: BrandIR) -> list[LayoutSpec]:
                 _editorial_layout(ir, "dark"),
             )
         )
+    if _signature_ready(ir):
+        layouts.append(_signature_layout(ir))
     return layouts

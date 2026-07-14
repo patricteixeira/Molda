@@ -317,10 +317,11 @@ confiável da instância no M1.
 
 ### M1 — "A marca instalada"
 
-**Estado em 12/07/2026:** o motor arquivo→arquivo do Plano 1 e o render/export
-do Plano 2 estão concluídos (renderer único, Guard medido, PNG/PDF e prova de
-equivalência de pixels). API, app web, Docker Compose e E2E permanecem
-pendentes nos Planos 3–4; portanto o M1 ainda não está concluído.
+**Estado em 14/07/2026:** o walking skeleton está concluído de ponta a ponta:
+motor, renderer/export, API, worker, app web, Docker Compose e E2E. O fechamento
+de produto também foi exercitado com três marcas reais e mutation tests do
+Guard; a evidência está em
+[`docs/validation/2026-07-14-m1-real-brands.md`](../../validation/2026-07-14-m1-real-brands.md).
 
 **Walking skeleton** (disciplina herdada do roadmap anterior — nada de expansão antes deste roteiro funcionar de ponta a ponta):
 

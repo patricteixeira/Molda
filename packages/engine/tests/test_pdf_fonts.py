@@ -65,6 +65,29 @@ def test_extracts_families_declared_for_heading_and_body(tmp_path):
     assert declared["body"][0].value["family"] == "General Sans"
 
 
+def test_extracts_letterspaced_inline_role_declarations(tmp_path):
+    pdf_path = tmp_path / "tipografia-inline.pdf"
+    with pymupdf.open() as doc:
+        page = doc.new_page()
+        page.insert_textbox(
+            pymupdf.Rect(40, 40, 550, 760),
+            "D I S P LAY · P O P P I N S · W E I G H TS 5 0 0 – 7 0 0\n"
+            "B O DY · N U N I TO S A N S · W E I G H TS 4 0 0 / 6 0 0 / 7 0 0\n"
+            "ACC E N T · P LAY FA I R D I S P LAY I TA L I C · 5 0 0 – 7 0 0\n"
+            "Nearest matches: Poppins, Nunito Sans, and Playfair Display.",
+            fontsize=12,
+        )
+        doc.save(pdf_path)
+
+    declared = extract_pdf_declared_fonts(pdf_path)
+    heading = {(item.value["family"], item.value["style"]) for item in declared["heading"]}
+    body = {(item.value["family"], item.value["weight"]) for item in declared["body"]}
+
+    assert ("Poppins", "normal") in heading
+    assert ("Playfair Display", "italic") in heading
+    assert ("Nunito Sans", 400) in body
+
+
 def test_embedded_resource_recovers_real_family_when_span_name_is_false(tmp_path, fixture_font):
     renamed_font = tmp_path / "clash-subset.ttf"
     with TTFont(fixture_font) as font:

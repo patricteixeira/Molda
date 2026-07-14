@@ -255,6 +255,22 @@ it("aceita defaults públicos omitidos em compositionRules sem mutar o payload",
   expect(payload.brandIr.compositionRules.numbering!.minDigits).toBeUndefined();
 });
 
+it("aceita os arquétipos fechados de layout e rejeita valores desconhecidos", () => {
+  for (const kind of ["ornamental-divider", "restrained-clinical-grid"] as const) {
+    const payload = fixturePayload();
+    payload.brandIr.schemaVersion = "0.3.0";
+    payload.brandIr.compositionRules = { layoutStyle: { kind } };
+    expect(parsePayload(payload)).toBe(payload);
+  }
+
+  const invalid = fixturePayload();
+  invalid.brandIr.schemaVersion = "0.3.0";
+  invalid.brandIr.compositionRules = {
+    layoutStyle: { kind: "template-generico" as "ornamental-divider" },
+  };
+  expect(() => parsePayload(invalid)).toThrowError(/layoutStyle\.kind.*inválido/i);
+});
+
 it("exige logo.primary mesmo quando o modo usa outro alias", () => {
   const payload = compositionPayload();
   delete payload.brandIr.assets["logo.primary"];
@@ -283,6 +299,7 @@ it("aceita evidence somente nos modelos de regra que o BrandIR define", () => {
   rules.colorRatios![0].evidence = [];
   rules.accent!.evidence = [];
   rules.motifs![0].evidence = [];
+  rules.layoutStyle = { kind: "ornamental-divider", evidence: [] };
   rules.numbering!.evidence = [];
   expect(parsePayload(payload)).toBe(payload);
 });
@@ -295,6 +312,13 @@ it("rejeita campos extras em todos os níveis fechados de compositionRules", () 
     ["ratio", (payload) => payload.brandIr.compositionRules!.colorRatios![0]],
     ["accent", (payload) => payload.brandIr.compositionRules!.accent!],
     ["motif", (payload) => payload.brandIr.compositionRules!.motifs![0]],
+    [
+      "layoutStyle",
+      (payload) => {
+        payload.brandIr.compositionRules!.layoutStyle = { kind: "ornamental-divider" };
+        return payload.brandIr.compositionRules!.layoutStyle!;
+      },
+    ],
     ["numbering", (payload) => payload.brandIr.compositionRules!.numbering!],
   ];
 

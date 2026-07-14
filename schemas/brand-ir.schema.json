@@ -197,6 +197,17 @@
           "title": "Motifs",
           "type": "array"
         },
+        "layoutStyle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LayoutStyleRule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "numbering": {
           "anyOf": [
             {
@@ -538,6 +549,32 @@
         "evidence"
       ],
       "title": "FontToken",
+      "type": "object"
+    },
+    "LayoutStyleRule": {
+      "additionalProperties": false,
+      "description": "Arquétipo fechado de composição sustentado por declaração explícita.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "ornamental-divider",
+            "restrained-clinical-grid"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "LayoutStyleRule",
       "type": "object"
     },
     "LogoAsset": {
