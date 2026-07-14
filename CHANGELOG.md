@@ -74,6 +74,9 @@ release pública.
 - Primeiro fundamento do M4 com Brand Package 0.1 para adapters externos,
   schemas MIT, validação determinística por CLI, fixture pública e verificação
   opcional no intake HTTP antes de qualquer sanitização ou persistência.
+- SDK Python MIT sem dependências para construir Brand Packages por staging,
+  com adapter DTCG offline de referência, entry point instalável e testes de
+  contrato cruzados contra o validator e o intake reais do engine.
 - Padrões de engenharia (`ENGINEERING.md`), ADRs iniciais, CI e licenças
   (AGPL-3.0 para o app, MIT para os schemas).
 
@@ -100,6 +103,9 @@ release pública.
 - Contrato M4.1 validado com fixture pública determinística, 257 testes do
   motor e 154 da API; a interface web permaneceu em 95 testes e o E2E Docker
   completo incluiu a volta do PPTX pelo novo round-trip.
+- SDK M4.2 validado por testes de segurança e integração, Ruff, build de wheel
+  sem dependências, instalação em venv limpa e execução do adapter pela CLI; o
+  Brand Package resultante foi aceito pelo engine com SHA-256 determinístico.
 - Regressão do corte M2.1 passou com 216 testes do motor, 152 da API/worker e
   92 do app web; a imagem de produção do worker contém e valida os quatro
   templates nativos versionados.

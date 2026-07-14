@@ -35,6 +35,29 @@ O schema canônico está em
 sob licença MIT. Uma implementação mínima está em
 [`examples/brand-package-reference`](../../examples/brand-package-reference).
 
+## SDK Python e adapter de referência
+
+O [`brand-runtime-adapter-sdk`](../../packages/adapter-sdk-python) oferece um
+builder Python 3.12+ sob licença MIT e sem dependências de runtime. Ele não
+importa nem executa o engine AGPL: valida a convenção pública, copia somente
+arquivos regulares para um staging no mesmo volume, escreve o manifesto final e
+publica o diretório completo de uma vez. Destinos existentes, colisões por caixa,
+paths não portáveis e combinações inválidas de role/path/MIME são recusados.
+
+O pacote instala também `brandrt-adapter-dtcg`, um adapter offline de referência
+para tokens DTCG e logo SVG/PNG:
+
+```bash
+brandrt-adapter-dtcg tokens.json --logo logo.svg \
+  --label "Export local" --out out/minha-marca
+brandrt package-validate out/minha-marca
+```
+
+O adapter não usa rede nem recebe credenciais. Seu papel é demonstrar o contrato
+completo, não inferir decisões ausentes da marca. Os testes do SDK submetem a
+saída ao validator e ao intake reais do engine para impedir que as duas
+implementações divirjam.
+
 ## Conformidade
 
 Instale o engine e valide a saída antes de enviá-la para uma instância:

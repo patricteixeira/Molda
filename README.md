@@ -78,6 +78,8 @@ travados por construção. A decisão está registrada na
 ```
 packages/engine/   Motor Python: intake (extração + confirmação), Brand IR,
                    gerador de kit, Guard, CLI e export Playwright
+packages/adapter-sdk-python/
+                   SDK MIT sem dependências + adapter DTCG de referência
 packages/render/   Biblioteca TypeScript única de preview/export, DOM 1:1 px
 apps/api/          API FastAPI e worker transacional de export
 apps/web/          Wizard e editor React por slots
@@ -105,6 +107,7 @@ em [`packages/engine/README.md`](packages/engine/README.md).
 
 Os demais componentes têm instruções próprias:
 
+- [SDK Python para adapters](packages/adapter-sdk-python/README.md)
 - [renderer TypeScript](packages/render/README.md)
 - [API e worker](apps/api/README.md)
 - [app web](apps/web/README.md)
@@ -126,3 +129,5 @@ Os demais componentes têm instruções próprias:
   Guard Verdict podem ser adotados por qualquer ferramenta, inclusive fechada.
   A escolha ainda passa por revisão jurídica antes da publicação pública
   (ADR 0003).
+- SDK Python para adapters (`packages/adapter-sdk-python/`): **MIT** — pode ser
+  usado por integrações externas sem carregar nem incorporar o engine AGPL.

@@ -362,7 +362,10 @@ Importador Figma (quando o acesso à API for viável), adapters comunitários de
 o contrato `Brand Package 0.1`: adapters rodam fora do core, produzem uma árvore
 de intake integralmente declarada e hashada, e podem validar a saída pela CLI
 antes de enviá-la à API. Isso prepara o importador Figma e adapters comunitários
-sem antecipar marketplace ou execução de plugins no servidor.
+sem antecipar marketplace ou execução de plugins no servidor. Um SDK Python MIT
+sem dependências e um adapter DTCG offline de referência já provam o contrato
+fora do core, inclusive por wheel instalado em ambiente limpo e contract test
+cruzado contra o engine real.
 
 ---
 
