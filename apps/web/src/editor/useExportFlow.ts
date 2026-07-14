@@ -12,6 +12,7 @@ interface ExportFlowState {
   checks: GuardCheck[]
   download: JobResult | null
   error: string | null
+  jobId: string | null
   pending: boolean
   status: string | null
   run(): Promise<void>
@@ -62,6 +63,7 @@ export function useExportFlow(
   const [checks, setChecks] = useState<GuardCheck[]>([])
   const [download, setDownload] = useState<JobResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [jobId, setJobId] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const activeController = useRef<AbortController | null>(null)
@@ -85,6 +87,7 @@ export function useExportFlow(
     setChecks([])
     setDownload(null)
     setError(null)
+    setJobId(null)
     setStatus(null)
     setPending(true)
 
@@ -108,14 +111,15 @@ export function useExportFlow(
       setChecks(documentResult.checks)
       if (documentResult.checks.some((check) => check.status === "blocked")) return
 
-      const { jobId } = await beforeTimeout(
+      const { jobId: requestedJobId } = await beforeTimeout(
         client.requestExport(documentResult.documentId, format),
       )
       if (!isActive()) return
+      setJobId(requestedJobId)
 
       setStatus(`Gerando ${format.toUpperCase()}…`)
       while (isActive()) {
-        const job = await beforeTimeout(client.getJob(jobId))
+        const job = await beforeTimeout(client.getJob(requestedJobId))
         if (!isActive()) return
 
         setChecks(job.checks)
@@ -158,5 +162,5 @@ export function useExportFlow(
     }
   }, [client, content, format, pollIntervalMs])
 
-  return { checks, download, error, pending, run, status }
+  return { checks, download, error, jobId, pending, run, status }
 }

@@ -1,4 +1,10 @@
-import type { ApiClient, BrandIr, JobInfo, LayoutSpec } from "../api/types"
+import type {
+  ApiClient,
+  BrandIr,
+  JobInfo,
+  LayoutSpec,
+  RoundtripJobInfo,
+} from "../api/types"
 import { vi } from "vitest"
 
 export const FAKE_IR: BrandIr = {
@@ -399,6 +405,41 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
         url: `/v1/assets/${sha256}`,
         format: "png",
         filename: "doc_x.png",
+      },
+      checks: [],
+      error: null,
+    })),
+    requestRoundtrip: vi.fn(async () => ({ jobId: "job_roundtrip" })),
+    requestRoundtripFix: vi.fn(async () => ({ jobId: "job_fix" })),
+    getRoundtripJob: vi.fn(async (): Promise<RoundtripJobInfo> => ({
+      id: "job_roundtrip",
+      status: "succeeded",
+      result: {
+        kind: "roundtrip-lint",
+        baselineGraph: {},
+        documentGraph: {},
+        report: {
+          schemaVersion: "0.1.0",
+          baselineSha256: "a".repeat(64),
+          editedSha256: "b".repeat(64),
+          summary: {
+            status: "pass",
+            total: 0,
+            info: 0,
+            warning: 0,
+            error: 0,
+            locked: 0,
+            fixable: 0,
+          },
+          findings: [],
+        },
+        fixPlan: {
+          schemaVersion: "0.1.0",
+          baselineSha256: "a".repeat(64),
+          editedSha256: "b".repeat(64),
+          operations: [],
+          deferredFindingCodes: [],
+        },
       },
       checks: [],
       error: null,

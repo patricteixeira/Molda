@@ -7,6 +7,7 @@ import type {
   ImportResult,
   LayoutSpec,
   FontResolutionResult,
+  RoundtripJobInfo,
 } from "./types"
 import { buildPackageZip } from "./zipPackage"
 
@@ -116,6 +117,22 @@ export function createApiClient(fetchFn: typeof fetch = fetch): ApiClient {
     },
     getJob(jobId) {
       return json<JobInfo>(`/v1/jobs/${encodeURIComponent(jobId)}`)
+    },
+    async requestRoundtrip(exportJobId, file) {
+      const form = new FormData()
+      form.set("file", file)
+      return json(`/v1/jobs/${encodeURIComponent(exportJobId)}/roundtrips`, {
+        method: "POST",
+        body: form,
+      })
+    },
+    requestRoundtripFix(roundtripJobId) {
+      return json(`/v1/jobs/${encodeURIComponent(roundtripJobId)}/fixes`, {
+        method: "POST",
+      })
+    },
+    getRoundtripJob(jobId) {
+      return json<RoundtripJobInfo>(`/v1/jobs/${encodeURIComponent(jobId)}`)
     },
     draftAssetUrl(draftId, path) {
       return `/v1/drafts/${encodeURIComponent(draftId)}/assets/${encodePath(path)}`

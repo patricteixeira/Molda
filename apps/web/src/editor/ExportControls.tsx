@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useApi } from "../api/context"
 import type { ExportFormat, GuardCheck, LayoutSpec, SlotValue } from "../api/types"
 import { GuardPanel } from "./GuardPanel"
+import { RoundtripPanel } from "./RoundtripPanel"
 import { useExportFlow } from "./useExportFlow"
 
 interface ExportControlsProps {
@@ -44,8 +45,9 @@ export function ExportControls({
   const primaryFlow = useExportFlow(client, content, primaryFormat, pollIntervalMs)
   const editableFlow = useExportFlow(client, content, editableFormat, pollIntervalMs)
   const [activeFormat, setActiveFormat] = useState<ExportFormat>(primaryFormat)
+  const [roundtripPending, setRoundtripPending] = useState(false)
   const activeFlow = activeFormat === editableFormat ? editableFlow : primaryFlow
-  const pending = primaryFlow.pending || editableFlow.pending
+  const pending = primaryFlow.pending || editableFlow.pending || roundtripPending
 
   useEffect(() => {
     onPendingChange?.(pending)
@@ -106,6 +108,18 @@ export function ExportControls({
         >
           Baixar {activeFlow.download.format.toUpperCase()}
         </a>
+      ) : null}
+      {!isDocument &&
+      activeFormat === "pptx" &&
+      editableFlow.download?.format === "pptx" &&
+      editableFlow.jobId ? (
+        <RoundtripPanel
+          key={editableFlow.jobId}
+          exportJobId={editableFlow.jobId}
+          pollIntervalMs={pollIntervalMs}
+          disabled={disabled || primaryFlow.pending || editableFlow.pending}
+          onPendingChange={setRoundtripPending}
+        />
       ) : null}
     </div>
   )

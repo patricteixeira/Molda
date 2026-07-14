@@ -969,6 +969,236 @@
     font-weight: 650;
     text-decoration: none;
   }
+
+  .roundtrip-panel {
+    display: grid;
+    grid-column: 1 / -1;
+    gap: 1px;
+    margin-top: var(--space-4);
+    border: 1px solid var(--ui-ink);
+    background: var(--ui-ink);
+  }
+
+  .roundtrip-heading {
+    display: grid;
+    grid-template-columns: minmax(7rem, 2fr) minmax(12rem, 5fr) minmax(12rem, 5fr);
+    gap: var(--space-4);
+    align-items: end;
+    padding: clamp(1.25rem, 3vw, 2.5rem);
+    background: var(--ui-stage);
+    color: var(--ui-surface);
+  }
+
+  .roundtrip-heading .eyebrow {
+    align-self: start;
+    color: #aebcff;
+  }
+
+  .roundtrip-heading h2 {
+    max-width: 12ch;
+    font-size: clamp(2rem, 4.5vw, 3.75rem);
+  }
+
+  .roundtrip-heading > p:last-child {
+    max-width: 42ch;
+    color: rgb(251 250 246 / 72%);
+    font-size: 0.9375rem;
+  }
+
+  .roundtrip-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    background: var(--ui-ink);
+    list-style: none;
+  }
+
+  .roundtrip-steps li {
+    min-height: 8.5rem;
+    padding: var(--space-4);
+    background: var(--ui-surface);
+  }
+
+  .roundtrip-steps span {
+    display: block;
+    margin-bottom: var(--space-6);
+    color: var(--ui-accent);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  .roundtrip-steps p {
+    max-width: 28ch;
+    font-size: 0.875rem;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+
+  .roundtrip-receiver {
+    display: grid;
+    grid-template-columns: minmax(9rem, 3fr) minmax(14rem, 6fr) minmax(9rem, 3fr);
+    gap: var(--space-3) var(--space-4);
+    align-items: center;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    background: var(--ui-accent-soft);
+  }
+
+  .roundtrip-receiver label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .roundtrip-receiver input {
+    width: 100%;
+    border: 1px solid var(--ui-ink);
+    padding: 0.5rem;
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+    font-size: 0.8125rem;
+  }
+
+  .roundtrip-file-name {
+    grid-column: 2;
+    color: var(--ui-muted);
+    font-size: 0.8125rem;
+    overflow-wrap: anywhere;
+  }
+
+  .roundtrip-report {
+    display: grid;
+    gap: 1px;
+    background: var(--ui-ink);
+  }
+
+  .roundtrip-score {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px;
+    background: var(--ui-ink);
+  }
+
+  .roundtrip-score p {
+    display: grid;
+    min-height: 8rem;
+    align-content: space-between;
+    padding: var(--space-4);
+    background: var(--ui-accent);
+    color: white;
+  }
+
+  .roundtrip-score strong {
+    font-size: clamp(2.25rem, 5vw, 4rem);
+    font-weight: 650;
+    letter-spacing: -0.05em;
+    line-height: 0.9;
+  }
+
+  .roundtrip-score span {
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .roundtrip-findings {
+    display: grid;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    background: var(--ui-rule);
+    list-style: none;
+  }
+
+  .roundtrip-findings li {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr) auto;
+    gap: var(--space-4);
+    align-items: center;
+    min-height: 5.5rem;
+    padding: var(--space-4);
+    background: var(--ui-surface);
+  }
+
+  .roundtrip-findings li[data-severity="error"],
+  .roundtrip-findings li[data-severity="locked"] {
+    box-shadow: inset 4px 0 0 var(--ui-danger);
+  }
+
+  .roundtrip-finding-index,
+  .roundtrip-finding-state {
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .roundtrip-finding-index {
+    color: var(--ui-muted);
+  }
+
+  .roundtrip-findings h3 {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
+  .roundtrip-findings p {
+    margin-top: var(--space-1);
+    color: var(--ui-muted);
+    font-size: 0.8125rem;
+  }
+
+  .roundtrip-finding-state {
+    color: var(--ui-accent);
+  }
+
+  .roundtrip-pass {
+    padding: clamp(2rem, 5vw, 4rem);
+    background: var(--ui-success);
+    color: white;
+    font-size: clamp(1.25rem, 3vw, 2rem);
+    font-weight: 650;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .roundtrip-report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: space-between;
+    padding: var(--space-4);
+    background: var(--ui-surface);
+  }
+
+  .text-action {
+    border-color: transparent;
+    background: transparent;
+    color: var(--ui-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .roundtrip-error,
+  .roundtrip-status {
+    max-width: none;
+    padding: var(--space-4);
+    background: var(--ui-surface);
+  }
+
+  .roundtrip-status {
+    color: var(--ui-success);
+    font-weight: 650;
+  }
+
+  .roundtrip-download {
+    border: 0;
+    border-radius: 0;
+  }
 }
 
 @layer states {
@@ -1111,5 +1341,38 @@
 
   .manual-font-row {
     grid-template-columns: 1fr;
+  }
+
+  .roundtrip-heading,
+  .roundtrip-receiver {
+    grid-template-columns: 1fr;
+  }
+
+  .roundtrip-heading .eyebrow,
+  .roundtrip-heading h2,
+  .roundtrip-heading > p:last-child,
+  .roundtrip-file-name {
+    grid-column: 1;
+  }
+
+  .roundtrip-steps,
+  .roundtrip-score {
+    grid-template-columns: 1fr;
+  }
+
+  .roundtrip-steps li {
+    min-height: 0;
+  }
+
+  .roundtrip-steps span {
+    margin-bottom: var(--space-3);
+  }
+
+  .roundtrip-findings li {
+    grid-template-columns: 2rem minmax(0, 1fr);
+  }
+
+  .roundtrip-finding-state {
+    grid-column: 2;
   }
 }

@@ -116,6 +116,37 @@ it("requestExport e getJob usam as rotas e o shape de job do Plano 3", async () 
   expect(fetchFn.mock.calls[1][0]).toBe("/v1/jobs/job1")
 })
 
+it("round-trip envia o PPTX e usa os jobs persistidos para conferir e corrigir", async () => {
+  const fetchFn = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse({ jobId: "job-analysis" }))
+    .mockResolvedValueOnce(jsonResponse({ jobId: "job-fix" }))
+    .mockResolvedValueOnce(
+      jsonResponse({
+        id: "job-analysis",
+        status: "succeeded",
+        result: null,
+        checks: [],
+        error: null,
+      }),
+    )
+  const client = createApiClient(fetchFn as unknown as typeof fetch)
+  const edited = new File(["pptx"], "editado.pptx", {
+    type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  })
+
+  await client.requestRoundtrip("job-export", edited)
+  await client.requestRoundtripFix("job-analysis")
+  await client.getRoundtripJob("job-analysis")
+
+  expect(fetchFn.mock.calls[0][0]).toBe("/v1/jobs/job-export/roundtrips")
+  expect((fetchFn.mock.calls[0][1] as RequestInit).method).toBe("POST")
+  expect(((fetchFn.mock.calls[0][1] as RequestInit).body as FormData).get("file")).toBe(edited)
+  expect(fetchFn.mock.calls[1][0]).toBe("/v1/jobs/job-analysis/fixes")
+  expect((fetchFn.mock.calls[1][1] as RequestInit).method).toBe("POST")
+  expect(fetchFn.mock.calls[2][0]).toBe("/v1/jobs/job-analysis")
+})
+
 it("erro HTTP vira ApiError com mensagem PT-BR do corpo", async () => {
   const fetchFn = vi.fn(async () =>
     jsonResponse({ detail: "Faltam respostas obrigatórias: color.primary" }, 422),

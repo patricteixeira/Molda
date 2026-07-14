@@ -212,6 +212,85 @@ export interface JobInfo {
   error?: string | null
 }
 
+export type RoundtripSeverity = "info" | "warning" | "error" | "locked"
+
+export interface RoundtripFinding {
+  code: string
+  severity: RoundtripSeverity
+  messagePt: string
+  nodeId?: string | null
+  slotId?: string | null
+  expected?: unknown
+  actual?: unknown
+  fixable: boolean
+}
+
+export interface RoundtripSummary {
+  status: "pass" | "review" | "blocked"
+  total: number
+  info: number
+  warning: number
+  error: number
+  locked: number
+  fixable: number
+}
+
+export interface RoundtripReport {
+  schemaVersion: "0.1.0"
+  baselineSha256: string
+  editedSha256: string
+  summary: RoundtripSummary
+  findings: RoundtripFinding[]
+}
+
+export interface FixOperation {
+  id: string
+  slideIndex: number
+  nodeId: string
+  role: string
+  slotId?: string | null
+  property: "fontFamily" | "fontSizePt" | "color" | "boundsPt"
+  expected: unknown
+  sourceCodes: string[]
+}
+
+export interface FixPlan {
+  schemaVersion: "0.1.0"
+  baselineSha256: string
+  editedSha256: string
+  operations: FixOperation[]
+  deferredFindingCodes: string[]
+}
+
+export interface RoundtripAnalysisResult {
+  kind: "roundtrip-lint"
+  baselineGraph: Record<string, unknown>
+  documentGraph: Record<string, unknown>
+  report: RoundtripReport
+  fixPlan: FixPlan
+}
+
+export interface RoundtripFixJobResult extends JobResult {
+  kind: "roundtrip-fix"
+  format: "pptx"
+  fixResult: {
+    schemaVersion: "0.1.0"
+    sourceSha256: string
+    fixedSha256: string
+    outputFilename: string
+    appliedOperationIds: string[]
+    report: RoundtripReport
+  }
+}
+
+export interface RoundtripJobInfo {
+  id: string
+  status: "queued" | "running" | "succeeded" | "failed"
+  result?: RoundtripAnalysisResult | RoundtripFixJobResult | null
+  checks: GuardCheck[]
+  error?: string | null
+}
+
 export interface ImportResult {
   draftId: string
   questions: DraftQuestion[]
@@ -258,6 +337,9 @@ export interface ApiClient {
   createDocument(content: ContentSpec): Promise<DocumentResult>
   requestExport(documentId: string, format: ExportFormat): Promise<{ jobId: string }>
   getJob(jobId: string): Promise<JobInfo>
+  requestRoundtrip(exportJobId: string, file: File): Promise<{ jobId: string }>
+  requestRoundtripFix(roundtripJobId: string): Promise<{ jobId: string }>
+  getRoundtripJob(jobId: string): Promise<RoundtripJobInfo>
   uploadAsset(file: File): Promise<AssetUpload>
   draftAssetUrl(draftId: string, path: string): string
   revisionAssetsBaseUrl(revisionId: string): string

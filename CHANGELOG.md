@@ -68,6 +68,9 @@ release pública.
 - Upload de round-trip ligado ao job PPTX original, jobs separados de análise e
   correção, persistência de graphs/relatório/plano e publicação do resultado pelo
   worker sob o mesmo lease transacional dos exports.
+- Mesa de conferência no editor web para receber o PPTX editado, traduzir o
+  relatório de round-trip em sinais compreensíveis, preservar alterações de
+  texto e baixar uma nova cópia com os ajustes seguros aplicados.
 - Padrões de engenharia (`ENGINEERING.md`), ADRs iniciais, CI e licenças
   (AGPL-3.0 para o app, MIT para os schemas).
 

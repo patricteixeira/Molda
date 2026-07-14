@@ -4,7 +4,7 @@ import { expect, it, vi } from "vitest"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { ApiError } from "../api/client"
 import { ApiProvider } from "../api/context"
-import type { ApiClient } from "../api/types"
+import type { ApiClient, RoundtripJobInfo } from "../api/types"
 import {
   fakeClient,
   fakeOnePagerLayout,
@@ -122,6 +122,165 @@ it("layout social oferece PPTX editável no Google Slides", async () => {
   expect(link).toHaveAttribute("download", "statement-post-1x1.pptx")
   expect(link).toHaveTextContent("Baixar PPTX")
   expect(screen.getByTestId("export-status")).toHaveTextContent("PPTX pronto para baixar.")
+})
+
+it("confere o PPTX que voltou e oferece uma cópia corrigida sem expor jargão", async () => {
+  const exportSha = "e".repeat(64)
+  const fixedSha = "c".repeat(64)
+  const requestExport = vi.fn(async () => ({ jobId: "job-pptx" }))
+  const getJob = vi.fn(async () => ({
+    id: "job-pptx",
+    status: "succeeded" as const,
+    result: {
+      sha256: exportSha,
+      url: `/v1/assets/${exportSha}`,
+      format: "pptx" as const,
+      filename: "statement-post-1x1.pptx",
+    },
+    checks: [],
+    error: null,
+  }))
+  const requestRoundtrip = vi.fn(async () => ({ jobId: "job-analysis" }))
+  const requestRoundtripFix = vi.fn(async () => ({ jobId: "job-fix" }))
+  const textFinding = {
+    code: "text-changed",
+    severity: "info" as const,
+    messagePt: "O texto foi editado.",
+    nodeId: "node-title",
+    slotId: "headline",
+    expected: "Texto original",
+    actual: "Texto da pessoa",
+    fixable: false,
+  }
+  const getRoundtripJob = vi.fn(async (jobId: string): Promise<RoundtripJobInfo> => {
+    if (jobId === "job-fix") {
+      return {
+        id: jobId,
+        status: "succeeded",
+        result: {
+          kind: "roundtrip-fix",
+          sha256: fixedSha,
+          url: `/v1/assets/${fixedSha}`,
+          format: "pptx",
+          filename: "statement-post-1x1-corrigido.pptx",
+          fixResult: {
+            schemaVersion: "0.1.0",
+            sourceSha256: "b".repeat(64),
+            fixedSha256: fixedSha,
+            outputFilename: "statement-post-1x1-corrigido.pptx",
+            appliedOperationIds: ["fix-color"],
+            report: {
+              schemaVersion: "0.1.0",
+              baselineSha256: "a".repeat(64),
+              editedSha256: fixedSha,
+              summary: {
+                status: "review",
+                total: 1,
+                info: 1,
+                warning: 0,
+                error: 0,
+                locked: 0,
+                fixable: 0,
+              },
+              findings: [textFinding],
+            },
+          },
+        },
+        checks: [],
+        error: null,
+      }
+    }
+    return {
+      id: jobId,
+      status: "succeeded",
+      result: {
+        kind: "roundtrip-lint",
+        baselineGraph: {},
+        documentGraph: {},
+        report: {
+          schemaVersion: "0.1.0",
+          baselineSha256: "a".repeat(64),
+          editedSha256: "b".repeat(64),
+          summary: {
+            status: "review",
+            total: 2,
+            info: 1,
+            warning: 1,
+            error: 0,
+            locked: 0,
+            fixable: 1,
+          },
+          findings: [
+            textFinding,
+            {
+              code: "color-changed",
+              severity: "warning",
+              messagePt: "A cor saiu do padrão.",
+              nodeId: "node-title",
+              slotId: "headline",
+              expected: "#1844D8",
+              actual: "#FF00FF",
+              fixable: true,
+            },
+          ],
+        },
+        fixPlan: {
+          schemaVersion: "0.1.0",
+          baselineSha256: "a".repeat(64),
+          editedSha256: "b".repeat(64),
+          operations: [
+            {
+              id: "fix-color",
+              slideIndex: 0,
+              nodeId: "node-title",
+              role: "heading",
+              slotId: "headline",
+              property: "color",
+              expected: "#1844D8",
+              sourceCodes: ["color-changed"],
+            },
+          ],
+          deferredFindingCodes: ["text-changed"],
+        },
+      },
+      checks: [],
+      error: null,
+    }
+  })
+  renderEditor(
+    fakeClient({
+      getKit: kit,
+      requestExport,
+      getJob,
+      requestRoundtrip,
+      requestRoundtripFix,
+      getRoundtripJob,
+    }),
+  )
+
+  await screen.findByTestId("slot-input-headline")
+  await userEvent.click(screen.getByTestId("exportar-pptx"))
+  expect(await screen.findByText("Confira o arquivo que voltou")).toBeInTheDocument()
+
+  const edited = new File(["pptx"], "editado-no-google.pptx", {
+    type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  })
+  await userEvent.upload(screen.getByTestId("roundtrip-file"), edited)
+  await userEvent.click(screen.getByTestId("roundtrip-analyze"))
+
+  expect(await screen.findByText("Texto mantido")).toBeInTheDocument()
+  expect(screen.getByText("Cor")).toBeInTheDocument()
+  expect(screen.getByText("ajuste seguro").closest("p")).toHaveTextContent("1ajuste seguro")
+  expect(screen.queryByText("#1844D8")).not.toBeInTheDocument()
+  expect(screen.queryByText("#FF00FF")).not.toBeInTheDocument()
+  expect(requestRoundtrip).toHaveBeenCalledWith("job-pptx", edited)
+
+  await userEvent.click(screen.getByTestId("roundtrip-fix"))
+  const corrected = await screen.findByTestId("roundtrip-download")
+  expect(requestRoundtripFix).toHaveBeenCalledWith("job-analysis")
+  expect(corrected).toHaveAttribute("href", `/v1/assets/${fixedSha}`)
+  expect(corrected).toHaveAttribute("download", "statement-post-1x1-corrigido.pptx")
+  expect(corrected).toHaveTextContent("Baixar cópia corrigida")
 })
 
 it("job falho mostra erro e checks medidos em PT-BR", async () => {

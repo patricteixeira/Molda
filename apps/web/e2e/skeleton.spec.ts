@@ -106,6 +106,13 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   await (await pptxDownload).saveAs(pptxPath)
   validateOutput("pptx", pptxPath)
 
+  await expect(page.getByText("Confira o arquivo que voltou")).toBeVisible()
+  await page.getByTestId("roundtrip-file").setInputFiles(pptxPath)
+  await page.getByTestId("roundtrip-analyze").click()
+  await expect(page.getByText("Tudo no lugar. O arquivo voltou sem desvios.")).toBeVisible({
+    timeout: 120_000,
+  })
+
   await page.goto(kitUrl)
   await page.locator('[data-testid="kit-card"][data-layout-id="one-pager-doc-a4"]').click()
   await page.getByTestId("slot-input-title").fill("Relatório do mês")
