@@ -1,4 +1,4 @@
-import { act, render, renderHook, screen } from "@testing-library/react"
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, it, vi } from "vitest"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
@@ -290,9 +290,11 @@ it("congela os slots enquanto o arquivo está sendo gerado", async () => {
     error: null,
   })
   expect(await screen.findByText("PPTX pronto para baixar.")).toBeInTheDocument()
-  expect(input).toBeEnabled()
-  expect(screen.getByTestId("exportar-png")).toBeEnabled()
-  expect(screen.getByTestId("exportar-pptx")).toBeEnabled()
+  await waitFor(() => {
+    expect(input).toBeEnabled()
+    expect(screen.getByTestId("exportar-png")).toBeEnabled()
+    expect(screen.getByTestId("exportar-pptx")).toBeEnabled()
+  })
 })
 
 it("encerra um export preso depois de cinco minutos", async () => {

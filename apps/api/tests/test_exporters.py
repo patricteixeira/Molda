@@ -151,9 +151,7 @@ def test_playwright_exporter_falha_cedo_sem_build_do_renderer(tmp_path):
         PlaywrightExporter(tmp_path / "render-dist-ausente")
 
 
-def test_dispatcher_encaminha_web_e_office_sem_mudar_o_contrato(
-    client, compiled, tmp_path
-):
+def test_dispatcher_encaminha_web_e_office_sem_mudar_o_contrato(client, compiled, tmp_path):
     ir, layout, content = _contracts(client, compiled)
     seen = []
 
