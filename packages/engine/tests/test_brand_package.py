@@ -18,9 +18,7 @@ from brand_runtime.ecosystem.package import (
 )
 
 runner = CliRunner()
-REFERENCE_PACKAGE = (
-    Path(__file__).resolve().parents[3] / "examples" / "brand-package-reference"
-)
+REFERENCE_PACKAGE = Path(__file__).resolve().parents[3] / "examples" / "brand-package-reference"
 
 
 def _file(package, relative, role, media_type):
@@ -85,8 +83,7 @@ def test_public_reference_package_remains_conformant():
     report = validate_brand_package(REFERENCE_PACKAGE)
 
     assert (
-        report.package_sha256
-        == "f6a804980e6020bb6a5c5131d2ab5be1dfe15a9777c5776a9e48732086e78a92"
+        report.package_sha256 == "f6a804980e6020bb6a5c5131d2ab5be1dfe15a9777c5776a9e48732086e78a92"
     )
 
 

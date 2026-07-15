@@ -63,15 +63,12 @@ def _portable_path(value: str) -> str:
         raise ValueError("O path precisa ser relativo, POSIX e normalizado em NFC.")
     candidate = PurePosixPath(value)
     parts = value.split("/")
-    if (
-        candidate.is_absolute()
-        or any(
-            part in {"", ".", ".."}
-            or ":" in part
-            or part.endswith((".", " "))
-            or part.split(".", maxsplit=1)[0].upper() in _WINDOWS_RESERVED
-            for part in parts
-        )
+    if candidate.is_absolute() or any(
+        part in {"", ".", ".."}
+        or ":" in part
+        or part.endswith((".", " "))
+        or part.split(".", maxsplit=1)[0].upper() in _WINDOWS_RESERVED
+        for part in parts
     ):
         raise ValueError("O path não é portável ou pode escapar do pacote.")
     return value
@@ -199,9 +196,7 @@ class BrandPackageFile(CamelModel):
         if self.role == "tokens" and not (
             "/" not in self.path
             and self.media_type == "application/json"
-            and (
-                self.path == "tokens.json" or self.path.endswith(".tokens.json")
-            )
+            and (self.path == "tokens.json" or self.path.endswith(".tokens.json"))
         ):
             raise ValueError("Tokens devem usar tokens.json ou *.tokens.json na raiz.")
         if self.role == "guideline" and not (
@@ -282,7 +277,9 @@ def _inventory(base: Path) -> dict[str, Path]:
     try:
         entries = sorted(base.rglob("*"), key=lambda item: item.as_posix().casefold())
     except OSError as exc:
-        raise PackageValidationError("PACKAGE_UNREADABLE", "Não foi possível ler o pacote.") from exc
+        raise PackageValidationError(
+            "PACKAGE_UNREADABLE", "Não foi possível ler o pacote."
+        ) from exc
     for entry in entries:
         relative = entry.relative_to(base).as_posix()
         if entry.is_symlink():

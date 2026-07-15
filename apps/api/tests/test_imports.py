@@ -81,9 +81,7 @@ def test_import_aceita_brand_package_de_adapter_com_integridade(client, package_
     assert response.json()["ignoredEntries"] == []
 
 
-def test_import_recusa_brand_package_com_hash_divergente_sem_deixar_estado(
-    client, package_zip
-):
+def test_import_recusa_brand_package_com_hash_divergente_sem_deixar_estado(client, package_zip):
     response = _post_zip(client, _declared_package(package_zip, bad_hash=True))
 
     assert response.status_code == 400
