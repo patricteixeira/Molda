@@ -37,17 +37,38 @@ it("salva e reabre o conteúdo do folder", () => {
     },
   }
 
-  expect(saveEditorDraft("brandrev_1", layout.id, values)).toBe(true)
-  expect(loadEditorDraft("brandrev_1", layout)).toEqual(values)
+  expect(saveEditorDraft("brandrev_1", layout.id, values, {})).toBe(true)
+  expect(loadEditorDraft("brandrev_1", layout)).toEqual({ values, overrides: {} })
+})
+
+it("preserva ajustes visuais por camada", () => {
+  const values = { title: { kind: "text" as const, text: "Com autoria" } }
+  const overrides = {
+    title: {
+      area: [72, 96, 620, 210] as [number, number, number, number],
+      fontSizePx: 86,
+      fontWeight: 700,
+      opacity: 0.82,
+    },
+  }
+
+  expect(saveEditorDraft("brandrev_visual", layout.id, values, overrides)).toBe(true)
+  expect(loadEditorDraft("brandrev_visual", layout)).toEqual({ values, overrides })
 })
 
 it("isola o rascunho por revisão e por peça", () => {
-  saveEditorDraft("brandrev_1", layout.id, {
-    title: { kind: "text", text: "Primeira marca" },
-  })
+  saveEditorDraft(
+    "brandrev_1",
+    layout.id,
+    { title: { kind: "text", text: "Primeira marca" } },
+    {},
+  )
 
-  expect(loadEditorDraft("brandrev_2", layout)).toEqual({})
-  expect(loadEditorDraft("brandrev_1", { ...layout, id: "outro-folder" })).toEqual({})
+  expect(loadEditorDraft("brandrev_2", layout)).toEqual({ values: {}, overrides: {} })
+  expect(loadEditorDraft("brandrev_1", { ...layout, id: "outro-folder" })).toEqual({
+    values: {},
+    overrides: {},
+  })
 })
 
 it("ignora dados corrompidos, slots desconhecidos e valores incompatíveis", () => {
@@ -62,14 +83,17 @@ it("ignora dados corrompidos, slots desconhecidos e valores incompatíveis", () 
     }),
   )
 
-  expect(loadEditorDraft("brandrev_1", layout)).toEqual({})
+  expect(loadEditorDraft("brandrev_1", layout)).toEqual({ values: {}, overrides: {} })
 })
 
 it("remove o rascunho ao limpar a peça", () => {
-  saveEditorDraft("brandrev_1", layout.id, {
-    title: { kind: "text", text: "Texto temporário" },
-  })
+  saveEditorDraft(
+    "brandrev_1",
+    layout.id,
+    { title: { kind: "text", text: "Texto temporário" } },
+    {},
+  )
 
   expect(clearEditorDraft("brandrev_1", layout.id)).toBe(true)
-  expect(loadEditorDraft("brandrev_1", layout)).toEqual({})
+  expect(loadEditorDraft("brandrev_1", layout)).toEqual({ values: {}, overrides: {} })
 })

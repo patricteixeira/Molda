@@ -303,6 +303,78 @@ it("aplica propriedades editoriais de slot e stroke determinístico", () => {
   expect(content.style.getPropertyValue("-webkit-text-stroke")).toBe("2.5px #FCFBF8");
 });
 
+it("aplica overrides visuais em texto e camadas estruturais", () => {
+  const payload = editorialPayload();
+  payload.contentSpec.overrides = {
+    headline: {
+      area: [120, 600, 700, 240],
+      opacity: 0.55,
+      zIndex: 14,
+      colorToken: "color.accent",
+      fontToken: "font.body",
+      fontSizePx: 64,
+      fontWeight: 500,
+      fontStyle: "italic",
+      lineHeight: 1.2,
+      letterSpacingEm: 0.03,
+      textAlign: "right",
+      textTransform: "none",
+      fillMode: "fill",
+    },
+    "diagonal-field": {
+      area: [0, 100, 1080, 900],
+      opacity: 0.2,
+      zIndex: 4,
+      colorToken: "color.accent",
+      strokeWidthPx: 4,
+      spacingPx: 40,
+    },
+    "signature-mark": { hidden: true, fit: "cover" },
+  };
+
+  renderDocument(container, payload);
+
+  const slot = container.querySelector<HTMLElement>('[data-slot-id="headline"]')!;
+  const content = slot.querySelector<HTMLElement>("[data-slot-content]")!;
+  expect([slot.style.left, slot.style.top, slot.style.width, slot.style.height]).toEqual([
+    "120px",
+    "600px",
+    "700px",
+    "240px",
+  ]);
+  expect(slot.style.opacity).toBe("0.55");
+  expect(slot.style.zIndex).toBe("14");
+  expect(content.style.fontFamily).toBe("sans-serif");
+  expect(content.style.fontFamily).not.toContain("br-font-heading");
+  expect(content.style.fontSize).toBe("64px");
+  expect(content.style.fontWeight).toBe("500");
+  expect(content.style.fontStyle).toBe("italic");
+  expect(content.style.lineHeight).toBe("1.2");
+  expect(content.style.letterSpacing).toBe("0.03em");
+  expect(content.style.textAlign).toBe("right");
+  expect(content.style.textTransform).toBe("none");
+  expect(content.style.color.toLowerCase().replaceAll(" ", "")).toMatch(
+    /#ca6b0b|rgb\(202,107,11\)/,
+  );
+  expect(content.style.getPropertyValue("-webkit-text-stroke")).toBe("");
+
+  const motif = container.querySelector<HTMLElement>('[data-layer-id="diagonal-field"]')!;
+  expect([motif.style.left, motif.style.top, motif.style.width, motif.style.height]).toEqual([
+    "0px",
+    "100px",
+    "1080px",
+    "900px",
+  ]);
+  expect(motif.style.opacity).toBe("0.2");
+  expect(motif.style.zIndex).toBe("4");
+  expect(motif.style.backgroundImage).toContain("#CA6B0B 4px");
+  expect(motif.style.backgroundImage).toContain("transparent 40px");
+
+  const asset = container.querySelector<HTMLElement>('[data-layer-id="signature-mark"]')!;
+  expect(asset.style.display).toBe("none");
+  expect(asset.querySelector<HTMLImageElement>("img")!.style.objectFit).toBe("cover");
+});
+
 it("divide somente a primeira ocorrência exata da ênfase sem innerHTML", () => {
   renderDocument(container, editorialPayload());
   const content = container.querySelector<HTMLElement>("[data-slot-content]")!;

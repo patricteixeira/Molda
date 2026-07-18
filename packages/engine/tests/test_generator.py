@@ -162,21 +162,29 @@ def test_missing_ir_references_and_impossible_logo_fail_explicitly(brand_package
         generate_kit(ir)
 
 
-def test_explicit_composition_adds_two_editorial_4x5_layouts_after_canonical_ten(
+def test_explicit_composition_adds_four_editorial_4x5_layouts_after_canonical_ten(
     brand_package,
 ):
     ir = _composition_ir(brand_package)
     kit = generate_kit(ir)
 
-    assert len(kit) == 12
-    assert [layout.id for layout in kit[-2:]] == [
+    editorial = kit[-4:]
+    assert len(kit) == 14
+    assert [layout.id for layout in editorial] == [
         "editorial-light-post-4x5",
         "editorial-dark-post-4x5",
+        "editorial-closure-light-post-4x5",
+        "editorial-closure-dark-post-4x5",
     ]
-    assert all(layout.profile == "post-4x5" for layout in kit[-2:])
-    assert [layout.composition_mode for layout in kit[-2:]] == ["light", "dark"]
+    assert all(layout.profile == "post-4x5" for layout in editorial)
+    assert [layout.composition_mode for layout in editorial] == [
+        "light",
+        "dark",
+        "light",
+        "dark",
+    ]
 
-    for layout, logo_token in zip(kit[-2:], ("logo.onLight", "logo.onDark"), strict=True):
+    for layout, logo_token in zip(editorial[:2], ("logo.onLight", "logo.onDark"), strict=True):
         layers = {layer.id: layer for layer in layout.locked_layers}
         slots = {slot.id: slot for slot in layout.slots}
         assert list(layers) == [
@@ -185,6 +193,14 @@ def test_explicit_composition_adds_two_editorial_4x5_layouts_after_canonical_ten
             "frame-left",
             "frame-right",
             "frame-bottom",
+            "register-top-left-x",
+            "register-top-left-y",
+            "register-top-right-x",
+            "register-top-right-y",
+            "register-bottom-left-x",
+            "register-bottom-left-y",
+            "register-bottom-right-x",
+            "register-bottom-right-y",
             "accent-rule",
             "brand-mark",
         ]
@@ -208,6 +224,16 @@ def test_explicit_composition_adds_two_editorial_4x5_layouts_after_canonical_ten
         assert slots["kicker"].required is False
         assert slots["kicker"].fit == "shrink-within-role-range"
         assert slots["signature"].text_align == "center"
+
+    for layout, logo_token in zip(editorial[2:], ("logo.onLight", "logo.onDark"), strict=True):
+        layers = {layer.id: layer for layer in layout.locked_layers}
+        slots = {slot.id: slot for slot in layout.slots}
+        assert layers["brand-mark"].asset_token == logo_token
+        assert layers["brand-mark"].area == (474, 470, 132, 132)
+        assert layers["accent-diagonals"].area == (0, 930, 1080, 420)
+        assert set(slots) == {"headline", "tagline", "signature"}
+        assert slots["headline"].text_align == "center"
+        assert slots["tagline"].emphasis_color_token == "color.secondary"
 
 
 def test_partial_composition_never_invents_editorial_layouts(brand_package):

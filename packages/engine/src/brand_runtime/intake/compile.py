@@ -412,27 +412,56 @@ def _compile_composition_rules(
     if declarations is None:
         return None
     package_dir = Path(draft.package_dir)
-    modes = CompositionModes()
-    if declarations.light_mode_evidence:
-        modes.light = CompositionMode(
-            background_color_token="color.background",
-            foreground_color_token="color.text",
-            logo_asset_token="logo.onLight" if "logo.onLight" in assets else None,
-            evidence=_portable_evidence_list(declarations.light_mode_evidence, package_dir),
-        )
-    if declarations.dark_mode_evidence:
-        modes.dark = CompositionMode(
-            background_color_token="color.primary",
-            foreground_color_token="color.background",
-            logo_asset_token="logo.onDark" if "logo.onDark" in assets else None,
-            evidence=_portable_evidence_list(declarations.dark_mode_evidence, package_dir),
-        )
-
     role_tokens = {
         "primary": "color.primary",
         "background": "color.background",
         "accent": "color.secondary",
     }
+    for declaration in declarations.color_ratios:
+        if declaration.color_value is None:
+            continue
+        matching = [
+            token_id
+            for token_id, token in colors.items()
+            if token.value.casefold() == declaration.color_value.casefold()
+        ]
+        if len(matching) == 1:
+            role_tokens[declaration.role] = matching[0]
+
+    # `color.text` pode repetir a mesma tinta de `color.primary` em pacotes
+    # legados. Nesse caso, preservamos o token primário para a proporção, mas
+    # usamos o token textual como primeiro plano do modo claro. Quando o manual
+    # declara outra tinta para o texto, a correspondência cromática explícita
+    # continua soberana.
+    light_foreground_token = role_tokens["primary"]
+    primary_declaration = next(
+        (item for item in declarations.color_ratios if item.role == "primary"),
+        None,
+    )
+    if (
+        primary_declaration is not None
+        and primary_declaration.color_value is not None
+        and "color.text" in colors
+        and colors["color.text"].value.casefold() == primary_declaration.color_value.casefold()
+    ):
+        light_foreground_token = "color.text"
+
+    modes = CompositionModes()
+    if declarations.light_mode_evidence:
+        modes.light = CompositionMode(
+            background_color_token=role_tokens["background"],
+            foreground_color_token=light_foreground_token,
+            logo_asset_token="logo.onLight" if "logo.onLight" in assets else None,
+            evidence=_portable_evidence_list(declarations.light_mode_evidence, package_dir),
+        )
+    if declarations.dark_mode_evidence:
+        modes.dark = CompositionMode(
+            background_color_token=role_tokens["primary"],
+            foreground_color_token=role_tokens["background"],
+            logo_asset_token="logo.onDark" if "logo.onDark" in assets else None,
+            evidence=_portable_evidence_list(declarations.dark_mode_evidence, package_dir),
+        )
+
     ratios = [
         ColorRatioRule(
             color_token=role_tokens[item.role],
@@ -443,11 +472,24 @@ def _compile_composition_rules(
         if role_tokens[item.role] in colors
     ]
     accent = None
-    if declarations.accent is not None and "color.secondary" in colors:
+    accent_ratio = next(
+        (item for item in declarations.color_ratios if item.role == "accent"),
+        None,
+    )
+    accent_token = role_tokens["accent"]
+    if accent_token in colors and (declarations.accent is not None or accent_ratio is not None):
+        max_ratio = (
+            declarations.accent.max_ratio if declarations.accent is not None else accent_ratio.ratio
+        )
+        accent_evidence = (
+            declarations.accent.evidence
+            if declarations.accent is not None
+            else accent_ratio.evidence
+        )
         accent = AccentRule(
-            color_token="color.secondary",
-            max_ratio=declarations.accent.max_ratio,
-            evidence=_portable_evidence_list(declarations.accent.evidence, package_dir),
+            color_token=accent_token,
+            max_ratio=max_ratio,
+            evidence=_portable_evidence_list(accent_evidence, package_dir),
         )
     motifs = [
         MotifRule(

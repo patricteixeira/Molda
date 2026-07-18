@@ -36,6 +36,286 @@
       "title": "ImageValue",
       "type": "object"
     },
+    "LayerOverride": {
+      "additionalProperties": false,
+      "description": "Ajustes autorais de uma instância sem alterar o layout publicado.",
+      "properties": {
+        "area": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Area"
+        },
+        "opacity": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Opacity"
+        },
+        "hidden": {
+          "default": false,
+          "title": "Hidden",
+          "type": "boolean"
+        },
+        "zIndex": {
+          "anyOf": [
+            {
+              "maximum": 20,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Zindex"
+        },
+        "colorToken": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": ".*\\S.*",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Colortoken"
+        },
+        "fontToken": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": ".*\\S.*",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fonttoken"
+        },
+        "fontSizePx": {
+          "anyOf": [
+            {
+              "maximum": 1024.0,
+              "minimum": 6.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fontsizepx"
+        },
+        "fontWeight": {
+          "anyOf": [
+            {
+              "maximum": 900,
+              "minimum": 100,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fontweight"
+        },
+        "fontStyle": {
+          "anyOf": [
+            {
+              "enum": [
+                "normal",
+                "italic"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fontstyle"
+        },
+        "lineHeight": {
+          "anyOf": [
+            {
+              "maximum": 3.0,
+              "minimum": 0.5,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lineheight"
+        },
+        "letterSpacingEm": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": -0.25,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Letterspacingem"
+        },
+        "textAlign": {
+          "anyOf": [
+            {
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Textalign"
+        },
+        "textTransform": {
+          "anyOf": [
+            {
+              "enum": [
+                "none",
+                "uppercase"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texttransform"
+        },
+        "fillMode": {
+          "anyOf": [
+            {
+              "enum": [
+                "fill",
+                "stroke"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fillmode"
+        },
+        "strokeColorToken": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": ".*\\S.*",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Strokecolortoken"
+        },
+        "strokeWidthPx": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "maximum": 20.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Strokewidthpx"
+        },
+        "fit": {
+          "anyOf": [
+            {
+              "enum": [
+                "contain",
+                "cover"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fit"
+        },
+        "spacingPx": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "maximum": 256.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Spacingpx"
+        }
+      },
+      "title": "LayerOverride",
+      "type": "object"
+    },
     "TextValue": {
       "additionalProperties": false,
       "description": "Conteúdo textual fornecido para um slot.",
@@ -99,6 +379,13 @@
         ]
       },
       "title": "Values",
+      "type": "object"
+    },
+    "overrides": {
+      "additionalProperties": {
+        "$ref": "#/$defs/LayerOverride"
+      },
+      "title": "Overrides",
       "type": "object"
     }
   },

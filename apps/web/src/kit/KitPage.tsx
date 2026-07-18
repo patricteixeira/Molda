@@ -126,7 +126,7 @@ export function KitPage(): JSX.Element {
                 <Preview
                   brandIr={kit.brandIr}
                   layoutSpec={layout}
-                  contentSpec={placeholderContent(layout, revisionId)}
+                  contentSpec={placeholderContent(layout, revisionId, kit.brandIr.brand.name)}
                   assetsBaseUrl={assetsBaseUrl}
                   maxWidthPx={360}
                 />

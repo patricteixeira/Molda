@@ -64,6 +64,7 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   await page.locator('[data-testid="kit-card"][data-layout-id="quote-post-1x1"]').click()
   await page.getByTestId("slot-input-quote").fill("A".repeat(200))
   await expect(page.getByTestId("char-counter-quote")).toHaveAttribute("data-over", "true")
+  await page.getByRole("button", { name: "Foto", exact: true }).click()
   const lowUpload = page.waitForResponse(
     (response) => response.url().endsWith("/v1/assets") && response.request().method() === "POST",
   )
@@ -78,7 +79,9 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
     page.locator('[data-testid="guard-item"][data-check-id="image-resolution"]'),
   ).toBeVisible()
 
+  await page.getByRole("button", { name: "Citação", exact: true }).click()
   await page.getByTestId("slot-input-quote").fill("Menos é mais.")
+  await page.getByRole("button", { name: "Foto", exact: true }).click()
   const okUpload = page.waitForResponse(
     (response) => response.url().endsWith("/v1/assets") && response.request().method() === "POST",
   )
@@ -116,6 +119,7 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   await page.goto(kitUrl)
   await page.locator('[data-testid="kit-card"][data-layout-id="one-pager-doc-a4"]').click()
   await page.getByTestId("slot-input-title").fill("Relatório do mês")
+  await page.getByRole("button", { name: "Texto", exact: true }).click()
   await page
     .getByTestId("slot-input-body")
     .fill("Um documento simples produzido dentro dos trilhos da marca.")

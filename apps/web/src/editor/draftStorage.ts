@@ -1,10 +1,16 @@
-import type { LayoutSpec, SlotValue } from "../api/types"
+import type { LayerOverride, LayoutSpec, SlotValue } from "../api/types"
 
 const STORAGE_PREFIX = "brand-runtime:editor-draft:v1"
 
-interface StoredEditorDraft {
-  version: 1
+export interface EditorDraftState {
   values: Record<string, SlotValue>
+  overrides: Record<string, LayerOverride>
+}
+
+interface StoredEditorDraft {
+  version: 2
+  values: Record<string, SlotValue>
+  overrides: Record<string, LayerOverride>
 }
 
 function storageKey(revisionId: string, layoutId: string): string {
@@ -42,13 +48,19 @@ function validValueForSlot(value: unknown, kind: "text" | "image" | "logo"): val
   return false
 }
 
-export function loadEditorDraft(revisionId: string, layout: LayoutSpec): Record<string, SlotValue> {
+export function loadEditorDraft(revisionId: string, layout: LayoutSpec): EditorDraftState {
   try {
     const serialized = window.localStorage.getItem(storageKey(revisionId, layout.id))
-    if (!serialized) return {}
+    if (!serialized) return { values: {}, overrides: {} }
 
     const parsed: unknown = JSON.parse(serialized)
-    if (!isRecord(parsed) || parsed.version !== 1 || !isRecord(parsed.values)) return {}
+    if (
+      !isRecord(parsed) ||
+      (parsed.version !== 1 && parsed.version !== 2) ||
+      !isRecord(parsed.values)
+    ) {
+      return { values: {}, overrides: {} }
+    }
 
     const slots = new Map(layout.slots.map((slot) => [slot.id, slot.kind]))
     const restored: Record<string, SlotValue> = {}
@@ -56,9 +68,21 @@ export function loadEditorDraft(revisionId: string, layout: LayoutSpec): Record<
       const kind = slots.get(slotId)
       if (kind !== undefined && validValueForSlot(value, kind)) restored[slotId] = value
     }
-    return restored
+    const elementIds = new Set([
+      ...layout.slots.map((slot) => slot.id),
+      ...(layout.lockedLayers ?? []).map((layer) => layer.id),
+    ])
+    const overrides: Record<string, LayerOverride> = {}
+    if (parsed.version === 2 && isRecord(parsed.overrides)) {
+      for (const [elementId, value] of Object.entries(parsed.overrides)) {
+        if (elementIds.has(elementId) && isRecord(value)) {
+          overrides[elementId] = value as LayerOverride
+        }
+      }
+    }
+    return { values: restored, overrides }
   } catch {
-    return {}
+    return { values: {}, overrides: {} }
   }
 }
 
@@ -66,15 +90,16 @@ export function saveEditorDraft(
   revisionId: string,
   layoutId: string,
   values: Record<string, SlotValue>,
+  overrides: Record<string, LayerOverride>,
 ): boolean {
   try {
     const key = storageKey(revisionId, layoutId)
-    if (Object.keys(values).length === 0) {
+    if (Object.keys(values).length === 0 && Object.keys(overrides).length === 0) {
       window.localStorage.removeItem(key)
       return true
     }
 
-    const payload: StoredEditorDraft = { version: 1, values }
+    const payload: StoredEditorDraft = { version: 2, values, overrides }
     window.localStorage.setItem(key, JSON.stringify(payload))
     return true
   } catch {

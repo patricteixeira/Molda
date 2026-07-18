@@ -236,6 +236,108 @@ def _one_pager(ir: BrandIR) -> LayoutSpec:
 _EDITORIAL_LOGO_SIZE_PX = 58
 
 
+def _editorial_frame_layers(foreground: str) -> list[ShapeLayer]:
+    """Desenha moldura e marcas de registro como vocabulário, não como imagem opaca."""
+    return [
+        ShapeLayer(
+            id="frame-top",
+            shape="rectangle",
+            area=(52, 52, 976, 2),
+            color_token=foreground,
+            opacity=0.1,
+            z_index=1,
+        ),
+        ShapeLayer(
+            id="frame-left",
+            shape="rectangle",
+            area=(52, 52, 2, 1246),
+            color_token=foreground,
+            opacity=0.1,
+            z_index=1,
+        ),
+        ShapeLayer(
+            id="frame-right",
+            shape="rectangle",
+            area=(1026, 52, 2, 1246),
+            color_token=foreground,
+            opacity=0.1,
+            z_index=1,
+        ),
+        ShapeLayer(
+            id="frame-bottom",
+            shape="rectangle",
+            area=(52, 1296, 976, 2),
+            color_token=foreground,
+            opacity=0.1,
+            z_index=1,
+        ),
+        ShapeLayer(
+            id="register-top-left-x",
+            shape="rectangle",
+            area=(32, 34, 20, 2),
+            color_token=foreground,
+            opacity=0.45,
+            z_index=2,
+        ),
+        ShapeLayer(
+            id="register-top-left-y",
+            shape="rectangle",
+            area=(34, 34, 2, 20),
+            color_token=foreground,
+            opacity=0.45,
+            z_index=2,
+        ),
+        ShapeLayer(
+            id="register-top-right-x",
+            shape="rectangle",
+            area=(1028, 34, 20, 2),
+            color_token=foreground,
+            opacity=0.45,
+            z_index=2,
+        ),
+        ShapeLayer(
+            id="register-top-right-y",
+            shape="rectangle",
+            area=(1046, 34, 2, 20),
+            color_token=foreground,
+            opacity=0.45,
+            z_index=2,
+        ),
+        ShapeLayer(
+            id="register-bottom-left-x",
+            shape="rectangle",
+            area=(32, 1314, 20, 2),
+            color_token=foreground,
+            opacity=0.45,
+            z_index=2,
+        ),
+        ShapeLayer(
+            id="register-bottom-left-y",
+            shape="rectangle",
+            area=(34, 1296, 2, 20),
+            color_token=foreground,
+            opacity=0.45,
+            z_index=2,
+        ),
+        ShapeLayer(
+            id="register-bottom-right-x",
+            shape="rectangle",
+            area=(1028, 1314, 20, 2),
+            color_token=foreground,
+            opacity=0.45,
+            z_index=2,
+        ),
+        ShapeLayer(
+            id="register-bottom-right-y",
+            shape="rectangle",
+            area=(1046, 1296, 2, 20),
+            color_token=foreground,
+            opacity=0.45,
+            z_index=2,
+        ),
+    ]
+
+
 def _editorial_ready(ir: BrandIR) -> bool:
     """Exige a gramática completa; regras parciais nunca são completadas por suposição."""
     rules = ir.composition_rules
@@ -298,38 +400,7 @@ def _editorial_layout(ir: BrandIR, mode_name: Literal["light", "dark"]) -> Layou
                 spacing_px=22,
                 z_index=0,
             ),
-            ShapeLayer(
-                id="frame-top",
-                shape="rectangle",
-                area=(52, 52, 976, 2),
-                color_token=foreground,
-                opacity=0.1,
-                z_index=1,
-            ),
-            ShapeLayer(
-                id="frame-left",
-                shape="rectangle",
-                area=(52, 52, 2, 1246),
-                color_token=foreground,
-                opacity=0.1,
-                z_index=1,
-            ),
-            ShapeLayer(
-                id="frame-right",
-                shape="rectangle",
-                area=(1026, 52, 2, 1246),
-                color_token=foreground,
-                opacity=0.1,
-                z_index=1,
-            ),
-            ShapeLayer(
-                id="frame-bottom",
-                shape="rectangle",
-                area=(52, 1296, 976, 2),
-                color_token=foreground,
-                opacity=0.1,
-                z_index=1,
-            ),
+            *_editorial_frame_layers(foreground),
             ShapeLayer(
                 id="accent-rule",
                 shape="rectangle",
@@ -403,6 +474,99 @@ def _editorial_layout(ir: BrandIR, mode_name: Literal["light", "dark"]) -> Layou
                 text_align="center",
                 text_transform="uppercase",
                 letter_spacing_em=0.12,
+            ),
+        ],
+    )
+
+
+def _editorial_closure_layout(ir: BrandIR, mode_name: Literal["light", "dark"]) -> LayoutSpec:
+    """Fecha uma sequência editorial com marca, postura e ritmo do mesmo sistema."""
+    rules = ir.composition_rules
+    if rules is None:
+        raise KitGenerationError("As regras de composição editoriais não foram compiladas.")
+    mode = rules.modes.light if mode_name == "light" else rules.modes.dark
+    if mode is None or mode.logo_asset_token is None or rules.accent is None:
+        raise KitGenerationError(f"O modo editorial {mode_name} está incompleto.")
+
+    canvas = _canvas("post-4x5")
+    foreground = mode.foreground_color_token
+    accent = rules.accent.color_token
+    is_light = mode_name == "light"
+    return LayoutSpec(
+        id=f"editorial-closure-{mode_name}-post-4x5",
+        profile="post-4x5",
+        name_pt=f"Fechamento editorial {'claro' if is_light else 'escuro'}",
+        canvas=canvas,
+        background=Background(kind="color", color_token=mode.background_color_token),
+        composition_mode=mode_name,
+        locked_layers=[
+            MotifLayer(
+                id="diagonal-field",
+                motif="diagonal-lines",
+                area=(0, 0, 1080, 1350),
+                color_token=foreground,
+                opacity=0.06,
+                stroke_width_px=2,
+                spacing_px=22,
+                z_index=0,
+            ),
+            MotifLayer(
+                id="accent-diagonals",
+                motif="diagonal-lines",
+                area=(0, 930, 1080, 420),
+                color_token=accent,
+                opacity=0.16,
+                stroke_width_px=2,
+                spacing_px=74,
+                z_index=1,
+            ),
+            *_editorial_frame_layers(foreground),
+            AssetLayer(
+                id="brand-mark",
+                asset_token=mode.logo_asset_token,
+                area=(474, 470, 132, 132),
+                fit="contain",
+                z_index=5,
+            ),
+        ],
+        slots=[
+            Slot(
+                id="headline",
+                kind="text",
+                role="display",
+                color_token=foreground,
+                max_chars=32,
+                area=(140, 675, 800, 92),
+                fit="fixed",
+                z_index=10,
+                text_align="center",
+                text_transform="uppercase",
+                letter_spacing_em=-0.025,
+            ),
+            Slot(
+                id="tagline",
+                kind="text",
+                role="body",
+                color_token=foreground,
+                emphasis_color_token=accent,
+                max_chars=120,
+                area=(170, 800, 740, 130),
+                z_index=10,
+                text_align="center",
+                required=False,
+            ),
+            Slot(
+                id="signature",
+                kind="text",
+                role="signature",
+                color_token=foreground,
+                max_chars=48,
+                area=(270, 1210, 540, 36),
+                fit="fixed",
+                required=False,
+                z_index=10,
+                text_align="center",
+                letter_spacing_em=0.08,
             ),
         ],
     )
@@ -584,6 +748,8 @@ def generate_kit(ir: BrandIR) -> list[LayoutSpec]:
             (
                 _editorial_layout(ir, "light"),
                 _editorial_layout(ir, "dark"),
+                _editorial_closure_layout(ir, "light"),
+                _editorial_closure_layout(ir, "dark"),
             )
         )
     if _signature_ready(ir):

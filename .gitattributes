@@ -1,0 +1,3 @@
+# Brand Packages are byte-addressed artifacts. Git must not rewrite their
+# contents on Windows, otherwise manifest sizes and SHA-256 hashes diverge.
+examples/brand-package-reference/** text eol=lf

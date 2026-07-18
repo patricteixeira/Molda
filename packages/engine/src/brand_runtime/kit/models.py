@@ -18,6 +18,10 @@ Opacity = Annotated[float, Field(ge=0.0, le=1.0, allow_inf_nan=False)]
 ZIndex = Annotated[int, Field(ge=0, le=20)]
 LetterSpacing = Annotated[float, Field(ge=-0.1, le=0.5, allow_inf_nan=False)]
 StrokeWidth = Annotated[float, Field(gt=0.0, le=20.0, allow_inf_nan=False)]
+EditorLetterSpacing = Annotated[float, Field(ge=-0.25, le=1.0, allow_inf_nan=False)]
+EditorFontSize = Annotated[float, Field(ge=6.0, le=1024.0, allow_inf_nan=False)]
+EditorFontWeight = Annotated[int, Field(ge=100, le=900)]
+EditorLineHeight = Annotated[float, Field(ge=0.5, le=3.0, allow_inf_nan=False)]
 
 PROFILES: dict[Profile, tuple[int, int, int]] = {
     "post-1x1": (1080, 1080, 48),
@@ -250,9 +254,46 @@ class ImageValue(CamelModel):
     sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")] | None = None
 
 
+class LayerOverride(CamelModel):
+    """Ajustes autorais de uma instância sem alterar o layout publicado."""
+
+    area: Area | None = None
+    opacity: Opacity | None = None
+    hidden: bool = False
+    z_index: ZIndex | None = None
+    color_token: NonBlankString | None = None
+    font_token: NonBlankString | None = None
+    font_size_px: EditorFontSize | None = None
+    font_weight: EditorFontWeight | None = None
+    font_style: Literal["normal", "italic"] | None = None
+    line_height: EditorLineHeight | None = None
+    letter_spacing_em: EditorLetterSpacing | None = None
+    text_align: Literal["left", "center", "right"] | None = None
+    text_transform: Literal["none", "uppercase"] | None = None
+    fill_mode: Literal["fill", "stroke"] | None = None
+    stroke_color_token: NonBlankString | None = None
+    stroke_width_px: StrokeWidth | None = None
+    fit: Literal["contain", "cover"] | None = None
+    spacing_px: Annotated[float, Field(gt=0.0, le=256.0, allow_inf_nan=False)] | None = None
+
+    @model_validator(mode="after")
+    def _stroke_is_complete(self) -> LayerOverride:
+        """Mantém contorno determinístico mesmo durante edições persistidas."""
+        if self.fill_mode == "stroke" and (
+            self.stroke_color_token is None or self.stroke_width_px is None
+        ):
+            raise ValueError("Texto contornado exige cor e largura de traço no override.")
+        if self.fill_mode == "fill" and (
+            self.stroke_color_token is not None or self.stroke_width_px is not None
+        ):
+            raise ValueError("Cor e largura de traço exigem fillMode='stroke' no override.")
+        return self
+
+
 class ContentSpec(CamelModel):
     """Conteúdo de uma peça ligado a um layout e a uma revisão de marca."""
 
     layout_id: NonBlankString
     brand_revision_id: NonBlankString
     values: dict[str, TextValue | ImageValue]
+    overrides: dict[str, LayerOverride] = Field(default_factory=dict)

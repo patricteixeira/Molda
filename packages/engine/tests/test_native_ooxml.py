@@ -30,6 +30,7 @@ from brand_runtime.kit.models import (
     Background,
     Canvas,
     ContentSpec,
+    LayerOverride,
     LayoutSpec,
     Slot,
     TextValue,
@@ -280,6 +281,62 @@ def test_pptx_template_fill_preserves_native_structure_and_source(
     assert shapes["heading"].font_family == "Georgia"
     assert shapes["body"].kind == "text"
     assert shapes["logo"].kind == "picture"
+
+
+def test_pptx_applies_editor_geometry_typography_and_opacity_overrides(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    layout, content = slide_contracts
+    edited_content = content.model_copy(deep=True)
+    edited_content.overrides = {
+        "headline": LayerOverride(
+            area=(120, 220, 700, 280),
+            opacity=0.55,
+            font_token="font.body",
+            font_size_px=80,
+            font_weight=500,
+            font_style="italic",
+            color_token="color.secondary",
+            line_height=1.2,
+            letter_spacing_em=0.04,
+            text_align="right",
+            text_transform="uppercase",
+        ),
+        "logo": LayerOverride(area=(760, 780, 240, 180), opacity=0.4),
+    }
+    output = _render_pptx(
+        tmp_path,
+        pptx_template,
+        native_brand,
+        (layout, edited_content),
+        "overrides.pptx",
+    )
+
+    presentation = Presentation(output)
+    slide = presentation.slides[0]
+    headline = next(shape for shape in slide.shapes if shape.name == "br:heading:headline")
+    logo = next(shape for shape in slide.shapes if shape.name == "br:logo:logo")
+    run = headline.text_frame.paragraphs[0].runs[0]
+
+    assert headline.text == "A MARCA CONTINUA EDITÁVEL"
+    assert headline.left == round(presentation.slide_width * 120 / 1080)
+    assert headline.top == round(presentation.slide_height * 220 / 1080)
+    assert headline.width == round(presentation.slide_width * 700 / 1080)
+    assert run.font.name == "Arial"
+    assert run.font.size.pt == pytest.approx(60)
+    assert run.font.bold is False
+    assert run.font.italic is True
+    assert str(run.font.color.rgb) == "D4A72C"
+    assert headline.text_frame.paragraphs[0].alignment == 3
+    assert headline._element.xpath(".//a:alpha")[0].get("val") == "55000"
+
+    assert logo.left == round(presentation.slide_width * 760 / 1080)
+    assert logo.width == round(presentation.slide_width * 240 / 1080)
+    assert logo._element.xpath(".//a:alphaModFix")[0].get("amt") == "40000"
+    assert not [item for item in validate_ooxml(output) if item.blocking]
 
 
 def test_pptx_round_trip_recovers_role_and_changed_formatting(

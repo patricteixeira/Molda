@@ -48,6 +48,11 @@ _RATIO_PATTERNS: dict[DeclaredColorRole, re.Pattern[str]] = {
     "background": re.compile(r"\bpapel\b[^\n]{0,80}\n\s*(?P<value>\d{1,3})\s*%"),
     "accent": re.compile(r"\bambar\b[^\n]{0,80}\n\s*(?P<value>\d{1,3})\s*%"),
 }
+_COLOR_VALUE_PATTERNS: dict[DeclaredColorRole, re.Pattern[str]] = {
+    "primary": re.compile(r"\bgrafite\b.{0,240}?\bhex\s*(?P<value>#[0-9a-f]{6})", re.DOTALL),
+    "background": re.compile(r"\bpapel\b.{0,240}?\bhex\s*(?P<value>#[0-9a-f]{6})", re.DOTALL),
+    "accent": re.compile(r"\bambar\b.{0,240}?\bhex\s*(?P<value>#[0-9a-f]{6})", re.DOTALL),
+}
 
 
 class DeclaredColorRatio(CamelModel):
@@ -55,6 +60,7 @@ class DeclaredColorRatio(CamelModel):
 
     role: DeclaredColorRole
     ratio: float = Field(gt=0.0, le=1.0, allow_inf_nan=False)
+    color_value: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
     evidence: list[Evidence]
 
 
@@ -230,6 +236,7 @@ def extract_pdf_composition(pdf_path: Path) -> CompositionDeclarations:
                 )
 
         page_ratios: dict[DeclaredColorRole, float] = {}
+        page_colors: dict[DeclaredColorRole, str] = {}
         for role, pattern in _RATIO_PATTERNS.items():
             match = pattern.search(text)
             if match is None:
@@ -237,6 +244,9 @@ def extract_pdf_composition(pdf_path: Path) -> CompositionDeclarations:
             percentage = int(match["value"])
             if 0 < percentage <= 100:
                 page_ratios[role] = percentage / 100
+            color_match = _COLOR_VALUE_PATTERNS[role].search(text)
+            if color_match is not None:
+                page_colors[role] = color_match["value"].upper()
         # Só aceitamos a tríade completa e coerente. Percentuais isolados em
         # páginas de aplicação não são uma proporção global da marca.
         if set(page_ratios) == set(_RATIO_PATTERNS) and abs(sum(page_ratios.values()) - 1) < 1e-9:
@@ -246,6 +256,7 @@ def extract_pdf_composition(pdf_path: Path) -> CompositionDeclarations:
                     DeclaredColorRatio(
                         role=role,
                         ratio=ratio,
+                        color_value=page_colors.get(role),
                         evidence=[
                             _evidence(
                                 pdf_path,
@@ -310,7 +321,13 @@ def merge_composition_declarations(
             current = ratios.get(ratio.role)
             if current is None:
                 ratios[ratio.role] = ratio.model_copy(deep=True)
-            elif current.ratio == ratio.ratio:
+            elif current.ratio == ratio.ratio and (
+                current.color_value is None
+                or ratio.color_value is None
+                or current.color_value == ratio.color_value
+            ):
+                if current.color_value is None:
+                    current.color_value = ratio.color_value
                 current.evidence.extend(ratio.evidence)
         for motif in declaration.motifs:
             current_motif = motifs.get(motif.kind)

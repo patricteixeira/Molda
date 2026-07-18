@@ -13,11 +13,20 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.dml import MSO_COLOR_TYPE
 from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
+from pptx.enum.text import PP_ALIGN
 from pptx.slide import SlideLayout
 from pptx.util import Emu, Pt
 
 from brand_runtime.ir.models import BrandIR, SemanticRole
-from brand_runtime.kit.models import ContentSpec, ImageValue, LayoutSpec, Slot, TextValue
+from brand_runtime.kit.models import (
+    Area,
+    ContentSpec,
+    ImageValue,
+    LayerOverride,
+    LayoutSpec,
+    Slot,
+    TextValue,
+)
 from brand_runtime.native.ooxml import OoxmlError, validate_ooxml
 
 _TITLE_TYPES = {PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE}
@@ -87,21 +96,48 @@ def _send_to_back(shape) -> None:
     shape_tree.insert(2, shape._element)
 
 
-def _set_text(shape, value: TextValue, role: SemanticRole, ir: BrandIR) -> None:
-    shape.text = value.text
+def _set_text(
+    shape,
+    value: TextValue,
+    role: SemanticRole,
+    ir: BrandIR,
+    override: LayerOverride | None = None,
+) -> None:
+    text = value.text
+    if override is not None and override.text_transform == "uppercase":
+        text = text.upper()
+    shape.text = text
     paragraph = shape.text_frame.paragraphs[0]
     if not paragraph.runs:
         run = paragraph.add_run()
-        run.text = value.text
+        run.text = text
     else:
         run = paragraph.runs[0]
-    font = ir.fonts[role.font]
-    color = ir.colors[role.color]
+    font_token = override.font_token if override and override.font_token else role.font
+    color_token = override.color_token if override and override.color_token else role.color
+    font = ir.fonts[font_token]
+    color = ir.colors[color_token]
     run.font.name = font.family
-    run.font.size = Pt(role.max_size_px * 0.75)
-    run.font.bold = font.weight >= 600
-    run.font.italic = font.style == "italic"
+    font_size_px = override.font_size_px if override and override.font_size_px else role.max_size_px
+    run.font.size = Pt(font_size_px * 0.75)
+    font_weight = override.font_weight if override and override.font_weight else font.weight
+    font_style = override.font_style if override and override.font_style else font.style
+    run.font.bold = font_weight >= 600
+    run.font.italic = font_style == "italic"
     run.font.color.rgb = RGBColor.from_string(color.value.removeprefix("#"))
+    if override is not None:
+        if override.text_align is not None:
+            paragraph.alignment = {
+                "left": PP_ALIGN.LEFT,
+                "center": PP_ALIGN.CENTER,
+                "right": PP_ALIGN.RIGHT,
+            }[override.text_align]
+        if override.line_height is not None:
+            paragraph.line_spacing = override.line_height
+        if override.letter_spacing_em is not None:
+            run_properties = run._r.get_or_add_rPr()
+            spacing = round(override.letter_spacing_em * font_size_px * 0.75 * 100)
+            run_properties.set("spc", str(spacing))
 
 
 def _placeholder(slide, accepted: set[PP_PLACEHOLDER]):
@@ -126,8 +162,8 @@ def _resolve_asset(path: str, asset_root: Path | None) -> Path:
     return candidate
 
 
-def _normalized_box(presentation: Presentation, layout: LayoutSpec, slot: Slot) -> tuple[Emu, ...]:
-    x, y, width, height = slot.area
+def _normalized_box(presentation: Presentation, layout: LayoutSpec, area: Area) -> tuple[Emu, ...]:
+    x, y, width, height = area
     canvas_width = layout.canvas.width_px
     canvas_height = layout.canvas.height_px
     return (
@@ -138,12 +174,41 @@ def _normalized_box(presentation: Presentation, layout: LayoutSpec, slot: Slot) 
     )
 
 
-def _position_shape(shape, presentation: Presentation, layout: LayoutSpec, slot: Slot) -> None:
-    left, top, width, height = _normalized_box(presentation, layout, slot)
+def _position_shape(
+    shape,
+    presentation: Presentation,
+    layout: LayoutSpec,
+    slot: Slot,
+    override: LayerOverride | None = None,
+) -> None:
+    left, top, width, height = _normalized_box(
+        presentation, layout, override.area if override and override.area else slot.area
+    )
     shape.left = left
     shape.top = top
     shape.width = width
     shape.height = height
+
+
+def _apply_opacity(shape, opacity: float) -> None:
+    """Aplica transparência OOXML ao texto ou à imagem sem rasterizar o shape."""
+    if opacity >= 1:
+        return
+    value = str(round(opacity * 100000))
+    if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+        for blip in shape._element.xpath(".//a:blip"):
+            for previous in blip.xpath("./a:alphaModFix"):
+                blip.remove(previous)
+            etree.SubElement(blip, f"{{{_A_NS}}}alphaModFix", amt=value)
+        return
+    for solid_fill in shape._element.xpath(".//a:solidFill"):
+        for previous in solid_fill.xpath("./a:alpha"):
+            solid_fill.remove(previous)
+        etree.SubElement(solid_fill, f"{{{_A_NS}}}alpha", val=value)
+
+
+def _slot_override(content: ContentSpec, slot: Slot) -> LayerOverride | None:
+    return content.overrides.get(slot.id)
 
 
 def _text_slots(layout: LayoutSpec, content: ContentSpec) -> list[tuple[Slot, TextValue]]:
@@ -205,8 +270,18 @@ def render_pptx(
     title_shape = _placeholder(slide, _TITLE_TYPES)
     if title_shape is None:
         raise PptxRenderError("O layout selecionado perdeu o placeholder de título.")
-    _position_shape(title_shape, presentation, layout, title_slot)
-    _set_text(title_shape, title_value, ir.roles[title_slot.role], ir)
+    title_override = _slot_override(content, title_slot)
+    _position_shape(title_shape, presentation, layout, title_slot, title_override)
+    if title_override is None or not title_override.hidden:
+        _set_text(title_shape, title_value, ir.roles[title_slot.role], ir, title_override)
+    else:
+        title_shape.text = ""
+    _apply_opacity(
+        title_shape,
+        title_override.opacity
+        if title_override and title_override.opacity is not None
+        else title_slot.opacity,
+    )
     _tag_shape(
         title_shape,
         role=title_slot.role,
@@ -219,8 +294,18 @@ def render_pptx(
         raise PptxRenderError("O layout selecionado perdeu o placeholder de corpo.")
     if len(text_values) > 1:
         body_slot, body_value = text_values[1]
-        _position_shape(body_shape, presentation, layout, body_slot)
-        _set_text(body_shape, body_value, ir.roles[body_slot.role], ir)
+        body_override = _slot_override(content, body_slot)
+        _position_shape(body_shape, presentation, layout, body_slot, body_override)
+        if body_override is None or not body_override.hidden:
+            _set_text(body_shape, body_value, ir.roles[body_slot.role], ir, body_override)
+        else:
+            body_shape.text = ""
+        _apply_opacity(
+            body_shape,
+            body_override.opacity
+            if body_override and body_override.opacity is not None
+            else body_slot.opacity,
+        )
         _tag_shape(
             body_shape,
             role=body_slot.role,
@@ -232,9 +317,18 @@ def render_pptx(
         _tag_shape(body_shape, role="body", revision_id=ir.revision.id, slot_id="body")
 
     for extra_slot, extra_value in text_values[2:]:
-        left, top, width, height = _normalized_box(presentation, layout, extra_slot)
+        extra_override = _slot_override(content, extra_slot)
+        area = extra_override.area if extra_override and extra_override.area else extra_slot.area
+        left, top, width, height = _normalized_box(presentation, layout, area)
         text_box = slide.shapes.add_textbox(left, top, width, height)
-        _set_text(text_box, extra_value, ir.roles[extra_slot.role], ir)
+        if extra_override is None or not extra_override.hidden:
+            _set_text(text_box, extra_value, ir.roles[extra_slot.role], ir, extra_override)
+        _apply_opacity(
+            text_box,
+            extra_override.opacity
+            if extra_override and extra_override.opacity is not None
+            else extra_slot.opacity,
+        )
         _tag_shape(
             text_box,
             role=extra_slot.role,
@@ -246,9 +340,19 @@ def render_pptx(
         value = content.values.get(image_slot.id)
         if not isinstance(value, ImageValue):
             continue
+        image_override = _slot_override(content, image_slot)
+        if image_override is not None and image_override.hidden:
+            continue
         asset = _resolve_asset(value.path, asset_root)
-        left, top, width, height = _normalized_box(presentation, layout, image_slot)
+        area = image_override.area if image_override and image_override.area else image_slot.area
+        left, top, width, height = _normalized_box(presentation, layout, area)
         picture = slide.shapes.add_picture(str(asset), left, top, width=width, height=height)
+        _apply_opacity(
+            picture,
+            image_override.opacity
+            if image_override and image_override.opacity is not None
+            else image_slot.opacity,
+        )
         _tag_shape(
             picture,
             role="image",
@@ -259,14 +363,26 @@ def render_pptx(
 
     logo_slot = next((slot for slot in layout.slots if slot.kind == "logo"), None)
     if logo_slot is not None:
+        logo_override = _slot_override(content, logo_slot)
+        if logo_override is not None and logo_override.hidden:
+            logo_slot = None
+    if logo_slot is not None:
+        logo_override = _slot_override(content, logo_slot)
         asset_token = logo_slot.asset_token or next(iter(ir.assets), None)
         if asset_token is None or asset_token not in ir.assets:
             raise PptxRenderError(
                 "O layout exige logo, mas o Brand IR não possui asset compatível."
             )
         asset = _resolve_asset(ir.assets[asset_token].path, asset_root)
-        left, top, width, height = _normalized_box(presentation, layout, logo_slot)
+        area = logo_override.area if logo_override and logo_override.area else logo_slot.area
+        left, top, width, height = _normalized_box(presentation, layout, area)
         picture = slide.shapes.add_picture(str(asset), left, top, width=width, height=height)
+        _apply_opacity(
+            picture,
+            logo_override.opacity
+            if logo_override and logo_override.opacity is not None
+            else logo_slot.opacity,
+        )
         _tag_shape(
             picture,
             role="logo",

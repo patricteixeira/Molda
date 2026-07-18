@@ -8,7 +8,7 @@ from brand_runtime.guard.static_checks import GuardCheck, GuardVerdict
 from brand_runtime.guard.static_checks import run_static_checks
 from brand_runtime.ir.schema import export_schemas
 from brand_runtime.kit.generator import generate_kit
-from brand_runtime.kit.models import ContentSpec, ImageValue, TextValue
+from brand_runtime.kit.models import ContentSpec, ImageValue, LayerOverride, TextValue
 from tests.test_compile import _composition_ir
 from tests.test_generator import _ir
 
@@ -24,6 +24,55 @@ def _editorial_content(ir, layout, *, text="O OFÍCIO PEDE INTENÇÃO.", emphasi
         "headline": TextValue(text=text, emphasis=emphasis),
     }
     return ContentSpec(layout_id=layout.id, brand_revision_id=ir.revision.id, values=values)
+
+
+def test_layer_overrides_are_validated_as_part_of_the_brand_contract(brand_package):
+    ir = _composition_ir(brand_package)
+    layout = _layout(ir, "editorial-light-post-4x5")
+    content = _editorial_content(ir, layout)
+    content.overrides = {
+        "headline": LayerOverride(
+            area=(128, 540, 760, 320),
+            font_size_px=72,
+            font_weight=700,
+            opacity=0.9,
+        )
+    }
+
+    checks = run_static_checks(ir, layout, content, brand_package)
+
+    assert any(check.id == "layer-overrides" and check.status == "pass" for check in checks)
+    assert not [check for check in checks if check.status == "blocked"]
+
+
+def test_resized_locked_brand_mark_cannot_violate_minimum_use(brand_package):
+    ir = _composition_ir(brand_package)
+    layout = _layout(ir, "editorial-light-post-4x5")
+    content = _editorial_content(ir, layout)
+    content.overrides = {"brand-mark": LayerOverride(area=(918, 116, 12, 12))}
+
+    blocked = [
+        check
+        for check in run_static_checks(ir, layout, content, brand_package)
+        if check.status == "blocked"
+    ]
+
+    assert any(check.id == "asset-size" and check.slot_id == "brand-mark" for check in blocked)
+
+
+def test_text_color_override_is_included_in_contrast_validation(brand_package):
+    ir = _composition_ir(brand_package)
+    layout = _layout(ir, "editorial-light-post-4x5")
+    content = _editorial_content(ir, layout)
+    content.overrides = {"headline": LayerOverride(color_token=layout.background.color_token)}
+
+    blocked = [
+        check
+        for check in run_static_checks(ir, layout, content, brand_package)
+        if check.status == "blocked"
+    ]
+
+    assert any(check.id == "contrast" and check.slot_id == "headline" for check in blocked)
 
 
 def test_text_within_limit_passes(brand_package):

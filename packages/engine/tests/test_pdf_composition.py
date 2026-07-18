@@ -83,6 +83,30 @@ O numero 01 aparece em um exemplo de post.
     assert not declarations.has_rules()
 
 
+def test_binds_declared_ratios_to_their_semantic_hex_values(tmp_path):
+    declarations = extract_pdf_composition(
+        _manual(
+            tmp_path,
+            """Grafite - tinta
+60%
+HEX #1F232A
+Ambar - o ponto
+10%
+HEX #CA6B0B
+Papel - fundo
+30%
+HEX #FCFBF8
+""",
+        )
+    )
+
+    assert [(item.role, item.ratio, item.color_value) for item in declarations.color_ratios] == [
+        ("primary", 0.6, "#1F232A"),
+        ("background", 0.3, "#FCFBF8"),
+        ("accent", 0.1, "#CA6B0B"),
+    ]
+
+
 @pytest.mark.parametrize(
     ("text", "expected"),
     [

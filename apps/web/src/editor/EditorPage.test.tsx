@@ -55,6 +55,7 @@ function deferred<T>() {
 it("digitar num slot atualiza o preview ao vivo", async () => {
   renderEditor(kitClient())
   const input = await screen.findByTestId("slot-input-headline")
+  await userEvent.clear(input)
   await userEvent.type(input, "Olá mundo")
   await waitFor(() =>
     expect(lastPayload().contentSpec.values["headline"]).toEqual({ kind: "text", text: "Olá mundo" }),
@@ -76,7 +77,7 @@ it("salva o rascunho e o recupera ao reabrir a peça", async () => {
   expect(await screen.findByTestId("slot-input-headline")).toHaveValue(
     "Texto que continua aqui",
   )
-  expect(screen.getByText("Rascunho salvo neste navegador.")).toBeInTheDocument()
+  expect(screen.getByText("Salvo localmente")).toBeInTheDocument()
 
   await userEvent.type(screen.getByTestId("slot-input-headline"), " depois")
   await waitFor(() =>
@@ -86,7 +87,7 @@ it("salva o rascunho e o recupera ao reabrir a peça", async () => {
   )
 })
 
-it("permite limpar o rascunho salvo da peça", async () => {
+it("permite restaurar a composição inicial da peça", async () => {
   const key = "brand-runtime:editor-draft:v1:brandrev_test:statement-post-1x1"
   window.localStorage.setItem(
     key,
@@ -98,13 +99,15 @@ it("permite limpar o rascunho salvo da peça", async () => {
   renderEditor(kitClient())
 
   expect(await screen.findByTestId("slot-input-headline")).toHaveValue("Apagar este rascunho")
-  await userEvent.click(screen.getByRole("button", { name: "Limpar alterações" }))
+  await userEvent.click(screen.getByRole("button", { name: "Restaurar composição" }))
 
-  expect(screen.getByTestId("slot-input-headline")).toHaveValue("")
-  expect(window.localStorage.getItem(key)).toBeNull()
-  expect(
-    screen.getByText("Comece a editar: suas alterações serão salvas automaticamente."),
-  ).toBeInTheDocument()
+  expect(screen.getByTestId("slot-input-headline")).toHaveValue("Sua mensagem aqui")
+  await waitFor(() =>
+    expect(JSON.parse(window.localStorage.getItem(key) ?? "{}")).toMatchObject({
+      version: 2,
+      values: { headline: { kind: "text", text: "Sua mensagem aqui" } },
+    }),
+  )
 })
 
 it("oferece destaque leigo no arquétipo editorial e o preserva ao editar a frase", async () => {
@@ -114,10 +117,10 @@ it("oferece destaque leigo no arquétipo editorial e o preserva ao editar a fras
   )
 
   const headline = await screen.findByRole("textbox", { name: "Frase principal" })
-  expect(screen.getByRole("textbox", { name: "Trecho em destaque" })).toBeDisabled()
-
-  await userEvent.type(headline, "A ideia vira forma")
   const emphasis = screen.getByRole("textbox", { name: "Trecho em destaque" })
+  await userEvent.clear(emphasis)
+  await userEvent.clear(headline)
+  await userEvent.type(headline, "A ideia vira forma")
   expect(emphasis).toHaveAccessibleDescription(
     "Copie exatamente uma parte da frase principal.",
   )
@@ -144,8 +147,10 @@ it("orienta um destaque inválido sem quebrar a prova ao vivo", async () => {
   )
 
   const headline = await screen.findByRole("textbox", { name: "Frase principal" })
-  await userEvent.type(headline, "Uma ideia")
   const emphasis = screen.getByRole("textbox", { name: "Trecho em destaque" })
+  await userEvent.clear(emphasis)
+  await userEvent.clear(headline)
+  await userEvent.type(headline, "Uma ideia")
   await userEvent.type(emphasis, "outro trecho")
 
   expect(emphasis).toHaveValue("outro trecho")
@@ -171,23 +176,40 @@ it("orienta um destaque inválido sem quebrar a prova ao vivo", async () => {
   )
 })
 
-it("nomeia os campos editoriais em PT-BR sem expor o contrato técnico", async () => {
+it("nomeia e seleciona cada camada editorial em PT-BR", async () => {
   renderEditor(
     fakeClient({ getKit: vi.fn(async () => [fakeEditorialLayout()]) }),
     "editorial-light-post-4x5",
   )
 
   await screen.findByRole("textbox", { name: "Frase principal" })
-  expect(
-    screen.getByRole("textbox", { name: "Frase de apoio (opcional)" }),
-  ).toBeInTheDocument()
+  await userEvent.click(screen.getByRole("button", { name: "Frase de apoio" }))
+  expect(screen.getByRole("textbox", { name: "Frase de apoio" })).toBeInTheDocument()
+  await userEvent.click(screen.getByRole("button", { name: "Número" }))
   expect(screen.getByRole("textbox", { name: "Número" })).toBeInTheDocument()
-  expect(screen.getByRole("textbox", { name: "Assinatura (opcional)" })).toBeInTheDocument()
+  await userEvent.click(screen.getByRole("button", { name: "Assinatura" }))
+  expect(screen.getByRole("textbox", { name: "Assinatura" })).toBeInTheDocument()
+})
 
-  const visible = document.body.textContent ?? ""
-  expect(visible).not.toMatch(/#[0-9A-Fa-f]{6}/)
-  expect(visible).not.toMatch(/\bpx\b/i)
-  expect(visible).not.toMatch(/token|compositionMode|lockedLayers/i)
+it("não conta a direção tipográfica original como ajuste do usuário", async () => {
+  const closure = fakeEditorialLayout()
+  closure.id = "editorial-closure-dark-post-4x5"
+  closure.namePt = "Fechamento editorial escuro"
+  closure.slots = closure.slots.filter((slot) => slot.id === "headline" || slot.id === "signature")
+  closure.slots.push({
+    id: "tagline",
+    kind: "text",
+    required: true,
+    area: [140, 780, 800, 120],
+    fit: "fixed",
+    role: "body",
+  })
+  renderEditor(fakeClient({ getKit: vi.fn(async () => [closure]) }), closure.id)
+
+  await screen.findByRole("textbox", { name: "Frase principal" })
+
+  expect(screen.getByText("Salvo localmente")).toBeInTheDocument()
+  expect(screen.queryByText("1 ajustes")).not.toBeInTheDocument()
 })
 
 it("layout legado não ganha o campo de destaque", async () => {
@@ -199,7 +221,7 @@ it("layout legado não ganha o campo de destaque", async () => {
 it("contador marca excesso sem truncar o texto", async () => {
   renderEditor(kitClient())
   const input = await screen.findByTestId("slot-input-headline")
-  await userEvent.click(input)
+  await userEvent.clear(input)
   await userEvent.paste("A".repeat(95))
   const counter = screen.getByTestId("char-counter-headline")
   expect(counter).toHaveTextContent("95/90")
@@ -211,6 +233,7 @@ it("upload de foto passa pela API e entra no preview com path content-addressed"
   const sha = "b".repeat(64)
   const uploadAsset = vi.fn(async () => ({ sha256: sha, size: 3 }))
   renderEditor(kitClient({ uploadAsset }), "quote-post-1x1")
+  await userEvent.click(await screen.findByRole("button", { name: "Foto" }))
   const input = await screen.findByTestId("slot-image-input-photo")
   await userEvent.upload(input, new File(["png"], "foto.png", { type: "image/png" }))
   await waitFor(() => expect(uploadAsset).toHaveBeenCalledOnce())
@@ -231,6 +254,7 @@ it("se dois uploads disputam o mesmo slot, somente o mais recente vence", async 
     .mockImplementationOnce(() => first.promise)
     .mockImplementationOnce(() => second.promise)
   renderEditor(kitClient({ uploadAsset }), "quote-post-1x1")
+  await userEvent.click(await screen.findByRole("button", { name: "Foto" }))
   const input = await screen.findByTestId("slot-image-input-photo")
 
   fireEvent.change(input, {
@@ -259,6 +283,7 @@ it("erro num novo upload mantém a foto anterior", async () => {
     .mockResolvedValueOnce({ sha256: previousSha, size: 6 })
     .mockRejectedValueOnce(new ApiError(503, "A foto não pôde ser enviada."))
   renderEditor(kitClient({ uploadAsset }), "quote-post-1x1")
+  await userEvent.click(await screen.findByRole("button", { name: "Foto" }))
   const input = await screen.findByTestId("slot-image-input-photo")
 
   await userEvent.upload(input, new File(["foto"], "foto.png", { type: "image/png" }))
@@ -276,6 +301,7 @@ it("erro técnico de upload vira mensagem canônica em PT-BR", async () => {
     kitClient({ uploadAsset: vi.fn(async () => Promise.reject(new Error("Failed to fetch"))) }),
     "quote-post-1x1",
   )
+  await userEvent.click(await screen.findByRole("button", { name: "Foto" }))
   const input = await screen.findByTestId("slot-image-input-photo")
   await userEvent.upload(input, new File(["foto"], "foto.png", { type: "image/png" }))
 
@@ -324,12 +350,51 @@ it("slot de logo não vira campo de formulário", async () => {
   expect(screen.queryByTestId("slot-image-input-logo")).not.toBeInTheDocument()
 })
 
-it("o leigo nunca vê jargão: hex, px, nome de fonte ou token", async () => {
+it("expõe os controles gráficos completos pedidos para a camada de texto", async () => {
   renderEditor(kitClient())
   await screen.findByTestId("slot-input-headline")
-  const visible = document.body.textContent ?? ""
-  expect(visible).not.toMatch(/#[0-9A-Fa-f]{6}/)
-  expect(visible).not.toMatch(/\bpx\b/i)
-  expect(visible).not.toMatch(/token/i)
-  expect(visible).not.toContain("Fixture Sans") // fonte do FAKE_IR
+  expect(screen.getByLabelText("Família")).toBeInTheDocument()
+  expect(screen.getByLabelText("Peso")).toBeInTheDocument()
+  expect(screen.getByLabelText("Tamanho")).toBeInTheDocument()
+  expect(screen.getByLabelText("Opacidade")).toBeInTheDocument()
+  expect(screen.getByLabelText("X")).toBeInTheDocument()
+  expect(screen.getByLabelText("L")).toBeInTheDocument()
+})
+
+it("edita tipografia, posição, opacidade e escala da logo no arquivo final", async () => {
+  renderEditor(kitClient())
+  await screen.findByTestId("slot-input-headline")
+
+  await userEvent.selectOptions(screen.getByLabelText("Peso"), "800")
+  fireEvent.change(screen.getByLabelText("Tamanho"), { target: { value: "86" } })
+  fireEvent.change(screen.getByLabelText("Opacidade"), { target: { value: "62" } })
+  fireEvent.change(screen.getByLabelText("X"), { target: { value: "70" } })
+
+  fireEvent.keyDown(screen.getByTestId("canvas-selection"), {
+    key: "ArrowRight",
+    code: "ArrowRight",
+  })
+
+  await waitFor(() =>
+    expect(lastPayload().contentSpec.overrides?.headline).toMatchObject({
+      area: [71, 324, 984, 432],
+      fontSizePx: 86,
+      fontWeight: 800,
+      opacity: 0.62,
+    }),
+  )
+
+  await userEvent.click(screen.getByRole("button", { name: "Logo" }))
+  fireEvent.change(screen.getByLabelText("X"), { target: { value: "800" } })
+  fireEvent.change(screen.getByLabelText("Y"), { target: { value: "800" } })
+  fireEvent.change(screen.getByLabelText("L"), { target: { value: "220" } })
+  fireEvent.change(screen.getByLabelText("A"), { target: { value: "180" } })
+  fireEvent.change(screen.getByLabelText("Opacidade"), { target: { value: "44" } })
+
+  await waitFor(() =>
+    expect(lastPayload().contentSpec.overrides?.logo).toMatchObject({
+      area: [800, 800, 220, 180],
+      opacity: 0.44,
+    }),
+  )
 })

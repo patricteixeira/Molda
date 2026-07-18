@@ -3,6 +3,7 @@ import type {
   BrandIr,
   Canvas,
   ContentSpec,
+  LayerOverride,
   LayoutSpec,
   LockedLayer,
   Payload,
@@ -30,6 +31,8 @@ const MAX_STROKE_WIDTH_PX = 20;
 const MAX_LAYER_SPACING_PX = 256;
 const MIN_LETTER_SPACING_EM = -0.1;
 const MAX_LETTER_SPACING_EM = 0.5;
+const MIN_EDITOR_LETTER_SPACING_EM = -0.25;
+const MAX_EDITOR_LETTER_SPACING_EM = 1;
 
 function invalid(detail: string): never {
   throw new Error(`Payload inválido: ${detail}`);
@@ -821,8 +824,150 @@ function validateSlotValue(raw: unknown, field: string): SlotValue {
   invalid(`${field}.kind deve ser text ou image.`);
 }
 
+function validateLayerOverride(
+  raw: unknown,
+  field: string,
+  element: Slot | LockedLayer,
+  layout: LayoutSpec,
+  ir: BrandIr,
+): LayerOverride {
+  const override = record(raw, field);
+  onlyFields(
+    override,
+    [
+      "area",
+      "opacity",
+      "hidden",
+      "zIndex",
+      "colorToken",
+      "fontToken",
+      "fontSizePx",
+      "fontWeight",
+      "fontStyle",
+      "lineHeight",
+      "letterSpacingEm",
+      "textAlign",
+      "textTransform",
+      "fillMode",
+      "strokeColorToken",
+      "strokeWidthPx",
+      "fit",
+      "spacingPx",
+    ],
+    field,
+  );
+  const present = (name: string): boolean =>
+    override[name] !== undefined && override[name] !== null;
+
+  if (present("area")) validateArea(override.area, `${field}.area`, layout.canvas);
+  if (present("opacity")) boundedNumber(override.opacity, `${field}.opacity`, 0, 1);
+  if (present("hidden") && typeof override.hidden !== "boolean") {
+    invalid(`${field}.hidden deve ser booleano.`);
+  }
+  if (present("zIndex"))
+    boundedNumber(integer(override.zIndex, `${field}.zIndex`), `${field}.zIndex`, 0, MAX_Z_INDEX);
+  if (present("colorToken")) {
+    knownKey(override.colorToken, `${field}.colorToken`, ir.colors, "cor");
+  }
+  if (present("fontToken")) {
+    knownKey(override.fontToken, `${field}.fontToken`, ir.fonts, "fonte");
+  }
+  if (present("fontSizePx")) boundedNumber(override.fontSizePx, `${field}.fontSizePx`, 6, 1024);
+  if (present("fontWeight")) {
+    boundedNumber(
+      integer(override.fontWeight, `${field}.fontWeight`),
+      `${field}.fontWeight`,
+      100,
+      900,
+    );
+  }
+  if (present("fontStyle") && override.fontStyle !== "normal" && override.fontStyle !== "italic") {
+    invalid(`${field}.fontStyle é inválido.`);
+  }
+  if (present("lineHeight")) boundedNumber(override.lineHeight, `${field}.lineHeight`, 0.5, 3);
+  if (present("letterSpacingEm")) {
+    boundedNumber(
+      override.letterSpacingEm,
+      `${field}.letterSpacingEm`,
+      MIN_EDITOR_LETTER_SPACING_EM,
+      MAX_EDITOR_LETTER_SPACING_EM,
+    );
+  }
+  if (
+    present("textAlign") &&
+    override.textAlign !== "left" &&
+    override.textAlign !== "center" &&
+    override.textAlign !== "right"
+  ) {
+    invalid(`${field}.textAlign é inválido.`);
+  }
+  if (
+    present("textTransform") &&
+    override.textTransform !== "none" &&
+    override.textTransform !== "uppercase"
+  ) {
+    invalid(`${field}.textTransform é inválido.`);
+  }
+  if (present("fillMode") && override.fillMode !== "fill" && override.fillMode !== "stroke") {
+    invalid(`${field}.fillMode é inválido.`);
+  }
+  if (present("strokeColorToken")) {
+    knownKey(override.strokeColorToken, `${field}.strokeColorToken`, ir.colors, "cor");
+  }
+  if (present("strokeWidthPx")) {
+    boundedNumber(override.strokeWidthPx, `${field}.strokeWidthPx`, Number.EPSILON, 20);
+  }
+  if (present("fit") && override.fit !== "contain" && override.fit !== "cover") {
+    invalid(`${field}.fit é inválido.`);
+  }
+  if (present("spacingPx")) {
+    boundedNumber(override.spacingPx, `${field}.spacingPx`, Number.EPSILON, 256);
+  }
+
+  const textOnly = [
+    "fontToken",
+    "fontSizePx",
+    "fontWeight",
+    "fontStyle",
+    "lineHeight",
+    "letterSpacingEm",
+    "textAlign",
+    "textTransform",
+    "fillMode",
+    "strokeColorToken",
+  ];
+  if (element.kind !== "text" && textOnly.some(present)) {
+    invalid(`${field} contém propriedades reservadas a texto.`);
+  }
+  if (present("strokeWidthPx") && element.kind !== "text" && element.kind !== "motif") {
+    invalid(`${field}.strokeWidthPx só é aceito em texto ou motivo.`);
+  }
+  if (present("fit") && !["image", "logo", "asset"].includes(element.kind)) {
+    invalid(`${field}.fit não é aceito nesta camada.`);
+  }
+  if (present("spacingPx") && element.kind !== "motif") {
+    invalid(`${field}.spacingPx só é aceito em motivo.`);
+  }
+  if (present("colorToken") && !["text", "shape", "motif"].includes(element.kind)) {
+    invalid(`${field}.colorToken não é aceito nesta camada.`);
+  }
+  if (element.kind === "text") {
+    if (
+      override.fillMode === "stroke" &&
+      (!present("strokeColorToken") || !present("strokeWidthPx"))
+    ) {
+      invalid(`${field} exige cor e largura quando fillMode é stroke.`);
+    }
+    if (override.fillMode === "fill" && (present("strokeColorToken") || present("strokeWidthPx"))) {
+      invalid(`${field} só aceita cor e largura de traço com fillMode stroke.`);
+    }
+  }
+  return raw as LayerOverride;
+}
+
 function validateContent(raw: unknown, layout: LayoutSpec, ir: BrandIr): ContentSpec {
   const content = record(raw, "contentSpec");
+  onlyFields(content, ["layoutId", "brandRevisionId", "values", "overrides"], "contentSpec");
   const layoutId = nonEmptyString(content.layoutId, "contentSpec.layoutId");
   if (layoutId !== layout.id) invalid("contentSpec.layoutId diverge de layoutSpec.id.");
   const revision = nonEmptyString(content.brandRevisionId, "contentSpec.brandRevisionId");
@@ -842,6 +987,17 @@ function validateContent(raw: unknown, layout: LayoutSpec, ir: BrandIr): Content
         invalid(`contentSpec.values.${id}.emphasis exige emphasisColorToken no slot.`);
       }
     }
+  }
+  const elements = new Map<string, Slot | LockedLayer>([
+    ...layout.slots.map((slot) => [slot.id, slot] as const),
+    ...(layout.lockedLayers ?? []).map((layer) => [layer.id, layer] as const),
+  ]);
+  const overrides =
+    content.overrides === undefined ? {} : record(content.overrides, "contentSpec.overrides");
+  for (const id of Object.keys(overrides).sort()) {
+    const element = elements.get(id);
+    if (!element) invalid(`contentSpec.overrides.${id} referencia camada desconhecida.`);
+    validateLayerOverride(overrides[id], `contentSpec.overrides.${id}`, element, layout, ir);
   }
   return raw as ContentSpec;
 }

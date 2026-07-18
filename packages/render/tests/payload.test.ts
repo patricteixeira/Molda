@@ -386,6 +386,58 @@ it("aceita defaults omitidos das layers e valida valores quando presentes", () =
   expect(() => parsePayload(badDigits)).toThrowError(/minDigits.*número finito/i);
 });
 
+it("aceita overrides editoriais completos para os tipos compatíveis", () => {
+  const payload = compositionPayload();
+  payload.contentSpec.overrides = {
+    headline: {
+      area: [80, 300, 800, 500],
+      opacity: 0.7,
+      hidden: false,
+      zIndex: 18,
+      colorToken: "color.accent",
+      fontToken: "font.body",
+      fontSizePx: 72,
+      fontWeight: 600,
+      fontStyle: "italic",
+      lineHeight: 1.1,
+      letterSpacingEm: -0.02,
+      textAlign: "right",
+      textTransform: "none",
+      fillMode: "fill",
+    },
+    field: {
+      colorToken: "color.accent",
+      strokeWidthPx: 3,
+      spacingPx: 32,
+    },
+    mark: { fit: "cover", opacity: 0.5 },
+  };
+
+  expect(parsePayload(payload)).toBe(payload);
+});
+
+it("rejeita overrides desconhecidos, fora do canvas e incompatíveis", () => {
+  const unknown = compositionPayload();
+  unknown.contentSpec.overrides = { inexistente: { opacity: 0.5 } };
+  expect(() => parsePayload(unknown)).toThrowError(/camada desconhecida/i);
+
+  const outside = compositionPayload();
+  outside.contentSpec.overrides = { headline: { area: [1000, 0, 100, 100] } };
+  expect(() => parsePayload(outside)).toThrowError(/dentro do canvas/i);
+
+  const font = compositionPayload();
+  font.contentSpec.overrides = { headline: { fontToken: "font.inexistente" } };
+  expect(() => parsePayload(font)).toThrowError(/fontToken.*fonte.*desconhecido/i);
+
+  const assetTextProperty = compositionPayload();
+  assetTextProperty.contentSpec.overrides = { mark: { fontSizePx: 44 } };
+  expect(() => parsePayload(assetTextProperty)).toThrowError(/reservadas a texto/i);
+
+  const incompleteStroke = compositionPayload();
+  incompleteStroke.contentSpec.overrides = { headline: { fillMode: "stroke" } };
+  expect(() => parsePayload(incompleteStroke)).toThrowError(/exige cor e largura/i);
+});
+
 it("alinha limites e combinações de slot ao contrato do engine", () => {
   const zIndex = compositionPayload();
   zIndex.layoutSpec.slots[0].zIndex = 21;

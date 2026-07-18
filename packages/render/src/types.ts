@@ -163,10 +163,32 @@ export type SlotValue =
   | { kind: "text"; text: string; emphasis?: string | null }
   | { kind: "image"; path: string; sha256?: string | null };
 
+export interface LayerOverride {
+  area?: [number, number, number, number] | null;
+  opacity?: number | null;
+  hidden?: boolean;
+  zIndex?: number | null;
+  colorToken?: string | null;
+  fontToken?: string | null;
+  fontSizePx?: number | null;
+  fontWeight?: number | null;
+  fontStyle?: "normal" | "italic" | null;
+  lineHeight?: number | null;
+  letterSpacingEm?: number | null;
+  textAlign?: "left" | "center" | "right" | null;
+  textTransform?: "none" | "uppercase" | null;
+  fillMode?: "fill" | "stroke" | null;
+  strokeColorToken?: string | null;
+  strokeWidthPx?: number | null;
+  fit?: "contain" | "cover" | null;
+  spacingPx?: number | null;
+}
+
 export interface ContentSpec {
   layoutId: string;
   brandRevisionId: string;
   values: Record<string, SlotValue>;
+  overrides?: Record<string, LayerOverride>;
 }
 
 export interface Payload {

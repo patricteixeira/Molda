@@ -106,6 +106,142 @@ def _contract_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> l
     return checks
 
 
+def _override_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> list[GuardCheck]:
+    """Valida ajustes de instância contra a geometria e o vocabulário da marca."""
+    checks: list[GuardCheck] = []
+    elements = {
+        **{slot.id: slot for slot in layout.slots},
+        **{layer.id: layer for layer in layout.locked_layers},
+    }
+    text_fields = (
+        "font_token",
+        "font_size_px",
+        "font_weight",
+        "font_style",
+        "line_height",
+        "letter_spacing_em",
+        "text_align",
+        "text_transform",
+        "fill_mode",
+        "stroke_color_token",
+        "stroke_width_px",
+    )
+
+    for element_id, override in sorted(content.overrides.items()):
+        element = elements.get(element_id)
+        if element is None:
+            checks.append(
+                _blocked(
+                    "unknown-override",
+                    f"O ajuste referencia a camada desconhecida «{element_id}».",
+                    slot_id=element_id,
+                )
+            )
+            continue
+
+        if override.area is not None:
+            x, y, width, height = override.area
+            if x + width > layout.canvas.width_px or y + height > layout.canvas.height_px:
+                checks.append(
+                    _blocked(
+                        "override-geometry",
+                        f"A posição de «{element_id}» ultrapassa o canvas.",
+                        slot_id=element_id,
+                        detail={"area": list(override.area)},
+                    )
+                )
+
+        if override.color_token is not None and override.color_token not in ir.colors:
+            checks.append(
+                _blocked(
+                    "override-reference",
+                    f"A cor escolhida para «{element_id}» não pertence à marca.",
+                    slot_id=element_id,
+                    detail={"colorToken": override.color_token},
+                )
+            )
+        if override.stroke_color_token is not None and override.stroke_color_token not in ir.colors:
+            checks.append(
+                _blocked(
+                    "override-reference",
+                    f"A cor de contorno de «{element_id}» não pertence à marca.",
+                    slot_id=element_id,
+                    detail={"strokeColorToken": override.stroke_color_token},
+                )
+            )
+        if override.font_token is not None and override.font_token not in ir.fonts:
+            checks.append(
+                _blocked(
+                    "override-reference",
+                    f"A fonte escolhida para «{element_id}» não pertence à marca.",
+                    slot_id=element_id,
+                    detail={"fontToken": override.font_token},
+                )
+            )
+
+        is_text = isinstance(element, Slot) and element.kind == "text"
+        if not is_text and any(getattr(override, field) is not None for field in text_fields):
+            checks.append(
+                _blocked(
+                    "override-kind",
+                    f"«{element_id}» recebeu propriedades reservadas a texto.",
+                    slot_id=element_id,
+                )
+            )
+        if override.fit is not None and element.kind not in {"image", "logo", "asset"}:
+            checks.append(
+                _blocked(
+                    "override-kind",
+                    f"«{element_id}» não aceita ajuste de encaixe.",
+                    slot_id=element_id,
+                )
+            )
+        if override.spacing_px is not None and element.kind != "motif":
+            checks.append(
+                _blocked(
+                    "override-kind",
+                    f"«{element_id}» não aceita ajuste de espaçamento do motivo.",
+                    slot_id=element_id,
+                )
+            )
+        if override.color_token is not None and element.kind not in {"text", "shape", "motif"}:
+            checks.append(
+                _blocked(
+                    "override-kind",
+                    f"«{element_id}» não aceita ajuste de cor.",
+                    slot_id=element_id,
+                )
+            )
+
+        if element.kind in {"logo", "asset"} and override.area is not None:
+            asset_token = getattr(element, "asset_token", None)
+            if asset_token is None and layout.composition_mode is not None:
+                rules = ir.composition_rules
+                mode = getattr(rules.modes, layout.composition_mode, None) if rules else None
+                asset_token = mode.logo_asset_token if mode is not None else None
+            asset_token = asset_token or "logo.primary"
+            asset = ir.assets.get(asset_token)
+            if asset is not None and override.area[2] < asset.min_width_px:
+                checks.append(
+                    _blocked(
+                        "asset-size",
+                        "O logo ficou menor do que o uso mínimo permitido pela marca.",
+                        slot_id=element_id,
+                        detail={"width": override.area[2], "minWidth": asset.min_width_px},
+                    )
+                )
+
+    if not checks and content.overrides:
+        checks.append(
+            _passed(
+                "layer-overrides",
+                "Os ajustes de composição permanecem dentro do contrato da marca.",
+                detail={"count": len(content.overrides)},
+            )
+        )
+    return checks
+
+
 def _reference_checks(ir: BrandIR, layout: LayoutSpec) -> list[GuardCheck]:
     """Falha fechado quando o layout aponta para tokens ausentes da revisão."""
     checks: list[GuardCheck] = []
@@ -570,32 +706,59 @@ def _accent_usage_checks(
     locked_ratio = 0.0
     locked_ids: list[str] = []
     for layer in getattr(layout, "locked_layers", []):
-        if getattr(layer, "color_token", None) != accent.color_token:
+        override = content.overrides.get(layer.id)
+        if override is not None and override.hidden:
             continue
-        _, _, width, height = layer.area
-        locked_ratio += (width * height / canvas_area) * layer.opacity
+        color_token = (
+            override.color_token
+            if override is not None and override.color_token is not None
+            else getattr(layer, "color_token", None)
+        )
+        if color_token != accent.color_token:
+            continue
+        _, _, width, height = (
+            override.area if override is not None and override.area is not None else layer.area
+        )
+        opacity = (
+            override.opacity
+            if override is not None and override.opacity is not None
+            else layer.opacity
+        )
+        locked_ratio += (width * height / canvas_area) * opacity
         locked_ids.append(layer.id)
 
     emphasis_ratio = 0.0
     emphasis_slots: list[str] = []
     for slot in layout.slots:
-        if slot.kind != "text" or getattr(slot, "emphasis_color_token", None) != accent.color_token:
+        if slot.kind != "text":
+            continue
+        override = content.overrides.get(slot.id)
+        if override is not None and override.hidden:
             continue
         value = content.values.get(slot.id)
-        emphasis = getattr(value, "emphasis", None) if isinstance(value, TextValue) else None
-        if (
-            not isinstance(value, TextValue)
-            or not value.text
-            or emphasis is None
-            or not emphasis
-            or _exact_occurrence_count(value.text, emphasis) != 1
-        ):
+        if not isinstance(value, TextValue) or not value.text:
             continue
-        _, _, width, height = slot.area
+        _, _, width, height = (
+            override.area if override is not None and override.area is not None else slot.area
+        )
+        opacity = (
+            override.opacity
+            if override is not None and override.opacity is not None
+            else slot.opacity
+        )
+        if override is not None and override.color_token == accent.color_token:
+            emphasis_ratio += (width * height / canvas_area) * opacity * _TEXT_INK_COVERAGE
+            emphasis_slots.append(slot.id)
+            continue
+        if getattr(slot, "emphasis_color_token", None) != accent.color_token:
+            continue
+        emphasis = getattr(value, "emphasis", None) if isinstance(value, TextValue) else None
+        if emphasis is None or not emphasis or _exact_occurrence_count(value.text, emphasis) != 1:
+            continue
         emphasis_ratio += (
             (width * height / canvas_area)
             * (len(emphasis) / len(value.text))
-            * slot.opacity
+            * opacity
             * _TEXT_INK_COVERAGE
         )
         emphasis_slots.append(slot.id)
@@ -665,7 +828,11 @@ def _contrast_check(
     )
 
 
-def _contrast_checks(ir: BrandIR, layout: LayoutSpec) -> list[GuardCheck]:
+def _contrast_checks(
+    ir: BrandIR,
+    layout: LayoutSpec,
+    content: ContentSpec,
+) -> list[GuardCheck]:
     """Avalia texto base e destaque sobre fundo sólido com limiar por tamanho."""
     if layout.background.kind != "color" or layout.background.color_token is None:
         return []
@@ -674,11 +841,23 @@ def _contrast_checks(ir: BrandIR, layout: LayoutSpec) -> list[GuardCheck]:
     for slot in layout.slots:
         if slot.kind != "text":
             continue
+        override = content.overrides.get(slot.id)
+        if override is not None and override.hidden:
+            continue
         role = ir.roles.get(slot.role or "")
-        threshold = 3.0 if role is not None and role.min_size_px >= 24 else 4.5
-        foreground_ref = getattr(slot, "color_token", None) or (
-            role.color if role is not None else None
+        effective_size = (
+            override.font_size_px
+            if override is not None and override.font_size_px is not None
+            else role.min_size_px
+            if role is not None
+            else None
         )
+        threshold = 3.0 if effective_size is not None and effective_size >= 24 else 4.5
+        foreground_ref = (
+            override.color_token
+            if override is not None and override.color_token is not None
+            else getattr(slot, "color_token", None)
+        ) or (role.color if role is not None else None)
         foreground_token = ir.colors.get(foreground_ref) if foreground_ref is not None else None
         checks.append(
             _contrast_check(
@@ -715,11 +894,12 @@ def run_static_checks(
     """Executa o verdict estático em ordem estável sem mutar nenhuma entrada."""
     return [
         *_contract_checks(ir, layout, content),
+        *_override_checks(ir, layout, content),
         *_reference_checks(ir, layout),
         *_presence_and_type_checks(layout, content),
         *_text_length_checks(layout, content),
         *_emphasis_checks(layout, content),
         *_image_resolution_checks(layout, content, assets_dir),
         *_accent_usage_checks(ir, layout, content),
-        *_contrast_checks(ir, layout),
+        *_contrast_checks(ir, layout, content),
     ]

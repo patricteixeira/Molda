@@ -186,6 +186,43 @@ def test_composition_rules_and_logo_variants_compile_with_precise_provenance(bra
     )
 
 
+def test_composition_binds_by_declared_color_value_not_misleading_token_name(brand_package):
+    draft = _composition_draft(brand_package)
+    answers = _answers(draft)
+    answers.values.update(
+        {
+            # Reproduz o pacote real Digital Artisan: o nome técnico primary
+            # contém o âmbar, enquanto grafite e papel vivem em outros tokens.
+            "color.primary": "#CA6B0B",
+            "color.background": "#1F232A",
+            "color.text": "#FCFBF8",
+        }
+    )
+
+    ir = compile_ir(draft, answers, "Digital Artisan", created_at=FIXED)
+    rules = ir.composition_rules
+
+    assert rules is not None
+    assert rules.modes.light is not None
+    assert rules.modes.dark is not None
+    assert (
+        rules.modes.light.background_color_token,
+        rules.modes.light.foreground_color_token,
+    ) == ("color.text", "color.background")
+    assert (
+        rules.modes.dark.background_color_token,
+        rules.modes.dark.foreground_color_token,
+    ) == ("color.background", "color.text")
+    assert [(item.color_token, item.ratio) for item in rules.color_ratios] == [
+        ("color.background", 0.6),
+        ("color.text", 0.3),
+        ("color.primary", 0.1),
+    ]
+    assert sum(item.ratio for item in rules.color_ratios) == pytest.approx(1.0)
+    assert rules.accent is not None
+    assert (rules.accent.color_token, rules.accent.max_ratio) == ("color.primary", 0.1)
+
+
 def test_declared_layout_style_compiles_with_portable_evidence(brand_package):
     draft = build_draft(brand_package)
     draft.composition_declarations = CompositionDeclarations(

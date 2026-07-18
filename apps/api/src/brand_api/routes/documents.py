@@ -29,6 +29,7 @@ class DocumentBody(BaseModel):
     layout_id: str = Field(min_length=1)
     brand_revision_id: str = Field(min_length=1)
     values: dict[str, Any]
+    overrides: dict[str, Any] = Field(default_factory=dict)
 
 
 class ExportBody(BaseModel):

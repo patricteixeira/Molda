@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { useApi } from "../api/context"
-import type { ExportFormat, GuardCheck, LayoutSpec, SlotValue } from "../api/types"
+import type {
+  ExportFormat,
+  GuardCheck,
+  LayerOverride,
+  LayoutSpec,
+  SlotValue,
+} from "../api/types"
 import { GuardPanel } from "./GuardPanel"
 import { RoundtripPanel } from "./RoundtripPanel"
 import { useExportFlow } from "./useExportFlow"
@@ -11,6 +17,7 @@ interface ExportControlsProps {
   pollIntervalMs: number
   revisionId: string
   values: Record<string, SlotValue>
+  overrides: Record<string, LayerOverride>
   onPendingChange?(pending: boolean): void
 }
 
@@ -32,6 +39,7 @@ export function ExportControls({
   pollIntervalMs,
   revisionId,
   values,
+  overrides,
   onPendingChange,
 }: ExportControlsProps) {
   const client = useApi()
@@ -39,8 +47,8 @@ export function ExportControls({
   const editableFormat: ExportFormat = layout.profile === "doc-a4" ? "docx" : "pptx"
   const isDocument = layout.profile === "doc-a4"
   const content = useMemo(
-    () => ({ brandRevisionId: revisionId, layoutId: layout.id, values }),
-    [layout.id, revisionId, values],
+    () => ({ brandRevisionId: revisionId, layoutId: layout.id, values, overrides }),
+    [layout.id, overrides, revisionId, values],
   )
   const primaryFlow = useExportFlow(client, content, primaryFormat, pollIntervalMs)
   const editableFlow = useExportFlow(client, content, editableFormat, pollIntervalMs)

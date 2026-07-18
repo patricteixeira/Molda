@@ -9,6 +9,10 @@ export function AppChrome({ children }: PropsWithChildren) {
   const contextHref = "/"
   const contextLabel = pathname === "/" ? "Instalar marca" : "Instalação"
 
+  if (editorMatch) {
+    return <div className="app-shell app-shell-editor">{children}</div>
+  }
+
   return (
     <div className="app-shell">
       <header className="app-nav">

@@ -79,6 +79,7 @@ it("export feliz: documento → job → link de download", async () => {
     })
   renderEditor(fakeClient({ getKit: kit, createDocument, requestExport, getJob }))
   const input = await screen.findByTestId("slot-input-headline")
+  await userEvent.clear(input)
   await userEvent.type(input, "Lançamento em agosto")
   await userEvent.click(screen.getByTestId("exportar-png"))
   const link = await screen.findByTestId("download-link", {}, { timeout: 3000 })
@@ -88,6 +89,7 @@ it("export feliz: documento → job → link de download", async () => {
   expect(createDocument).toHaveBeenCalledWith({
     layoutId: "statement-post-1x1",
     brandRevisionId: "brandrev_test",
+    overrides: {},
     values: { headline: { kind: "text", text: "Lançamento em agosto" } },
   })
   expect(requestExport).toHaveBeenCalledWith("doc1", "png")
@@ -269,7 +271,7 @@ it("confere o PPTX que voltou e oferece uma cópia corrigida sem expor jargão",
   await userEvent.click(screen.getByTestId("roundtrip-analyze"))
 
   expect(await screen.findByText("Texto mantido")).toBeInTheDocument()
-  expect(screen.getByText("Cor")).toBeInTheDocument()
+  expect(screen.getAllByText("Cor").length).toBeGreaterThan(0)
   expect(screen.getByText("ajuste seguro").closest("p")).toHaveTextContent("1ajuste seguro")
   expect(screen.queryByText("#1844D8")).not.toBeInTheDocument()
   expect(screen.queryByText("#FF00FF")).not.toBeInTheDocument()
@@ -378,6 +380,7 @@ it("bloqueia a exportação enquanto a foto ainda está sendo enviada", async ()
     }),
     "quote-post-1x1",
   )
+  await userEvent.click(await screen.findByRole("button", { name: "Foto" }))
   const input = await screen.findByTestId("slot-image-input-photo")
   await userEvent.upload(input, new File(["png"], "foto.png", { type: "image/png" }))
 

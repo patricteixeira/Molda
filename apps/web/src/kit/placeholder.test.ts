@@ -30,13 +30,13 @@ it("arquétipo editorial nasce com texto autoral e destaque válido", () => {
   const content = placeholderContent(fakeEditorialLayout(), "brandrev_x")
 
   expect(content.values).toMatchObject({
-    kicker: { kind: "text", text: "PRINCÍPIO 01" },
+    kicker: { kind: "text", text: "AUTORIA NÃO É UM EFEITO." },
     headline: {
       kind: "text",
-      text: "O OFÍCIO PEDE INTENÇÃO.",
-      emphasis: "INTENÇÃO",
+      text: "É A COERÊNCIA ENTRE INTENÇÃO E FORMA.",
+      emphasis: "INTENÇÃO E FORMA",
     },
-    index: { kind: "text", text: "01" },
+    index: { kind: "text", text: "06" },
     signature: { kind: "text", text: "@sua-marca" },
   })
 })
@@ -49,6 +49,6 @@ it("corte editorial remove destaque quando a palavra inteira não cabe", () => {
 
   expect(placeholderContent(layout, "brandrev_x").values.headline).toEqual({
     kind: "text",
-    text: "O OFÍCIO PED",
+    text: "É A COERÊNCI",
   })
 })

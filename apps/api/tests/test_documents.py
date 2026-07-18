@@ -26,6 +26,44 @@ def test_cria_documento_checks_pass(client, compiled, db):
     assert persisted.checks == body["checks"]
 
 
+def test_persiste_overrides_autorais_para_preview_e_export(client, compiled, db):
+    payload = _statement(compiled)
+    payload["overrides"] = {
+        "headline": {
+            "area": [70, 300, 900, 420],
+            "opacity": 0.64,
+            "fontToken": "font.body",
+            "fontSizePx": 78,
+            "fontWeight": 800,
+            "textAlign": "right",
+        },
+        "logo": {"area": [820, 820, 200, 200], "opacity": 0.45},
+    }
+
+    response = client.post("/v1/documents", json=payload)
+
+    assert response.status_code == 201, response.text
+    persisted = db.scalar(select(Document).where(Document.id == response.json()["documentId"]))
+    assert persisted is not None
+    headline = persisted.content["overrides"]["headline"]
+    logo = persisted.content["overrides"]["logo"]
+    assert {key: headline[key] for key in payload["overrides"]["headline"]} == payload["overrides"][
+        "headline"
+    ]
+    assert {key: logo[key] for key in payload["overrides"]["logo"]} == payload["overrides"]["logo"]
+    assert headline["hidden"] is False and logo["hidden"] is False
+
+
+def test_override_fora_do_contrato_retorna_422(client, compiled):
+    payload = _statement(compiled)
+    payload["overrides"] = {"headline": {"fontSizePx": 4}}
+
+    response = client.post("/v1/documents", json=payload)
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Conteúdo inválido."
+
+
 def test_violacao_reportada_sem_bloquear_criacao(client, compiled):
     response = client.post("/v1/documents", json=_statement(compiled, text="A" * 200))
     assert response.status_code == 201
