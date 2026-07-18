@@ -41,6 +41,18 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   await page.getByTestId("wizard-enviar").click()
 
   await expect(page.getByTestId("wizard-question")).toContainText(
+    "O que nesta identidade deve orientar todas as criações?",
+  )
+  await page
+    .getByLabel("Essência e propósito")
+    .fill("Uma marca ousada e dinâmica que transforma sistemas em autonomia.")
+  await page
+    .getByLabel("Personalidade e valores")
+    .fill("Geométrica, precisa, técnica e confiável.")
+  await page.getByLabel("Tom e linguagem").fill("Direta, clara e acessível.")
+  await page.getByTestId("wizard-confirmar").click()
+
+  await expect(page.getByTestId("wizard-question")).toContainText(
     "Qual destas é a cor principal da marca?",
   )
   for (let index = 0; index < 8; index += 1) {
@@ -62,6 +74,33 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   const kitUrl = page.url()
 
   await page.locator('[data-testid="kit-card"][data-layout-id="quote-post-1x1"]').click()
+  await expect(page.getByRole("heading", { name: "Escala sem contenção" })).toBeVisible()
+  await page.getByRole("button", { name: "Aplicar esta direção" }).click()
+  await expect(page.getByText("Editar superfície aplicada")).toBeVisible()
+  await expect(page.locator('[data-surface-kind="technical-grid"]')).toBeVisible()
+
+  await page.getByRole("button", { name: "Citação", exact: true }).click()
+  const quoteSelection = page.getByTestId("canvas-selection")
+  const quoteBox = await quoteSelection.boundingBox()
+  if (!quoteBox) throw new Error("Seleção da citação não recebeu geometria visível.")
+  const quoteX = page.getByRole("spinbutton", { name: "X", exact: true })
+  const initialQuoteX = Number(await quoteX.inputValue())
+  await page.mouse.move(quoteBox.x + quoteBox.width / 2, quoteBox.y + quoteBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(quoteBox.x + quoteBox.width / 2 + 48, quoteBox.y + quoteBox.height / 2 + 24)
+  await page.mouse.up()
+  await expect.poll(async () => Number(await quoteX.inputValue())).not.toBe(initialQuoteX)
+
+  await page.getByRole("button", { name: "Logo", exact: true }).click()
+  await page.getByRole("spinbutton", { name: "X", exact: true }).fill("-180")
+  await page.getByRole("spinbutton", { name: "Y", exact: true }).fill("760")
+  await page.getByRole("spinbutton", { name: "L", exact: true }).fill("1600")
+  await page.getByRole("spinbutton", { name: "A", exact: true }).fill("900")
+  await expect(page.getByTestId("canvas-selection")).toHaveAttribute("data-layer", "logo")
+  await expect(page.getByRole("spinbutton", { name: "X", exact: true })).toHaveValue("-180")
+  await expect(page.getByRole("spinbutton", { name: "L", exact: true })).toHaveValue("1600")
+
+  await page.getByRole("button", { name: "Citação", exact: true }).click()
   await page.getByTestId("slot-input-quote").fill("A".repeat(200))
   await expect(page.getByTestId("char-counter-quote")).toHaveAttribute("data-over", "true")
   await page.getByRole("button", { name: "Foto", exact: true }).click()

@@ -173,6 +173,52 @@ class BrandInfo(CamelModel):
     name: str
 
 
+class BrandIdentity(CamelModel):
+    """Leitura confirmada do significado e da postura da marca."""
+
+    essence: Annotated[str, Field(min_length=1, max_length=4000)]
+    personality: Annotated[str, Field(max_length=3000)] = ""
+    voice: Annotated[str, Field(max_length=3000)] = ""
+    avoid: Annotated[str, Field(max_length=3000)] = ""
+    evidence: list[Evidence] = Field(default_factory=list)
+
+
+class ExpressionAxis(CamelModel):
+    """Posição contínua derivada de termos confirmados, nunca uma regra."""
+
+    value: float = Field(ge=-1.0, le=1.0, allow_inf_nan=False)
+    confidence: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    evidence_terms: list[str] = Field(default_factory=list, max_length=16)
+
+
+class CreativeDirection(CamelModel):
+    """Hipótese estrutural explicável consumida pelo editor."""
+
+    energy: ExpressionAxis
+    geometry: ExpressionAxis
+    density: ExpressionAxis
+    formality: ExpressionAxis
+    materiality: ExpressionAxis
+    contrast: ExpressionAxis
+    composition: Literal["contemplative", "asymmetric", "modular", "expansive", "layered"]
+    surface: Literal[
+        "none",
+        "paper-grain",
+        "linear-rhythm",
+        "technical-grid",
+        "point-field",
+        "concentric-rings",
+    ]
+    scale_contrast: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    negative_space: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    bleed: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    surface_density: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    rationale_pt: list[Annotated[str, Field(min_length=1, max_length=500)]] = Field(
+        min_length=1,
+        max_length=6,
+    )
+
+
 class CompositionMode(CamelModel):
     """Combinação semântica fechada para uma peça clara ou escura."""
 
@@ -266,15 +312,29 @@ class BrandIR(CamelModel):
                     },
                     "then": {
                         "required": ["schemaVersion"],
-                        "properties": {"schemaVersion": {"const": "0.3.0"}},
+                        "properties": {"schemaVersion": {"enum": ["0.3.0", "0.4.0"]}},
                     },
-                }
+                },
+                {
+                    "if": {
+                        "anyOf": [
+                            {"required": ["identity"]},
+                            {"required": ["creativeDirection"]},
+                        ]
+                    },
+                    "then": {
+                        "required": ["schemaVersion"],
+                        "properties": {"schemaVersion": {"const": "0.4.0"}},
+                    },
+                },
             ]
         },
     )
 
-    schema_version: Literal["0.1.0", "0.2.0", "0.3.0"] = "0.3.0"
+    schema_version: Literal["0.1.0", "0.2.0", "0.3.0", "0.4.0"] = "0.4.0"
     brand: BrandInfo
+    identity: BrandIdentity | None = None
+    creative_direction: CreativeDirection | None = None
     revision: RevisionInfo
     colors: dict[str, ColorToken]
     fonts: dict[str, FontToken]
@@ -287,12 +347,18 @@ class BrandIR(CamelModel):
     @model_validator(mode="after")
     def _composition_references_exist(self) -> Self:
         rules = self.composition_rules
+        if self.creative_direction is not None and self.identity is None:
+            raise ValueError("creativeDirection exige identity confirmada.")
+        if (self.identity is not None or self.creative_direction is not None) and (
+            "schema_version" not in self.model_fields_set or self.schema_version != "0.4.0"
+        ):
+            raise ValueError("identity e creativeDirection pertencem apenas ao Brand IR 0.4.0.")
         if rules is None:
             return self
         if "schema_version" not in self.model_fields_set:
             raise ValueError("compositionRules exige schemaVersion 0.3.0 explícita.")
-        if self.schema_version != "0.3.0":
-            raise ValueError("compositionRules pertence apenas ao Brand IR 0.3.0.")
+        if self.schema_version not in {"0.3.0", "0.4.0"}:
+            raise ValueError("compositionRules exige Brand IR 0.3.0 ou 0.4.0.")
 
         missing: list[str] = []
         for name, mode in (("light", rules.modes.light), ("dark", rules.modes.dark)):

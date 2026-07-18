@@ -102,6 +102,7 @@ it("export feliz: documento → job → link de download", async () => {
     layoutId: "statement-post-1x1",
     brandRevisionId: "brandrev_test",
     overrides: {},
+    surface: null,
     values: { headline: { kind: "text", text: "Lançamento em agosto" } },
   })
   expect(requestExport).toHaveBeenCalledWith("doc1", "png")

@@ -126,6 +126,14 @@ def _contract_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> l
 def _override_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> list[GuardCheck]:
     """Valida ajustes de instância contra a geometria e o vocabulário da marca."""
     checks: list[GuardCheck] = []
+    if content.surface is not None and content.surface.color_token not in ir.colors:
+        checks.append(
+            _blocked(
+                "surface-reference",
+                "A superfície referencia uma cor que não existe nesta revisão da marca.",
+                detail={"colorToken": content.surface.color_token},
+            )
+        )
     elements = {
         **{slot.id: slot for slot in layout.slots},
         **{layer.id: layer for layer in layout.locked_layers},
@@ -158,11 +166,19 @@ def _override_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> l
 
         if override.area is not None:
             x, y, width, height = override.area
-            if x + width > layout.canvas.width_px or y + height > layout.canvas.height_px:
+            if (
+                x < 0
+                or y < 0
+                or x + width > layout.canvas.width_px
+                or y + height > layout.canvas.height_px
+            ):
                 checks.append(
                     _warning(
                         "override-geometry",
-                        f"A posição de «{element_id}» ultrapassa o canvas.",
+                        (
+                            f"«{element_id}» usa sangria além do canvas; "
+                            "a saída será recortada no formato final."
+                        ),
                         slot_id=element_id,
                         detail={"area": list(override.area)},
                     )
@@ -722,6 +738,20 @@ def _accent_usage_checks(
     canvas_area = layout.canvas.width_px * layout.canvas.height_px
     locked_ratio = 0.0
     locked_ids: list[str] = []
+    surface_ratio = 0.0
+    surface_used = False
+    if content.surface is not None and content.surface.color_token == accent.color_token:
+        surface = content.surface
+        base_coverage = surface.weight_px / surface.scale_px
+        coverage = {
+            "paper-grain": min(0.08, base_coverage * 1.8),
+            "linear-rhythm": base_coverage,
+            "technical-grid": min(1.0, base_coverage * 2),
+            "point-field": min(1.0, 3.1416 * base_coverage * base_coverage),
+            "concentric-rings": base_coverage,
+        }[surface.kind]
+        surface_ratio = coverage * surface.opacity
+        surface_used = True
     for layer in getattr(layout, "locked_layers", []):
         override = content.overrides.get(layer.id)
         if override is not None and override.hidden:
@@ -780,15 +810,16 @@ def _accent_usage_checks(
         )
         emphasis_slots.append(slot.id)
 
-    if not locked_ids and not emphasis_slots:
+    if not locked_ids and not emphasis_slots and not surface_used:
         return []
 
-    estimated_ratio = locked_ratio + emphasis_ratio
+    estimated_ratio = locked_ratio + emphasis_ratio + surface_ratio
     detail = {
         "estimatedRatio": round(estimated_ratio, 6),
         "maxRatio": accent.max_ratio,
         "lockedLayersRatio": round(locked_ratio, 6),
         "emphasisRatio": round(emphasis_ratio, 6),
+        "surfaceRatio": round(surface_ratio, 6),
         "textInkCoverage": _TEXT_INK_COVERAGE,
         "lockedLayerIds": locked_ids,
         "emphasisSlotIds": emphasis_slots,

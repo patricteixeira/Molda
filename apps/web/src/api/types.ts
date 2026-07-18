@@ -16,7 +16,7 @@ export interface Candidate {
 
 export interface DraftQuestion {
   id: string
-  kind: "pick-color" | "pick-font" | "confirm-logo"
+  kind: "pick-color" | "pick-font" | "confirm-logo" | "review-identity"
   promptPt: string
   candidates: Candidate[]
   recommendedCount?: number
@@ -60,6 +60,34 @@ export interface Diagnostic {
 export interface BrandIr {
   schemaVersion: string
   brand: { name: string }
+  identity?: {
+    essence: string
+    personality: string
+    voice: string
+    avoid: string
+    evidence: Evidence[]
+  } | null
+  creativeDirection?: {
+    energy: ExpressionAxis
+    geometry: ExpressionAxis
+    density: ExpressionAxis
+    formality: ExpressionAxis
+    materiality: ExpressionAxis
+    contrast: ExpressionAxis
+    composition: "contemplative" | "asymmetric" | "modular" | "expansive" | "layered"
+    surface:
+      | "none"
+      | "paper-grain"
+      | "linear-rhythm"
+      | "technical-grid"
+      | "point-field"
+      | "concentric-rings"
+    scaleContrast: number
+    negativeSpace: number
+    bleed: number
+    surfaceDensity: number
+    rationalePt: string[]
+  } | null
   revision: { id: string; createdAt: string }
   colors: Record<string, { value: string; evidence: Evidence[] }>
   fonts: Record<
@@ -202,11 +230,39 @@ export interface LayerOverride {
   spacingPx?: number | null
 }
 
+export interface ExpressionAxis {
+  value: number
+  confidence: number
+  evidenceTerms: string[]
+}
+
+export interface IdentityExpressionValue {
+  essence: string
+  personality: string
+  voice: string
+  avoid: string
+}
+
 export interface ContentSpec {
   layoutId: string
   brandRevisionId: string
   values: Record<string, SlotValue>
   overrides?: Record<string, LayerOverride>
+  surface?: SurfaceStyle | null
+}
+
+export interface SurfaceStyle {
+  kind:
+    | "paper-grain"
+    | "linear-rhythm"
+    | "technical-grid"
+    | "point-field"
+    | "concentric-rings"
+  colorToken: string
+  opacity: number
+  scalePx: number
+  weightPx: number
+  angleDeg: number
 }
 
 export interface GuardCheck {

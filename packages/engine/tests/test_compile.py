@@ -42,8 +42,18 @@ def _answers(draft):
         q = next(q for q in draft.questions if q.id == qid)
         return next(candidate.value for candidate in q.candidates if "path" not in candidate.value)
 
+    identity = first("identity.expression")
+    identity = {
+        **identity,
+        "essence": identity["essence"].strip()
+        or "A marca existe para simplificar com clareza e autoria.",
+        "personality": identity["personality"].strip() or "Humana, precisa e artesanal.",
+        "voice": identity["voice"].strip() or "Direta, acessível e confiante.",
+    }
+
     return Answers(
         values={
+            "identity.expression": identity,
             "color.primary": first("color.primary"),
             "color.background": "#FFFFFF",
             "color.text": "#1A1A1A",
@@ -123,6 +133,35 @@ def test_missing_required_raises(brand_package):
     assert "color.primary" in str(exc.value)
 
 
+def test_confirmed_identity_drives_an_explainable_brand_specific_direction(brand_package):
+    draft = build_draft(brand_package)
+    ir = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
+
+    assert ir.schema_version == "0.4.0"
+    assert ir.identity is not None
+    assert ir.identity.personality == "Humana, precisa e artesanal."
+    assert ir.creative_direction is not None
+    assert ir.creative_direction.surface == "paper-grain"
+    assert ir.creative_direction.materiality.value < 0
+    assert any("artesanal" in reason.casefold() for reason in ir.creative_direction.rationale_pt)
+
+
+def test_weak_semantic_signal_is_preserved_without_inventing_a_direction(brand_package):
+    draft = build_draft(brand_package)
+    answers = _answers(draft)
+    answers.values["identity.expression"] = {
+        "essence": "Fazemos produtos para pessoas.",
+        "personality": "",
+        "voice": "",
+        "avoid": "",
+    }
+    ir = compile_ir(draft, answers, "ACME", created_at=FIXED)
+
+    assert ir.identity is not None
+    assert ir.creative_direction is None
+    assert any(item.code == "IDENTITY_SIGNAL_WEAK" for item in ir.diagnostics)
+
+
 def test_happy_path_produces_valid_ir(brand_package):
     draft = build_draft(brand_package)
     ir = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
@@ -140,7 +179,7 @@ def test_happy_path_produces_valid_ir(brand_package):
 def test_composition_rules_and_logo_variants_compile_with_precise_provenance(brand_package):
     ir = _composition_ir(brand_package)
 
-    assert ir.schema_version == "0.3.0"
+    assert ir.schema_version == "0.4.0"
     assert set(ir.assets) == {"logo.primary", "logo.onLight", "logo.onDark"}
     assert ir.assets["logo.onLight"].path.endswith("brand-positive.svg")
     assert ir.assets["logo.onDark"].path.endswith("brand-negative.svg")

@@ -11,6 +11,8 @@ import type {
   ExportFormat,
   LayoutSpec,
 } from "../api/types"
+import { brandThemeStyle } from "../brandTheme"
+import { BrandAperture } from "../components/BrandAperture"
 import { Preview } from "../render/Preview"
 
 interface CampaignData {
@@ -306,20 +308,42 @@ export function CampaignPage(): JSX.Element {
 
   const assetsBaseUrl = api.revisionAssetsBaseUrl(revisionId)
   return (
-    <main id="main-content" className="campaign-page">
+    <main
+      id="main-content"
+      className="campaign-page brand-reactive-page"
+      style={brandThemeStyle(data.brandIr)}
+    >
+      <BrandAperture />
       <header className="campaign-heading" data-motion-enter>
         <div>
           <p className="product-kicker">Uma mensagem, muitas peças</p>
           <h1>Modo Campanha</h1>
           <p>
-            Mude título, texto, data, chamada ou imagem uma vez. O Molda atualiza todos os
-            formatos vinculados sem soltar a identidade da marca.
+            Mude título, texto, data, chamada ou imagem uma vez. O Molda leva a mudança a todos
+            os formatos e mantém cada peça ligada à mesma origem.
           </p>
         </div>
         <Link className="text-action" to={`/marcas/${encodeURIComponent(revisionId)}/kit`}>
           Voltar ao kit
         </Link>
       </header>
+
+      <div className="campaign-continuity" aria-label="Continuidade da campanha" data-motion-enter>
+        <span>
+          <strong>Uma mensagem</strong>
+          <small>é a fonte</small>
+        </span>
+        <i aria-hidden="true" />
+        <span>
+          <strong>{selectedLayouts.length} formatos</strong>
+          <small>permanecem ligados</small>
+        </span>
+        <i aria-hidden="true" />
+        <span>
+          <strong>Uma alteração</strong>
+          <small>atualiza o conjunto</small>
+        </span>
+      </div>
 
       <div className="campaign-workspace">
         <aside className="campaign-library" aria-label="Campanhas salvas">
@@ -351,7 +375,6 @@ export function CampaignPage(): JSX.Element {
 
         <section className="campaign-form-panel" aria-labelledby="campaign-form-title">
           <div className="campaign-form-heading">
-            <p className="product-kicker">Fonte compartilhada</p>
             <h2 id="campaign-form-title">
               {active ? "Edite a mensagem central" : "Crie a mensagem central"}
             </h2>
@@ -495,7 +518,6 @@ export function CampaignPage(): JSX.Element {
       {active ? (
         <section className="campaign-results" aria-labelledby="campaign-results-title">
           <div className="campaign-results-heading">
-            <p className="product-kicker">Sempre sincronizadas</p>
             <h2 id="campaign-results-title">Peças vinculadas</h2>
             <p>Cada prévia abaixo nasce da mesma mensagem que você acabou de salvar.</p>
           </div>

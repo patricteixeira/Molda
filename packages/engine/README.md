@@ -4,7 +4,9 @@ Motor de marca do brand-runtime: intake de pacote informal de marca, extração
 com evidência, Brand IR imutável, kit, Guard e arquivos OOXML nativos por
 template-fill — exposto pela CLI `brandrt`.
 
-Sem I/O de rede e sem banco de dados: tudo arquivo→arquivo.
+Sem I/O de rede, sem API key e sem banco de dados: tudo arquivo→arquivo. O
+intake semântico extrai apenas trechos rastreáveis do material local; a pessoa
+confirma a identidade antes que o motor derive uma direção criativa.
 
 ## Desenvolvimento
 
@@ -169,6 +171,12 @@ linhas com `^`:
 ```json
 {
   "values": {
+    "identity.expression": {
+      "essence": "Clareza que devolve autonomia a quem cria.",
+      "personality": "Precisa, inquieta e humana.",
+      "voice": "Direta, acessível e confiante.",
+      "avoid": "Ornamento sem função."
+    },
     "color.primary": "#1A4D8F",
     "color.background": "#FFFFFF",
     "color.text": "#1A1A1A",

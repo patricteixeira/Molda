@@ -30,14 +30,22 @@ def test_persiste_overrides_autorais_para_preview_e_export(client, compiled, db)
     payload = _statement(compiled)
     payload["overrides"] = {
         "headline": {
-            "area": [70, 300, 900, 420],
+            "area": [-70, 300, 1400, 420],
             "opacity": 0.64,
             "fontToken": "font.body",
             "fontSizePx": 78,
             "fontWeight": 800,
             "textAlign": "right",
         },
-        "logo": {"area": [820, 820, 200, 200], "opacity": 0.45},
+        "logo": {"area": [-180, 760, 1600, 900], "opacity": 0.45},
+    }
+    payload["surface"] = {
+        "kind": "technical-grid",
+        "colorToken": "color.primary",
+        "opacity": 0.11,
+        "scalePx": 48,
+        "weightPx": 1.4,
+        "angleDeg": 24,
     }
 
     response = client.post("/v1/documents", json=payload)
@@ -51,6 +59,7 @@ def test_persiste_overrides_autorais_para_preview_e_export(client, compiled, db)
         "headline"
     ]
     assert {key: logo[key] for key in payload["overrides"]["logo"]} == payload["overrides"]["logo"]
+    assert persisted.content["surface"] == payload["surface"]
     assert headline["hidden"] is False and logo["hidden"] is False
 
 

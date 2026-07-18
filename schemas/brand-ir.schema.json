@@ -29,6 +29,48 @@
       "title": "AccentRule",
       "type": "object"
     },
+    "BrandIdentity": {
+      "additionalProperties": false,
+      "description": "Leitura confirmada do significado e da postura da marca.",
+      "properties": {
+        "essence": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Essence",
+          "type": "string"
+        },
+        "personality": {
+          "default": "",
+          "maxLength": 3000,
+          "title": "Personality",
+          "type": "string"
+        },
+        "voice": {
+          "default": "",
+          "maxLength": 3000,
+          "title": "Voice",
+          "type": "string"
+        },
+        "avoid": {
+          "default": "",
+          "maxLength": 3000,
+          "title": "Avoid",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "essence"
+      ],
+      "title": "BrandIdentity",
+      "type": "object"
+    },
     "BrandInfo": {
       "additionalProperties": false,
       "description": "Metadados essenciais da marca compilada.",
@@ -223,6 +265,105 @@
       "title": "CompositionRules",
       "type": "object"
     },
+    "CreativeDirection": {
+      "additionalProperties": false,
+      "description": "Hipótese estrutural explicável consumida pelo editor.",
+      "properties": {
+        "energy": {
+          "$ref": "#/$defs/ExpressionAxis"
+        },
+        "geometry": {
+          "$ref": "#/$defs/ExpressionAxis"
+        },
+        "density": {
+          "$ref": "#/$defs/ExpressionAxis"
+        },
+        "formality": {
+          "$ref": "#/$defs/ExpressionAxis"
+        },
+        "materiality": {
+          "$ref": "#/$defs/ExpressionAxis"
+        },
+        "contrast": {
+          "$ref": "#/$defs/ExpressionAxis"
+        },
+        "composition": {
+          "enum": [
+            "contemplative",
+            "asymmetric",
+            "modular",
+            "expansive",
+            "layered"
+          ],
+          "title": "Composition",
+          "type": "string"
+        },
+        "surface": {
+          "enum": [
+            "none",
+            "paper-grain",
+            "linear-rhythm",
+            "technical-grid",
+            "point-field",
+            "concentric-rings"
+          ],
+          "title": "Surface",
+          "type": "string"
+        },
+        "scaleContrast": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Scalecontrast",
+          "type": "number"
+        },
+        "negativeSpace": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Negativespace",
+          "type": "number"
+        },
+        "bleed": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Bleed",
+          "type": "number"
+        },
+        "surfaceDensity": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Surfacedensity",
+          "type": "number"
+        },
+        "rationalePt": {
+          "items": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Rationalept",
+          "type": "array"
+        }
+      },
+      "required": [
+        "energy",
+        "geometry",
+        "density",
+        "formality",
+        "materiality",
+        "contrast",
+        "composition",
+        "surface",
+        "scaleContrast",
+        "negativeSpace",
+        "bleed",
+        "surfaceDensity",
+        "rationalePt"
+      ],
+      "title": "CreativeDirection",
+      "type": "object"
+    },
     "Diagnostic": {
       "additionalProperties": false,
       "description": "Lacuna ou decisão pendente comunicada em linguagem orientada à ação.",
@@ -344,6 +485,38 @@
         "confidence"
       ],
       "title": "Evidence",
+      "type": "object"
+    },
+    "ExpressionAxis": {
+      "additionalProperties": false,
+      "description": "Posição contínua derivada de termos confirmados, nunca uma regra.",
+      "properties": {
+        "value": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Value",
+          "type": "number"
+        },
+        "confidence": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "evidenceTerms": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Evidenceterms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "value",
+        "confidence"
+      ],
+      "title": "ExpressionAxis",
       "type": "object"
     },
     "FontAxis": {
@@ -752,7 +925,36 @@
       "then": {
         "properties": {
           "schemaVersion": {
-            "const": "0.3.0"
+            "enum": [
+              "0.3.0",
+              "0.4.0"
+            ]
+          }
+        },
+        "required": [
+          "schemaVersion"
+        ]
+      }
+    },
+    {
+      "if": {
+        "anyOf": [
+          {
+            "required": [
+              "identity"
+            ]
+          },
+          {
+            "required": [
+              "creativeDirection"
+            ]
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "schemaVersion": {
+            "const": "0.4.0"
           }
         },
         "required": [
@@ -764,17 +966,40 @@
   "description": "Contrato imutável da marca consumido pelo kit, guard e renderer.",
   "properties": {
     "schemaVersion": {
-      "default": "0.3.0",
+      "default": "0.4.0",
       "enum": [
         "0.1.0",
         "0.2.0",
-        "0.3.0"
+        "0.3.0",
+        "0.4.0"
       ],
       "title": "Schemaversion",
       "type": "string"
     },
     "brand": {
       "$ref": "#/$defs/BrandInfo"
+    },
+    "identity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BrandIdentity"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "creativeDirection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CreativeDirection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "revision": {
       "$ref": "#/$defs/RevisionInfo"

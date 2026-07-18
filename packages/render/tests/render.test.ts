@@ -423,3 +423,24 @@ it("textFormat zero-padded usa dois dígitos quando minDigits é omitido", () =>
   expect(container.querySelector("[data-slot-content]")!.textContent).toBe("07");
   expect(payload.brandIr.compositionRules!.numbering.minDigits).toBeUndefined();
 });
+
+it("renderiza a superfície procedural atrás das camadas e recortada pelo canvas", () => {
+  const payload = fixturePayload();
+  payload.contentSpec.surface = {
+    kind: "technical-grid",
+    colorToken: "color.primary",
+    opacity: 0.14,
+    scalePx: 48,
+    weightPx: 1.5,
+    angleDeg: 0,
+  };
+  renderDocument(container, payload);
+
+  const surface = container.querySelector<HTMLElement>('[data-surface-kind="technical-grid"]')!;
+  expect(surface).not.toBeNull();
+  expect(surface.style.opacity).toBe("0.14");
+  expect(surface.style.backgroundImage).toContain("repeating-linear-gradient");
+  expect(surface.style.backgroundImage).toContain("48px");
+  expect(surface.style.zIndex).toBe("0");
+  expect(container.style.overflow).toBe("hidden");
+});

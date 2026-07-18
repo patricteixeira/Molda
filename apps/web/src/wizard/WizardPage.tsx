@@ -22,7 +22,7 @@ export function WizardPage() {
         <p className="product-kicker">Ambiente de marca</p>
         <h1>Instalar marca</h1>
         <p>
-          Converta manuais, logos e fontes em um sistema de criação que protege cada decisão da
+          Converta manuais, logos e fontes em um sistema de criação que orienta cada decisão da
           identidade.
         </p>
       </header>

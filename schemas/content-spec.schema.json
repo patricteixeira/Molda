@@ -47,19 +47,23 @@
               "minItems": 4,
               "prefixItems": [
                 {
-                  "minimum": 0,
+                  "maximum": 32768,
+                  "minimum": -32768,
                   "type": "integer"
                 },
                 {
-                  "minimum": 0,
+                  "maximum": 32768,
+                  "minimum": -32768,
                   "type": "integer"
                 },
                 {
                   "exclusiveMinimum": 0,
+                  "maximum": 32768,
                   "type": "integer"
                 },
                 {
                   "exclusiveMinimum": 0,
+                  "maximum": 32768,
                   "type": "integer"
                 }
               ],
@@ -316,6 +320,63 @@
       "title": "LayerOverride",
       "type": "object"
     },
+    "SurfaceStyle": {
+      "additionalProperties": false,
+      "description": "Textura procedural de uma peça, editável e recortada pelo canvas.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "paper-grain",
+            "linear-rhythm",
+            "technical-grid",
+            "point-field",
+            "concentric-rings"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "colorToken": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Colortoken",
+          "type": "string"
+        },
+        "opacity": {
+          "default": 0.12,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Opacity",
+          "type": "number"
+        },
+        "scalePx": {
+          "default": 48.0,
+          "maximum": 512.0,
+          "minimum": 4.0,
+          "title": "Scalepx",
+          "type": "number"
+        },
+        "weightPx": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "maximum": 32.0,
+          "title": "Weightpx",
+          "type": "number"
+        },
+        "angleDeg": {
+          "default": 0.0,
+          "maximum": 180.0,
+          "minimum": -180.0,
+          "title": "Angledeg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "colorToken"
+      ],
+      "title": "SurfaceStyle",
+      "type": "object"
+    },
     "TextValue": {
       "additionalProperties": false,
       "description": "Conteúdo textual fornecido para um slot.",
@@ -387,6 +448,17 @@
       },
       "title": "Overrides",
       "type": "object"
+    },
+    "surface": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SurfaceStyle"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

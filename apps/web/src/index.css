@@ -1,4 +1,4 @@
-@layer reset, tokens, base, chrome, layout, components, states, motion, responsive;
+@layer reset, tokens, base, chrome, layout, components, states, motion, responsive, craft;
 
 @font-face {
   font-family: "Outfit Variable";
@@ -6,6 +6,110 @@
   font-display: swap;
   font-weight: 100 900;
   src: url("@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2") format("woff2-variations");
+}
+
+@layer identity-direction {
+  .identity-review {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .identity-review-intro,
+  .identity-review-source {
+    margin: 0;
+    color: var(--ui-muted);
+    line-height: 1.55;
+  }
+
+  .identity-review label {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .identity-review label > span {
+    font-weight: 720;
+  }
+
+  .identity-review textarea {
+    width: 100%;
+    min-height: 7rem;
+    resize: vertical;
+  }
+
+  .identity-review label:first-of-type textarea {
+    min-height: 10rem;
+  }
+
+  .direction-panel {
+    display: grid;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--editor-rule-strong);
+    padding: 1rem;
+    background: var(--editor-panel-deep);
+  }
+
+  .direction-panel h3 {
+    color: var(--editor-ink);
+    font-size: 1rem;
+    line-height: 1.15;
+  }
+
+  .direction-summary,
+  .direction-rationale {
+    margin: 0;
+    color: #c0c3c8;
+    font-size: 0.68rem;
+    line-height: 1.55;
+  }
+
+  .direction-rationale {
+    display: grid;
+    gap: 0.4rem;
+    padding-left: 1rem;
+  }
+
+  .direction-panel > button {
+    min-height: 2.75rem;
+    border-radius: 0;
+    background: var(--editor-accent);
+    color: #171a20;
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+
+  .surface-controls {
+    display: grid;
+    gap: 0.75rem;
+    border-top: 1px solid var(--editor-rule);
+    padding-top: 0.75rem;
+  }
+
+  .surface-controls summary {
+    min-height: 2.75rem;
+    color: var(--editor-ink);
+    cursor: pointer;
+    font-size: 0.68rem;
+    font-weight: 720;
+    line-height: 2.75rem;
+  }
+
+  .surface-controls label {
+    display: grid;
+    gap: 0.35rem;
+    color: #c0c3c8;
+    font-size: 0.67rem;
+  }
+
+  .surface-controls input,
+  .surface-controls select {
+    width: 100%;
+    min-height: 2.75rem;
+    border: 1px solid var(--editor-rule-strong);
+    border-radius: 0;
+    padding: 0.5rem 0.6rem;
+    background: var(--editor-panel);
+    color: var(--editor-ink);
+  }
 }
 
 @layer layout {
@@ -121,10 +225,10 @@
     display: grid;
     min-width: 0;
     min-height: 15rem;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: 1fr auto;
     gap: var(--space-5);
     border: 1px solid var(--ui-rule-strong);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     padding: var(--space-5);
     background: var(--ui-surface-raised);
     box-shadow: 0 1rem 2.5rem var(--ui-shadow);
@@ -137,12 +241,11 @@
   }
 
   .kit-workflow-card-primary {
-    border-color: var(--ui-accent);
-    background: var(--ui-accent);
-    color: var(--ui-on-accent);
+    border-color: var(--brand-signal, var(--ui-accent));
+    background: var(--brand-signal, var(--ui-accent));
+    color: var(--brand-on-signal, var(--ui-on-accent));
   }
 
-  .kit-workflow-index,
   .kit-workflow-action {
     font-family: "JetBrains Mono Variable", monospace;
     font-size: 0.72rem;
@@ -150,7 +253,7 @@
     text-transform: uppercase;
   }
 
-  .kit-workflow-card > span:nth-child(2) {
+  .kit-workflow-card > span:first-child {
     display: grid;
     align-content: center;
     gap: var(--space-2);
@@ -178,7 +281,7 @@
 
   .kit-workflow-card-primary:hover,
   .kit-workflow-card-primary:focus-visible {
-    box-shadow: 0 1.25rem 3rem color-mix(in srgb, var(--ui-accent) 25%, transparent);
+    box-shadow: 0 1.25rem 3rem color-mix(in srgb, var(--brand-signal, var(--ui-accent)) 25%, transparent);
     transform: translateY(-0.2rem);
   }
 
@@ -705,6 +808,452 @@
   @media (prefers-reduced-motion: reduce) {
     .kit-workflow-card {
       transition: none;
+    }
+  }
+}
+
+/* Abertura de Marca: o chassi do Molda permanece neutro e deixa a identidade
+   ativa atravessar a interface apenas onde ela comunica contexto. */
+@layer craft {
+  .app-shell:not(.app-shell-editor)::before {
+    position: fixed;
+    z-index: 40;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    background: var(--ui-accent);
+    content: "";
+    pointer-events: none;
+  }
+
+  .app-nav {
+    min-height: 4.75rem;
+  }
+
+  .wordmark-mark {
+    width: 2.5rem;
+    height: 1.75rem;
+    border-color: var(--ui-accent);
+    border-radius: 0.2rem;
+    background: var(--ui-accent);
+    color: var(--ui-on-accent);
+    box-shadow: 0.35rem 0.35rem 0 color-mix(in srgb, var(--ui-accent) 18%, transparent);
+  }
+
+  .wordmark-mark::after {
+    background: color-mix(in srgb, var(--ui-on-accent) 40%, transparent);
+  }
+
+  .app-nav-links a {
+    text-decoration: none;
+  }
+
+  .app-nav-links a[aria-current="page"] {
+    box-shadow: inset 0 -2px 0 var(--ui-accent);
+  }
+}
+
+@layer craft {
+  .brand-reactive-page {
+    --brand-primary: var(--ui-accent);
+    --brand-background: var(--ui-surface);
+    --brand-text: var(--ui-ink);
+    --brand-on-primary: var(--ui-on-accent);
+    --brand-signal: var(--ui-accent);
+    --brand-on-signal: var(--ui-on-accent);
+    position: relative;
+    isolation: isolate;
+  }
+
+  .brand-reactive-page > :not(.brand-aperture) {
+    position: relative;
+    z-index: 1;
+  }
+
+  .brand-aperture {
+    position: absolute;
+    z-index: 0;
+    top: clamp(1.5rem, 4vw, 4rem);
+    right: max(-1rem, calc((100vw - 92rem) / -2));
+    display: grid;
+    width: min(44vw, 42rem);
+    height: clamp(17rem, 34vw, 32rem);
+    grid-template-columns: 5fr 3fr 2fr;
+    gap: clamp(0.2rem, 0.7vw, 0.65rem);
+    opacity: 0.82;
+    overflow: hidden;
+    pointer-events: none;
+    transform-origin: right center;
+  }
+
+  .brand-aperture span {
+    display: block;
+  }
+
+  .brand-aperture span:first-child {
+    background: var(--brand-primary);
+    clip-path: polygon(28% 0, 100% 0, 72% 100%, 0 100%);
+  }
+
+  .brand-aperture span:nth-child(2) {
+    background: var(--brand-background);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-text) 32%, transparent);
+    clip-path: polygon(22% 0, 100% 0, 78% 100%, 0 100%);
+  }
+
+  .brand-aperture span:last-child {
+    background: var(--brand-text);
+    clip-path: polygon(16% 0, 100% 0, 84% 100%, 0 100%);
+  }
+
+  .campaign-continuity {
+    display: grid;
+    grid-template-columns: auto minmax(2rem, 1fr) auto minmax(2rem, 1fr) auto;
+    gap: var(--space-4);
+    align-items: center;
+    border-bottom: 1px solid var(--ui-rule);
+    padding: var(--space-5) 0;
+  }
+
+  .campaign-continuity > span {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .campaign-continuity strong {
+    font-size: clamp(0.95rem, 1.3vw, 1.15rem);
+    letter-spacing: -0.025em;
+  }
+
+  .campaign-continuity small {
+    color: var(--ui-muted);
+    font-size: 0.78rem;
+  }
+
+  .campaign-continuity i {
+    height: 1px;
+    background: linear-gradient(90deg, var(--ui-rule), var(--brand-signal), var(--ui-rule));
+  }
+
+  .docx-brand-flow {
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--ui-rule-strong);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--ui-surface-raised) 82%, transparent);
+    box-shadow: 0 1.5rem 4rem var(--ui-shadow);
+    transition: grid-template-columns var(--motion-base) var(--ease-out);
+  }
+
+  .docx-brand-flow:has(.docx-upload-card[data-active]) {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
+  }
+
+  .docx-brand-flow:has(.docx-plan-card[data-active]) {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.45fr) minmax(0, 0.8fr);
+  }
+
+  .docx-brand-flow:has(.docx-download-card[data-active]) {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1.45fr);
+  }
+}
+
+@layer craft {
+  .kit-brand-name {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    max-width: 24ch;
+    color: var(--ui-ink);
+    font-size: 0.95rem;
+    font-weight: 720;
+    letter-spacing: -0.015em;
+    overflow-wrap: anywhere;
+  }
+
+  .kit-brand-name::before {
+    width: 0.65rem;
+    height: 0.65rem;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--ui-ink) 28%, transparent);
+    background: var(--brand-primary);
+    content: "";
+  }
+
+  .brand-material-summary {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    border-top: 1px solid var(--ui-rule);
+    border-bottom: 1px solid var(--ui-rule);
+    padding: var(--space-3) 0;
+  }
+
+  .brand-material-summary > span:last-child {
+    display: grid;
+    min-width: 0;
+    gap: 0.1rem;
+  }
+
+  .brand-material-summary small {
+    color: var(--ui-muted);
+    font-size: 0.7rem;
+  }
+
+  .brand-material-summary strong {
+    overflow: hidden;
+    font-size: 0.9rem;
+    font-weight: 620;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brand-material-swatches {
+    display: grid;
+    width: 4.8rem;
+    height: 1.65rem;
+    flex: 0 0 auto;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 2px;
+  }
+
+  .brand-material-swatches i:first-child {
+    background: var(--brand-primary);
+  }
+
+  .brand-material-swatches i:nth-child(2) {
+    background: var(--brand-background);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-text) 30%, transparent);
+  }
+
+  .brand-material-swatches i:last-child {
+    background: var(--brand-text);
+  }
+
+  .kit-workflows {
+    position: relative;
+  }
+
+  .kit-workflows::before {
+    width: clamp(3rem, 8vw, 7rem);
+    height: 0.22rem;
+    background: var(--brand-signal);
+    content: "";
+  }
+
+  .kit-workflow-card,
+  .kit-card {
+    box-shadow: none;
+  }
+
+  .kit-workflow-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kit-workflow-card::after {
+    position: absolute;
+    right: -12%;
+    bottom: -48%;
+    width: 54%;
+    aspect-ratio: 1;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    content: "";
+    opacity: 0.12;
+    pointer-events: none;
+    transform: scale(0.84);
+    transition: transform 600ms var(--ease-out);
+  }
+
+  .kit-workflow-card:hover::after,
+  .kit-workflow-card:focus-visible::after {
+    transform: scale(1.12);
+  }
+
+  .kit-card:hover,
+  .kit-card:focus-visible {
+    border-color: var(--brand-signal);
+  }
+
+  .campaign-library,
+  .campaign-form-panel {
+    border-radius: var(--radius-sm);
+    box-shadow: none;
+  }
+
+  .campaign-form-panel {
+    border-top: 0.22rem solid var(--brand-signal);
+  }
+
+  .campaign-library li > button[data-active] {
+    background: color-mix(in srgb, var(--brand-signal) 14%, var(--ui-surface-raised));
+    color: var(--ui-ink);
+    box-shadow: inset 0.2rem 0 0 var(--brand-signal);
+  }
+
+  .campaign-form input:focus,
+  .campaign-form textarea:focus {
+    border-color: var(--brand-signal);
+  }
+
+  .campaign-piece {
+    border-radius: var(--radius-sm);
+    box-shadow: none;
+  }
+
+  .docx-upload-card,
+  .docx-plan-card,
+  .docx-download-card {
+    min-height: 31rem;
+    grid-template-rows: 1fr;
+    border: 0;
+    border-radius: 0;
+    padding: clamp(1.35rem, 2.5vw, 2.5rem);
+    background: transparent;
+    box-shadow: none;
+    opacity: 0.62;
+    transition:
+      background-color var(--motion-base) var(--ease-out),
+      opacity var(--motion-base) var(--ease-out),
+      transform var(--motion-base) var(--ease-out);
+  }
+
+  .docx-plan-card,
+  .docx-download-card {
+    border-left: 1px solid var(--ui-rule);
+  }
+
+  .docx-brand-flow section[data-active] {
+    background: color-mix(in srgb, var(--brand-signal) 10%, var(--ui-surface-raised));
+    opacity: 1;
+  }
+
+  .docx-brand-flow section[data-complete] {
+    opacity: 0.82;
+  }
+
+  .docx-stage-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--ui-ink);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .docx-stage-label::before {
+    width: 0.55rem;
+    height: 0.55rem;
+    flex: 0 0 auto;
+    background: var(--brand-signal);
+    content: "";
+  }
+
+  .docx-step-number {
+    display: none;
+  }
+
+  .brand-reactive-editor {
+    --editor-accent: var(--brand-signal);
+    --editor-accent-bright: color-mix(in srgb, var(--brand-signal) 76%, var(--brand-on-signal));
+  }
+
+  .brand-reactive-editor .editor-toolbar {
+    box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--brand-signal) 72%, transparent);
+  }
+
+  .brand-reactive-editor .editor-export-jump {
+    background: var(--brand-signal);
+    color: var(--brand-on-signal);
+  }
+}
+
+@layer craft {
+  @media (prefers-reduced-motion: no-preference) {
+    .kit-card .kit-proof {
+      transition: transform 700ms var(--ease-out);
+    }
+
+    .kit-card:hover .kit-proof,
+    .kit-card:focus-visible .kit-proof {
+      transform: scale(1.018);
+    }
+
+    .docx-brand-flow section[data-active] {
+      transform: translateY(-0.15rem);
+    }
+  }
+}
+
+@layer craft {
+  @media (max-width: 64rem) {
+    .brand-aperture {
+      right: -1rem;
+      width: min(64vw, 34rem);
+      height: 18rem;
+      opacity: 0.12;
+    }
+
+    .docx-brand-flow,
+    .docx-brand-flow:has(.docx-upload-card[data-active]),
+    .docx-brand-flow:has(.docx-plan-card[data-active]),
+    .docx-brand-flow:has(.docx-download-card[data-active]) {
+      grid-template-columns: 1fr;
+    }
+
+    .docx-upload-card,
+    .docx-plan-card,
+    .docx-download-card {
+      min-height: 20rem;
+      opacity: 0.78;
+    }
+
+    .docx-plan-card,
+    .docx-download-card {
+      border-top: 1px solid var(--ui-rule);
+      border-left: 0;
+    }
+  }
+
+  @media (max-width: 44rem) {
+    .brand-aperture {
+      top: 1rem;
+      width: 78vw;
+      height: 13rem;
+      opacity: 0.12;
+    }
+
+    .campaign-continuity {
+      grid-template-columns: 1fr;
+      gap: var(--space-3);
+    }
+
+    .campaign-continuity i {
+      display: none;
+    }
+
+    .campaign-continuity > span {
+      grid-template-columns: minmax(8rem, auto) 1fr;
+      align-items: baseline;
+      gap: var(--space-3);
+    }
+
+    .kit-workflow-card::after {
+      right: -8%;
+      bottom: -34%;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kit-workflow-card::after,
+    .kit-card .kit-proof,
+    .docx-brand-flow,
+    .docx-brand-flow section {
+      transition: none;
+      transform: none;
     }
   }
 }
@@ -1566,25 +2115,25 @@
 @layer tokens {
   :root {
     color-scheme: light dark;
-    --ui-canvas: #e9edf0;
-    --ui-surface: #f8f9f8;
-    --ui-surface-raised: #ffffff;
-    --ui-ink: #11161d;
-    --ui-muted: #5a6572;
-    --ui-rule: #c8d0d8;
-    --ui-rule-strong: #929daa;
-    --ui-accent: #1844d8;
-    --ui-on-accent: #ffffff;
-    --ui-accent-soft: #dfe6ff;
+    --ui-canvas: #e7e7e2;
+    --ui-surface: #f2f2ed;
+    --ui-surface-raised: #faf9f4;
+    --ui-ink: #151719;
+    --ui-muted: #5e6264;
+    --ui-rule: #c5c7c3;
+    --ui-rule-strong: #858b8d;
+    --ui-accent: #d85a3a;
+    --ui-on-accent: #151719;
+    --ui-accent-soft: #f2d9d0;
     --ui-danger: #a5322a;
     --ui-danger-soft: #f9e7e4;
     --ui-warning: #8a4d00;
     --ui-warning-soft: #fff1d6;
     --ui-success: #176448;
     --ui-success-soft: #dcf2e8;
-    --ui-stage: #121820;
-    --ui-stage-muted: #27313d;
-    --ui-shadow: rgb(30 54 82 / 14%);
+    --ui-stage: #101315;
+    --ui-stage-muted: #292e31;
+    --ui-shadow: rgb(41 44 46 / 14%);
     --space-1: 0.25rem;
     --space-2: 0.5rem;
     --space-3: 0.75rem;
@@ -1607,24 +2156,24 @@
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --ui-canvas: #0c1117;
-      --ui-surface: #141b23;
-      --ui-surface-raised: #1a222c;
-      --ui-ink: #f1f4f7;
-      --ui-muted: #a8b2bd;
-      --ui-rule: #303a46;
-      --ui-rule-strong: #5b6877;
-      --ui-accent: #91a5ff;
-      --ui-on-accent: #0b1020;
-      --ui-accent-soft: #222f5a;
+      --ui-canvas: #0b0d0f;
+      --ui-surface: #131619;
+      --ui-surface-raised: #191d20;
+      --ui-ink: #f2f0e9;
+      --ui-muted: #a3a49e;
+      --ui-rule: #303437;
+      --ui-rule-strong: #666c6e;
+      --ui-accent: #ff6a45;
+      --ui-on-accent: #18100d;
+      --ui-accent-soft: #40251d;
       --ui-danger: #ff9b92;
       --ui-danger-soft: #3b2223;
       --ui-warning: #f5bd66;
       --ui-warning-soft: #3b2b16;
       --ui-success: #76d6aa;
       --ui-success-soft: #18382c;
-      --ui-stage: #080c11;
-      --ui-stage-muted: #1e2834;
+      --ui-stage: #07090a;
+      --ui-stage-muted: #202528;
       --ui-shadow: rgb(0 0 0 / 30%);
     }
   }
@@ -1636,8 +2185,11 @@
     min-height: 100dvh;
     overflow-x: hidden;
     background:
-      radial-gradient(circle at 14% 6%, rgb(24 68 216 / 9%), transparent 28rem),
-      radial-gradient(circle at 86% 32%, rgb(79 98 123 / 8%), transparent 34rem),
+      linear-gradient(
+        118deg,
+        color-mix(in srgb, var(--ui-accent) 7%, transparent) 0 12vw,
+        transparent 12vw 100%
+      ),
       var(--ui-canvas);
     color: var(--ui-ink);
     font-family: "Outfit Variable", "Segoe UI", sans-serif;
@@ -1645,7 +2197,7 @@
     line-height: 1.5;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
-    -webkit-tap-highlight-color: rgb(24 68 216 / 18%);
+    -webkit-tap-highlight-color: color-mix(in srgb, var(--ui-accent) 22%, transparent);
   }
 
   h1,

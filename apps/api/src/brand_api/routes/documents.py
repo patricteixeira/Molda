@@ -14,7 +14,7 @@ from brand_api.db import new_id
 from brand_api.models import BrandRevision, Document, Job
 from brand_api.native_templates import CURRENT_NATIVE_TEMPLATE_VERSION
 from brand_runtime import BrandIR, ContentSpec, LayoutSpec, run_static_checks
-from brand_runtime.kit.models import ImageValue
+from brand_runtime.kit.models import ImageValue, SurfaceStyle
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 
@@ -30,6 +30,7 @@ class DocumentBody(BaseModel):
     brand_revision_id: str = Field(min_length=1)
     values: dict[str, Any]
     overrides: dict[str, Any] = Field(default_factory=dict)
+    surface: SurfaceStyle | None = None
 
 
 class ExportBody(BaseModel):

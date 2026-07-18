@@ -16,10 +16,16 @@ npm run build
 
 O pacote não busca assets na internet em runtime. Imagens, logos e fontes são resolvidos sob `assetsBaseUrl`; apenas o placeholder PNG interno em data URI é aceito fora dessa base.
 
-## Composição editorial 0.3
+## Composição editorial 0.3 e direção 0.4
 
 Quando o Brand IR publica `compositionRules`, o renderer aplica o modo claro ou escuro declarado pelo layout, resolve variantes de logo por alias e monta `lockedLayers` antes dos slots editáveis. O vocabulário fixo inclui formas, o motivo determinístico `diagonal-lines` e assets internos — sem CSS livre ou URLs externas.
 
 Slots podem declarar cor, alinhamento, caixa alta, espaçamento, opacidade, ordem, texto contornado, numeração com zero e uma cor de ênfase. A ênfase é criada com nós de texto e um único `span` na primeira ocorrência exata; durante a edição, uma referência que deixou de existir não injeta marcação e fica para o Brand Guard bloquear na exportação.
 
 Payloads legados sem `schemaVersion`, `compositionMode`, layers ou campos editoriais mantêm o comportamento e a ordem visual anteriores.
+
+O Brand IR 0.4 pode transportar a identidade confirmada e uma direção criativa
+explicável. O Content Spec aceita uma superfície procedural opcional, renderizada
+atrás das camadas sem buscar assets externos. Overrides editoriais usam um
+domínio próprio de geometria: posições negativas e dimensões maiores que o
+canvas criam sangria; o canvas recorta a saída final de forma determinística.

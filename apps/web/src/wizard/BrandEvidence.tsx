@@ -18,7 +18,7 @@ const evidence = [
 const notes = [
   "Os materiais existentes são tratados como fonte de verdade.",
   "Ambiguidades viram escolhas explícitas antes da publicação.",
-  "O kit final limita o improviso sem limitar a criação.",
+  "O kit reduz o trabalho improvisado sem limitar a autoria.",
 ]
 
 export function BrandEvidence() {

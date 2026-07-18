@@ -29,6 +29,7 @@ const BASE_PATH_SEGMENT = /^[a-z\d._~-]+$/i;
 const MAX_Z_INDEX = 20;
 const MAX_STROKE_WIDTH_PX = 20;
 const MAX_LAYER_SPACING_PX = 256;
+const MAX_EDITOR_AREA_PX = 32_768;
 const MIN_LETTER_SPACING_EM = -0.1;
 const MAX_LETTER_SPACING_EM = 0.5;
 const MIN_EDITOR_LETTER_SPACING_EM = -0.25;
@@ -118,6 +119,29 @@ function validateArea(
     y + height > canvas.heightPx
   ) {
     invalid(`${field} deve ser positiva e permanecer dentro do canvas.`);
+  }
+  return [x, y, width, height];
+}
+
+function validateEditorArea(raw: unknown, field: string): [number, number, number, number] {
+  if (!Array.isArray(raw) || raw.length !== 4) {
+    invalid(`${field} deve conter quatro inteiros.`);
+  }
+  const [x, y, width, height] = raw.map((value, item) => integer(value, `${field}[${item}]`));
+  if (
+    x < -MAX_EDITOR_AREA_PX ||
+    x > MAX_EDITOR_AREA_PX ||
+    y < -MAX_EDITOR_AREA_PX ||
+    y > MAX_EDITOR_AREA_PX ||
+    width <= 0 ||
+    width > MAX_EDITOR_AREA_PX ||
+    height <= 0 ||
+    height > MAX_EDITOR_AREA_PX
+  ) {
+    invalid(
+      `${field} deve usar posições entre -${MAX_EDITOR_AREA_PX} e ${MAX_EDITOR_AREA_PX} ` +
+        `e dimensões entre 1 e ${MAX_EDITOR_AREA_PX}.`,
+    );
   }
   return [x, y, width, height];
 }
@@ -363,21 +387,101 @@ function validateCompositionRules(raw: unknown, colors: object, assets: object):
   }
 }
 
+function validateIdentityDirection(ir: Record<string, unknown>): void {
+  if (ir.identity !== undefined && ir.identity !== null) {
+    if (ir.schemaVersion !== "0.4.0") {
+      invalid("brandIr.identity exige schemaVersion 0.4.0 explícita.");
+    }
+    const identity = record(ir.identity, "brandIr.identity");
+    onlyFields(
+      identity,
+      ["essence", "personality", "voice", "avoid", "evidence"],
+      "brandIr.identity",
+    );
+    nonEmptyString(identity.essence, "brandIr.identity.essence");
+    for (const field of ["personality", "voice", "avoid"] as const) {
+      if (identity[field] !== undefined && typeof identity[field] !== "string") {
+        invalid(`brandIr.identity.${field} deve ser texto.`);
+      }
+    }
+  }
+  if (ir.creativeDirection === undefined || ir.creativeDirection === null) return;
+  if (ir.schemaVersion !== "0.4.0" || ir.identity === undefined || ir.identity === null) {
+    invalid("brandIr.creativeDirection exige identity no schemaVersion 0.4.0.");
+  }
+  const direction = record(ir.creativeDirection, "brandIr.creativeDirection");
+  onlyFields(
+    direction,
+    [
+      "energy",
+      "geometry",
+      "density",
+      "formality",
+      "materiality",
+      "contrast",
+      "composition",
+      "surface",
+      "scaleContrast",
+      "negativeSpace",
+      "bleed",
+      "surfaceDensity",
+      "rationalePt",
+    ],
+    "brandIr.creativeDirection",
+  );
+  for (const name of ["energy", "geometry", "density", "formality", "materiality", "contrast"]) {
+    const axis = record(direction[name], `brandIr.creativeDirection.${name}`);
+    onlyFields(axis, ["value", "confidence", "evidenceTerms"], `brandIr.creativeDirection.${name}`);
+    boundedNumber(axis.value, `brandIr.creativeDirection.${name}.value`, -1, 1);
+    boundedNumber(axis.confidence, `brandIr.creativeDirection.${name}.confidence`, 0, 1);
+    if (axis.evidenceTerms !== undefined && !Array.isArray(axis.evidenceTerms)) {
+      invalid(`brandIr.creativeDirection.${name}.evidenceTerms deve ser um array.`);
+    }
+  }
+  if (
+    direction.composition !== "contemplative" &&
+    direction.composition !== "asymmetric" &&
+    direction.composition !== "modular" &&
+    direction.composition !== "expansive" &&
+    direction.composition !== "layered"
+  ) {
+    invalid("brandIr.creativeDirection.composition é inválida.");
+  }
+  if (
+    direction.surface !== "none" &&
+    direction.surface !== "paper-grain" &&
+    direction.surface !== "linear-rhythm" &&
+    direction.surface !== "technical-grid" &&
+    direction.surface !== "point-field" &&
+    direction.surface !== "concentric-rings"
+  ) {
+    invalid("brandIr.creativeDirection.surface é inválida.");
+  }
+  for (const name of ["scaleContrast", "negativeSpace", "bleed", "surfaceDensity"]) {
+    boundedNumber(direction[name], `brandIr.creativeDirection.${name}`, 0, 1);
+  }
+  if (!Array.isArray(direction.rationalePt) || direction.rationalePt.length === 0) {
+    invalid("brandIr.creativeDirection.rationalePt deve conter justificativas.");
+  }
+}
+
 function validateBrandIr(raw: unknown): BrandIr {
   const ir = record(raw, "brandIr");
   if (
     ir.schemaVersion !== undefined &&
     ir.schemaVersion !== "0.1.0" &&
     ir.schemaVersion !== "0.2.0" &&
-    ir.schemaVersion !== "0.3.0"
+    ir.schemaVersion !== "0.3.0" &&
+    ir.schemaVersion !== "0.4.0"
   ) {
     invalid("brandIr.schemaVersion é inválida.");
   }
   if (ir.compositionRules !== undefined && ir.compositionRules !== null) {
-    if (ir.schemaVersion !== "0.3.0") {
-      invalid("brandIr.compositionRules exige schemaVersion 0.3.0 explícita.");
+    if (ir.schemaVersion !== "0.3.0" && ir.schemaVersion !== "0.4.0") {
+      invalid("brandIr.compositionRules exige schemaVersion 0.3.0 ou 0.4.0 explícita.");
     }
   }
+  validateIdentityDirection(ir);
   const revision = record(ir.revision, "brandIr.revision");
   nonEmptyString(revision.id, "brandIr.revision.id");
 
@@ -828,7 +932,6 @@ function validateLayerOverride(
   raw: unknown,
   field: string,
   element: Slot | LockedLayer,
-  layout: LayoutSpec,
   ir: BrandIr,
 ): LayerOverride {
   const override = record(raw, field);
@@ -859,7 +962,7 @@ function validateLayerOverride(
   const present = (name: string): boolean =>
     override[name] !== undefined && override[name] !== null;
 
-  if (present("area")) validateArea(override.area, `${field}.area`, layout.canvas);
+  if (present("area")) validateEditorArea(override.area, `${field}.area`);
   if (present("opacity")) boundedNumber(override.opacity, `${field}.opacity`, 0, 1);
   if (present("hidden") && typeof override.hidden !== "boolean") {
     invalid(`${field}.hidden deve ser booleano.`);
@@ -967,7 +1070,11 @@ function validateLayerOverride(
 
 function validateContent(raw: unknown, layout: LayoutSpec, ir: BrandIr): ContentSpec {
   const content = record(raw, "contentSpec");
-  onlyFields(content, ["layoutId", "brandRevisionId", "values", "overrides"], "contentSpec");
+  onlyFields(
+    content,
+    ["layoutId", "brandRevisionId", "values", "overrides", "surface"],
+    "contentSpec",
+  );
   const layoutId = nonEmptyString(content.layoutId, "contentSpec.layoutId");
   if (layoutId !== layout.id) invalid("contentSpec.layoutId diverge de layoutSpec.id.");
   const revision = nonEmptyString(content.brandRevisionId, "contentSpec.brandRevisionId");
@@ -997,7 +1104,29 @@ function validateContent(raw: unknown, layout: LayoutSpec, ir: BrandIr): Content
   for (const id of Object.keys(overrides).sort()) {
     const element = elements.get(id);
     if (!element) invalid(`contentSpec.overrides.${id} referencia camada desconhecida.`);
-    validateLayerOverride(overrides[id], `contentSpec.overrides.${id}`, element, layout, ir);
+    validateLayerOverride(overrides[id], `contentSpec.overrides.${id}`, element, ir);
+  }
+  if (content.surface !== undefined && content.surface !== null) {
+    const surface = record(content.surface, "contentSpec.surface");
+    onlyFields(
+      surface,
+      ["kind", "colorToken", "opacity", "scalePx", "weightPx", "angleDeg"],
+      "contentSpec.surface",
+    );
+    if (
+      surface.kind !== "paper-grain" &&
+      surface.kind !== "linear-rhythm" &&
+      surface.kind !== "technical-grid" &&
+      surface.kind !== "point-field" &&
+      surface.kind !== "concentric-rings"
+    ) {
+      invalid("contentSpec.surface.kind é inválido.");
+    }
+    knownKey(surface.colorToken, "contentSpec.surface.colorToken", ir.colors, "cor");
+    boundedNumber(surface.opacity, "contentSpec.surface.opacity", 0, 1);
+    boundedNumber(surface.scalePx, "contentSpec.surface.scalePx", 4, 512);
+    boundedNumber(surface.weightPx, "contentSpec.surface.weightPx", Number.EPSILON, 32);
+    boundedNumber(surface.angleDeg, "contentSpec.surface.angleDeg", -180, 180);
   }
   return raw as ContentSpec;
 }

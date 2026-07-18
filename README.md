@@ -79,6 +79,15 @@ moldura, padrão, hierarquia, contraste e logo adequada ao fundo permanecem
 travados por construção. A decisão está registrada na
 [`ADR 0010`](docs/adr/0010-gramatica-de-composicao-editorial.md).
 
+O Brand IR 0.4 acrescenta a camada que faltava entre identidade e composição:
+essência, personalidade, voz e limites de expressão são extraídos localmente
+como candidatos, revisados pela pessoa e convertidos numa direção explicável.
+Essa direção altera escala, densidade, espaço vazio, sangria e superfície — não
+apenas cor e fonte. Sem evidência suficiente, o Molda não inventa um estilo
+genérico. Todo esse fluxo funciona offline e sem API key. A decisão e os limites
+estão no
+[`ADR 0015`](docs/adr/0015-direcao-criativa-local-e-geometria-livre.md).
+
 ## Fluxos recorrentes
 
 Além da edição de uma peça por vez, o kit oferece dois fluxos pensados para o
@@ -104,9 +113,17 @@ tipografia editorial, grade assimétrica e um único acento funcional. A interfa
 é responsiva, oferece modos claro e escuro conforme a preferência do sistema e
 reduz o movimento quando solicitado pelo navegador.
 
+No editor, qualquer camada pode ser arrastada, redimensionada e sangrada além
+do canvas. A direção confirmada da marca também pode propor uma estrutura e uma
+superfície procedural específicas; são pontos de partida editáveis, nunca
+travas. O canvas continua representando o corte exato do arquivo exportado.
+
 As transições e os comportamentos de rolagem usam GSAP como aprimoramento
 progressivo: conteúdo, navegação e ações continuam disponíveis sem depender da
 animação. As fontes da interface são servidas localmente pelo próprio app.
+A direção, os tokens dinâmicos, os contratos de motion e os critérios de qualidade
+estão documentados em
+[`Abertura de Marca`](docs/design/2026-07-18-abertura-de-marca.md).
 
 ## Estrutura do repositório
 

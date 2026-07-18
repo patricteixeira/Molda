@@ -31,6 +31,10 @@ def test_engine_walking_skeleton(brand_package, tmp_path):
         json.dumps(
             {
                 "values": {
+                    "identity.expression": {
+                        **first("identity.expression"),
+                        "essence": "Clareza artesanal para quem precisa criar.",
+                    },
                     "color.primary": first("color.primary"),
                     "color.background": "#FFFFFF",
                     "color.text": "#1A1A1A",

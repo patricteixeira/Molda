@@ -7,7 +7,9 @@ import type {
   LayoutSpec,
   Slot,
   SlotValue,
+  SurfaceStyle,
 } from "../api/types"
+import { DirectionPanel } from "./DirectionPanel"
 import { exactOccurrenceCount } from "./emphasis"
 import { elementArea, elementLabel, elementOpacity, elementZIndex, findEditorElement } from "./layerModel"
 
@@ -20,6 +22,9 @@ interface SlotFormProps {
   onChange(slotId: string, value: SlotValue | null): void
   onPatch(elementId: string, patch: Partial<LayerOverride>): void
   onReset(elementId: string): void
+  surface: SurfaceStyle | null
+  onSurfaceChange(surface: SurfaceStyle | null): void
+  onApplyDirection(): void
   disabled?: boolean
   onUploadingChange?(uploading: boolean): void
 }
@@ -31,6 +36,7 @@ type UploadState =
   | { phase: "error"; message: string }
 
 const IDLE_UPLOAD: UploadState = { phase: "idle" }
+const MAX_EDITOR_AREA_PX = 32_768
 
 function numberValue(value: string): number | null {
   const parsed = Number(value)
@@ -46,6 +52,9 @@ export function SlotForm({
   onChange,
   onPatch,
   onReset,
+  surface,
+  onSurfaceChange,
+  onApplyDirection,
   disabled = false,
   onUploadingChange,
 }: SlotFormProps): JSX.Element {
@@ -110,6 +119,13 @@ export function SlotForm({
   if (!element) {
     return (
       <aside className="slot-form layer-inspector">
+        <DirectionPanel
+          brandIr={brandIr}
+          surface={surface}
+          disabled={disabled || layout.profile === "doc-a4"}
+          onSurfaceChange={onSurfaceChange}
+          onApplyDirection={onApplyDirection}
+        />
         <p className="inspector-empty">Selecione uma camada no canvas ou na lista.</p>
       </aside>
     )
@@ -124,10 +140,12 @@ export function SlotForm({
     if (parsed === null) return
     const next = [...area] as [number, number, number, number]
     next[index] = Math.round(parsed)
-    if (index === 0) next[0] = Math.max(0, Math.min(next[0], layout.canvas.widthPx - next[2]))
-    if (index === 1) next[1] = Math.max(0, Math.min(next[1], layout.canvas.heightPx - next[3]))
-    if (index === 2) next[2] = Math.max(1, Math.min(next[2], layout.canvas.widthPx - next[0]))
-    if (index === 3) next[3] = Math.max(1, Math.min(next[3], layout.canvas.heightPx - next[1]))
+    if (index === 0 || index === 1) {
+      next[index] = Math.max(-MAX_EDITOR_AREA_PX, Math.min(next[index], MAX_EDITOR_AREA_PX))
+    }
+    if (index === 2 || index === 3) {
+      next[index] = Math.max(1, Math.min(next[index], MAX_EDITOR_AREA_PX))
+    }
     onPatch(element.id, { area: next })
   }
 
@@ -349,6 +367,13 @@ export function SlotForm({
 
   return (
     <form className="slot-form layer-inspector" onSubmit={(event) => event.preventDefault()}>
+      <DirectionPanel
+        brandIr={brandIr}
+        surface={surface}
+        disabled={disabled || layout.profile === "doc-a4"}
+        onSurfaceChange={onSurfaceChange}
+        onApplyDirection={onApplyDirection}
+      />
       <div className="panel-heading inspector-heading">
         <div>
           <p className="panel-kicker">Propriedades</p>
@@ -447,13 +472,17 @@ export function SlotForm({
 
       <section className="inspector-section">
         <h3>Posição e dimensões</h3>
+        <p className="field-guidance">
+          Valores negativos criam sangria; largura e altura podem ultrapassar o canvas.
+        </p>
         <div className="inspector-grid inspector-grid-four">
           {(["X", "Y", "L", "A"] as const).map((label, index) => (
             <label key={label}>
               <span>{label}</span>
               <input
                 type="number"
-                min="0"
+                min={index < 2 ? -MAX_EDITOR_AREA_PX : 1}
+                max={MAX_EDITOR_AREA_PX}
                 value={area[index]}
                 disabled={disabled}
                 onChange={(event) => setAreaValue(index, event.currentTarget.value)}

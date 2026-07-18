@@ -210,8 +210,17 @@ def _answers(draft_body: dict) -> dict:
         question = next(item for item in draft_body["questions"] if item["id"] == question_id)
         return question["candidates"][0]["value"]
 
+    identity = first("identity.expression")
+    if not identity["essence"].strip():
+        identity = {
+            **identity,
+            "essence": "A marca existe para tornar a criação mais clara.",
+            "personality": "Humana, precisa e acessível.",
+        }
+
     return {
         "values": {
+            "identity.expression": identity,
             "color.primary": first("color.primary"),
             "color.background": "#FFFFFF",
             "color.text": "#1A1A1A",

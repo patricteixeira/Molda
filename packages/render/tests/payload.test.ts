@@ -416,14 +416,42 @@ it("aceita overrides editoriais completos para os tipos compatíveis", () => {
   expect(parsePayload(payload)).toBe(payload);
 });
 
-it("rejeita overrides desconhecidos, fora do canvas e incompatíveis", () => {
+it("aceita uma superfície procedural fechada e rejeita tokens ou escalas inválidas", () => {
+  const payload = compositionPayload();
+  payload.contentSpec.surface = {
+    kind: "paper-grain",
+    colorToken: "color.accent",
+    opacity: 0.12,
+    scalePx: 44,
+    weightPx: 1.2,
+    angleDeg: 0,
+  };
+  expect(parsePayload(payload)).toBe(payload);
+
+  const unknownColor = compositionPayload();
+  unknownColor.contentSpec.surface = {
+    ...payload.contentSpec.surface!,
+    colorToken: "color.missing",
+  };
+  expect(() => parsePayload(unknownColor)).toThrowError(/surface.colorToken.*desconhecido/i);
+
+  const badScale = compositionPayload();
+  badScale.contentSpec.surface = { ...payload.contentSpec.surface!, scalePx: 900 };
+  expect(() => parsePayload(badScale)).toThrowError(/surface.scalePx.*4 e 512/i);
+});
+
+it("aceita sangria autoral e rejeita overrides desconhecidos, patológicos e incompatíveis", () => {
   const unknown = compositionPayload();
   unknown.contentSpec.overrides = { inexistente: { opacity: 0.5 } };
   expect(() => parsePayload(unknown)).toThrowError(/camada desconhecida/i);
 
-  const outside = compositionPayload();
-  outside.contentSpec.overrides = { headline: { area: [1000, 0, 100, 100] } };
-  expect(() => parsePayload(outside)).toThrowError(/dentro do canvas/i);
+  const bleed = compositionPayload();
+  bleed.contentSpec.overrides = { headline: { area: [-360, -90, 1800, 1500] } };
+  expect(parsePayload(bleed)).toBe(bleed);
+
+  const pathological = compositionPayload();
+  pathological.contentSpec.overrides = { headline: { area: [-32769, 0, 100, 100] } };
+  expect(() => parsePayload(pathological)).toThrowError(/entre -32768 e 32768/i);
 
   const font = compositionPayload();
   font.contentSpec.overrides = { headline: { fontToken: "font.inexistente" } };

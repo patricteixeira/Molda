@@ -22,6 +22,14 @@ proxy nginx da stack Docker.
 Alertas criativos aparecem como **Orientações da marca** e nunca desabilitam a
 exportação. A pessoa pode voltar ao campo sugerido ou baixar a peça como está.
 
+O editor aceita sangria real: logo, texto e imagem podem ter coordenadas
+negativas ou dimensões maiores que o canvas, por arraste, redimensionamento ou
+campos numéricos. A borda do canvas representa o corte final, não uma barreira
+de criação. O painel **Direção da marca** usa a identidade confirmada para
+propor estrutura, contraste de escala, espaço vazio e superfície procedural.
+Se o sinal semântico for fraco, não apresenta um preset universal disfarçado de
+sugestão personalizada.
+
 - `/marcas/{revisionId}/campanhas`: cria e reabre campanhas, edita a mensagem
   central, mostra todas as prévias vinculadas e exporta cada documento.
 - `/marcas/{revisionId}/word`: separa upload, plano e aplicação em três etapas;
@@ -30,6 +38,13 @@ exportação. A pessoa pode voltar ao campo sugerido ou baixar a peça como est�
 Ambos os fluxos usam labels visíveis, feedback assíncrono anunciado, alvo mínimo
 para toque, foco visível e uma ação primária por etapa. Opções avançadas ficam
 fora do caminho inicial.
+
+## Direção visual
+
+O chassi usa neutros industriais e deixa a revisão ativa projetar sua própria
+matéria cromática na interface. O contraste do sinal da marca é calculado sem
+alterar os tokens de origem. A especificação completa está em
+[`docs/design/2026-07-18-abertura-de-marca.md`](../../docs/design/2026-07-18-abertura-de-marca.md).
 
 ## E2E
 

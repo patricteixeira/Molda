@@ -9,6 +9,7 @@ from brand_runtime.kit.models import (
     Background,
     Canvas,
     ContentSpec,
+    LayerOverride,
     LayoutSpec,
     MotifLayer,
     ShapeLayer,
@@ -88,6 +89,14 @@ def test_content_spec_round_trip():
     data = json.loads(cs.model_dump_json(by_alias=True))
     assert data["layoutId"] == "statement-post-1x1"
     assert ContentSpec.model_validate(data) == cs
+
+
+def test_layer_override_accepts_negative_position_and_oversized_dimensions():
+    override = LayerOverride(area=(-540, -120, 2160, 2700))
+    assert override.area == (-540, -120, 2160, 2700)
+
+    with pytest.raises(Exception):
+        LayerOverride(area=(-32769, 0, 100, 100))
 
 
 def test_schemas_exported(tmp_path):

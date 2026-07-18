@@ -8,9 +8,21 @@ release pública.
 
 ### Alterado
 
+- O editor deixa de confinar camadas ao canvas: arraste, resize, teclado e
+  campos numéricos aceitam sangria, coordenadas negativas e logos maiores que a
+  peça; o corte final continua explícito e desvios geram orientação.
+- O wizard passa a revisar essência, personalidade, voz e limites de expressão
+  antes de publicar a marca. A direção resultante muda estrutura, escala,
+  densidade e espaço vazio, em vez de apenas recolorir um template universal.
+- A interface adota a direção Abertura de Marca: chassi industrial neutro,
+  matéria cromática projetada do Brand IR, kit assimétrico, continuidade visual
+  nas campanhas, fluxo Word progressivo e canvas prioritário no editor mobile.
 - O Guard agora orienta sem policiar: recomendações criativas usam `warning` e
   não impedem exportação; `blocked` fica reservado a segurança, integridade e
   contratos tecnicamente impossíveis de renderizar.
+- O round-trip considera o artefato exportado como baseline autoral: escolhas já
+  aceitas não são julgadas de novo, e desvios externos de marca geram orientação
+  revisável em vez de bloquear o documento.
 - A compilação combina proporções quando uma cor confirmada ocupa mais de um
   papel de composição, preserva evidências e publica a marca normalmente.
 - Falhas internas de compilação deixam de culpar genericamente as respostas ou
@@ -18,6 +30,13 @@ release pública.
 
 ### Adicionado
 
+- Brand IR 0.4 com identidade semântica confirmada, direção criativa
+  determinística e explicável, extração inteiramente local e degradação honesta
+  quando o material não fornece sinal suficiente — sem API key ou custo por
+  requisição no core open source.
+- Superfícies procedurais editáveis (`paper-grain`, `linear-rhythm`,
+  `technical-grid`, `point-field` e `concentric-rings`) no Content Spec,
+  preview/export web e PPTX nativo, sempre parametrizadas pela direção da marca.
 - Modo Campanha com fonte compartilhada de título, mensagem, data, CTA e
   imagem; campanhas, peças e documentos persistidos; propagação transacional,
   Guard por formato, biblioteca web, prévias e export final/editável.

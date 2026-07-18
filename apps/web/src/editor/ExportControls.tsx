@@ -6,6 +6,7 @@ import type {
   LayerOverride,
   LayoutSpec,
   SlotValue,
+  SurfaceStyle,
 } from "../api/types"
 import { GuardPanel } from "./GuardPanel"
 import { RoundtripPanel } from "./RoundtripPanel"
@@ -18,6 +19,7 @@ interface ExportControlsProps {
   revisionId: string
   values: Record<string, SlotValue>
   overrides: Record<string, LayerOverride>
+  surface?: SurfaceStyle | null
   onPendingChange?(pending: boolean): void
 }
 
@@ -40,6 +42,7 @@ export function ExportControls({
   revisionId,
   values,
   overrides,
+  surface = null,
   onPendingChange,
 }: ExportControlsProps) {
   const client = useApi()
@@ -47,8 +50,8 @@ export function ExportControls({
   const editableFormat: ExportFormat = layout.profile === "doc-a4" ? "docx" : "pptx"
   const isDocument = layout.profile === "doc-a4"
   const content = useMemo(
-    () => ({ brandRevisionId: revisionId, layoutId: layout.id, values, overrides }),
-    [layout.id, overrides, revisionId, values],
+    () => ({ brandRevisionId: revisionId, layoutId: layout.id, values, overrides, surface }),
+    [layout.id, overrides, revisionId, surface, values],
   )
   const primaryFlow = useExportFlow(client, content, primaryFormat, pollIntervalMs)
   const editableFlow = useExportFlow(client, content, editableFormat, pollIntervalMs)

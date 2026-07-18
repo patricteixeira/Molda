@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from lxml import etree
-from PIL import Image
+from PIL import Image, ImageColor, ImageDraw
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.dml import MSO_COLOR_TYPE
@@ -21,6 +21,7 @@ from brand_runtime.ir.models import BrandIR, SemanticRole
 from brand_runtime.kit.models import (
     Area,
     ContentSpec,
+    EditorArea,
     ImageValue,
     LayerOverride,
     LayoutSpec,
@@ -162,7 +163,11 @@ def _resolve_asset(path: str, asset_root: Path | None) -> Path:
     return candidate
 
 
-def _normalized_box(presentation: Presentation, layout: LayoutSpec, area: Area) -> tuple[Emu, ...]:
+def _normalized_box(
+    presentation: Presentation,
+    layout: LayoutSpec,
+    area: Area | EditorArea,
+) -> tuple[Emu, ...]:
     x, y, width, height = area
     canvas_width = layout.canvas.width_px
     canvas_height = layout.canvas.height_px
@@ -233,6 +238,70 @@ def _validate_contracts(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -
             raise PptxRenderError(f"O papel semântico «{slot.role}» possui referência ausente.")
 
 
+def _surface_png(ir: BrandIR, layout: LayoutSpec, content: ContentSpec, output: Path) -> Path:
+    """Rasteriza somente a textura; texto, imagens e logo continuam nativos."""
+    surface = content.surface
+    if surface is None:
+        raise PptxRenderError("A superfície procedural não foi informada.")
+    token = ir.colors.get(surface.color_token)
+    if token is None:
+        raise PptxRenderError("A superfície referencia uma cor ausente da marca.")
+    width, height = layout.canvas.width_px, layout.canvas.height_px
+    rgba = (*ImageColor.getrgb(token.value), round(surface.opacity * 255))
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    scale = max(4, round(surface.scale_px))
+    weight = max(1, round(surface.weight_px))
+
+    if surface.kind == "technical-grid":
+        for x in range(0, width + 1, scale):
+            draw.line((x, 0, x, height), fill=rgba, width=weight)
+        for y in range(0, height + 1, scale):
+            draw.line((0, y, width, y), fill=rgba, width=weight)
+    elif surface.kind == "point-field":
+        radius = max(1, weight)
+        for y in range(0, height + scale, scale):
+            for x in range(0, width + scale, scale):
+                draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=rgba)
+    elif surface.kind == "concentric-rings":
+        maximum = int((width * width + height * height) ** 0.5)
+        center = (width // 2, height // 2)
+        for radius in range(scale, maximum, scale):
+            draw.ellipse(
+                (
+                    center[0] - radius,
+                    center[1] - radius,
+                    center[0] + radius,
+                    center[1] + radius,
+                ),
+                outline=rgba,
+                width=weight,
+            )
+    elif surface.kind == "paper-grain":
+        # Distribuição determinística e irregular, sem RNG nem estado global.
+        step = max(7, scale // 2)
+        radius = max(1, weight)
+        for row, y in enumerate(range(0, height + step, step)):
+            for column, x in enumerate(range(0, width + step, step)):
+                px = (x + (row * 17 + column * 7) % step) % width
+                py = (y + (column * 13 + row * 5) % step) % height
+                if (row * 3 + column * 5) % 4 == 0:
+                    draw.ellipse((px - radius, py - radius, px + radius, py + radius), fill=rgba)
+    else:
+        diagonal = int((width * width + height * height) ** 0.5)
+        field = Image.new("RGBA", (diagonal, diagonal), (0, 0, 0, 0))
+        field_draw = ImageDraw.Draw(field)
+        for y in range(-diagonal, diagonal * 2, scale):
+            field_draw.line((0, y, diagonal, y), fill=rgba, width=weight)
+        rotated = field.rotate(surface.angle_deg, resample=Image.Resampling.BICUBIC)
+        left = max(0, (diagonal - width) // 2)
+        top = max(0, (diagonal - height) // 2)
+        overlay = rotated.crop((left, top, left + width, top + height))
+
+    overlay.save(output, format="PNG", optimize=True)
+    return output
+
+
 def render_pptx(
     template_path: Path,
     output_path: Path,
@@ -262,6 +331,18 @@ def render_pptx(
             fill = slide.background.fill
             fill.solid()
             fill.fore_color.rgb = RGBColor.from_string(background.value.removeprefix("#"))
+    if content.surface is not None:
+        with tempfile.TemporaryDirectory(prefix="brandrt-surface-") as directory:
+            surface_path = _surface_png(ir, layout, content, Path(directory) / "surface.png")
+            picture = slide.shapes.add_picture(
+                str(surface_path),
+                0,
+                0,
+                width=presentation.slide_width,
+                height=presentation.slide_height,
+            )
+            picture.name = "br:surface"
+            _send_to_back(picture)
     text_values = _text_slots(layout, content)
     if not text_values:
         raise PptxRenderError("O slide precisa de ao menos um slot de texto preenchido.")

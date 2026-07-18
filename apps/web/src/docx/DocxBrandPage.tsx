@@ -9,6 +9,8 @@ import type {
   DocxBrandJobInfo,
   DocxBrandPlan,
 } from "../api/types"
+import { brandThemeStyle } from "../brandTheme"
+import { BrandAperture } from "../components/BrandAperture"
 
 async function waitForDocxJob(
   getJob: (jobId: string) => Promise<DocxBrandJobInfo>,
@@ -126,8 +128,17 @@ export function DocxBrandPage(): JSX.Element {
     )
   }
 
+  const uploadActive = phase === "idle" || phase === "analyzing"
+  const planActive = phase === "ready" || phase === "applying"
+  const downloadActive = phase === "done"
+
   return (
-    <main id="main-content" className="docx-brand-page">
+    <main
+      id="main-content"
+      className="docx-brand-page brand-reactive-page"
+      style={brandThemeStyle(brand)}
+    >
+      <BrandAperture />
       <header className="docx-brand-heading" data-motion-enter>
         <div>
           <p className="product-kicker">Word existente, identidade preservada</p>
@@ -143,13 +154,15 @@ export function DocxBrandPage(): JSX.Element {
         </Link>
       </header>
 
-      <div className="docx-brand-flow">
-        <section className="docx-upload-card" aria-labelledby="docx-upload-title">
-          <span className="docx-step-number" aria-hidden="true">
-            01
-          </span>
+      <div className="docx-brand-flow" data-phase={phase}>
+        <section
+          className="docx-upload-card"
+          aria-labelledby="docx-upload-title"
+          data-active={uploadActive || undefined}
+          data-complete={plan !== null || undefined}
+        >
           <div>
-            <p className="product-kicker">Original intocado</p>
+            <p className="docx-stage-label">Documento original</p>
             <h2 id="docx-upload-title">Escolha o documento</h2>
             <p>O arquivo enviado é guardado por hash e nunca é sobrescrito.</p>
             <label className="docx-file-picker" htmlFor="docx-brand-file">
@@ -180,12 +193,14 @@ export function DocxBrandPage(): JSX.Element {
           </div>
         </section>
 
-        <section className="docx-plan-card" aria-labelledby="docx-plan-title">
-          <span className="docx-step-number" aria-hidden="true">
-            02
-          </span>
+        <section
+          className="docx-plan-card"
+          aria-labelledby="docx-plan-title"
+          data-active={planActive || undefined}
+          data-complete={download !== null || undefined}
+        >
           <div>
-            <p className="product-kicker">Você decide</p>
+            <p className="docx-stage-label">Plano transparente</p>
             <h2 id="docx-plan-title">Confira o plano</h2>
             {!plan ? (
               <p className="docx-plan-empty">
@@ -238,12 +253,13 @@ export function DocxBrandPage(): JSX.Element {
           </div>
         </section>
 
-        <section className="docx-download-card" aria-labelledby="docx-download-title">
-          <span className="docx-step-number" aria-hidden="true">
-            03
-          </span>
+        <section
+          className="docx-download-card"
+          aria-labelledby="docx-download-title"
+          data-active={downloadActive || undefined}
+        >
           <div>
-            <p className="product-kicker">Continua sendo Word</p>
+            <p className="docx-stage-label">Cópia editável</p>
             <h2 id="docx-download-title">Baixe e continue editando</h2>
             {download ? (
               <div className="docx-download-ready" role="status" aria-live="polite">

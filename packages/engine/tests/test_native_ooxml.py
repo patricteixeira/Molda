@@ -33,6 +33,7 @@ from brand_runtime.kit.models import (
     LayerOverride,
     LayoutSpec,
     Slot,
+    SurfaceStyle,
     TextValue,
 )
 from brand_runtime.native.docx import render_docx
@@ -305,8 +306,16 @@ def test_pptx_applies_editor_geometry_typography_and_opacity_overrides(
             text_align="right",
             text_transform="uppercase",
         ),
-        "logo": LayerOverride(area=(760, 780, 240, 180), opacity=0.4),
+        "logo": LayerOverride(area=(-180, 780, 1500, 900), opacity=0.4),
     }
+    edited_content.surface = SurfaceStyle(
+        kind="technical-grid",
+        color_token="color.secondary",
+        opacity=0.12,
+        scale_px=48,
+        weight_px=1.5,
+        angle_deg=0,
+    )
     output = _render_pptx(
         tmp_path,
         pptx_template,
@@ -333,9 +342,12 @@ def test_pptx_applies_editor_geometry_typography_and_opacity_overrides(
     assert headline.text_frame.paragraphs[0].alignment == 3
     assert headline._element.xpath(".//a:alpha")[0].get("val") == "55000"
 
-    assert logo.left == round(presentation.slide_width * 760 / 1080)
-    assert logo.width == round(presentation.slide_width * 240 / 1080)
+    assert logo.left == round(presentation.slide_width * -180 / 1080)
+    assert logo.width == round(presentation.slide_width * 1500 / 1080)
     assert logo._element.xpath(".//a:alphaModFix")[0].get("amt") == "40000"
+    surface = next(shape for shape in slide.shapes if shape.name == "br:surface")
+    assert surface.shape_type == 13
+    assert surface.width == presentation.slide_width
     assert not [item for item in validate_ooxml(output) if item.blocking]
 
 
@@ -495,10 +507,10 @@ def test_roundtrip_parser_builds_document_graph_after_google_style_save(
         "brand-font",
         "brand-color",
     ]
-    assert report.summary.status == "blocked"
+    assert report.summary.status == "review"
     assert report.summary.info == 1
-    assert report.summary.warning == 2
-    assert report.summary.error == 2
+    assert report.summary.warning == 4
+    assert report.summary.error == 0
     assert report.summary.fixable == 4
 
     source_bytes = edited.read_bytes()

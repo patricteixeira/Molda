@@ -4,8 +4,9 @@ import { expect, it, vi } from "vitest"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { ApiProvider } from "../api/context"
 import { ApiError } from "../api/client"
-import type { ApiClient, ContentSpec } from "../api/types"
+import type { ApiClient, BrandIr, ContentSpec } from "../api/types"
 import {
+  FAKE_IR,
   fakeClient,
   fakeEditorialLayout,
   fakeOnePagerLayout,
@@ -62,6 +63,15 @@ it("digitar num slot atualiza o preview ao vivo", async () => {
   )
 })
 
+it("mantém o canvas antes dos painéis na ordem de leitura", async () => {
+  renderEditor(kitClient())
+
+  const canvas = await screen.findByRole("region", { name: "Canvas da peça" })
+  const layers = screen.getByRole("complementary", { name: "Camadas da composição" })
+
+  expect(canvas.compareDocumentPosition(layers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
 it("salva o rascunho e o recupera ao reabrir a peça", async () => {
   const key = "brand-runtime:editor-draft:v1:brandrev_test:statement-post-1x1"
   window.localStorage.setItem(
@@ -104,7 +114,7 @@ it("permite restaurar a composição inicial da peça", async () => {
   expect(screen.getByTestId("slot-input-headline")).toHaveValue("Sua mensagem aqui")
   await waitFor(() =>
     expect(JSON.parse(window.localStorage.getItem(key) ?? "{}")).toMatchObject({
-      version: 2,
+      version: 3,
       values: { headline: { kind: "text", text: "Sua mensagem aqui" } },
     }),
   )
@@ -361,6 +371,55 @@ it("expõe os controles gráficos completos pedidos para a camada de texto", asy
   expect(screen.getByLabelText("L")).toBeInTheDocument()
 })
 
+it("explica e aplica uma estrutura derivada da identidade, não um preset cromático", async () => {
+  const brandIr: BrandIr = {
+    ...FAKE_IR,
+    schemaVersion: "0.4.0",
+    identity: {
+      essence: "Tecnologia precisa para uma criação radical e dinâmica.",
+      personality: "Geométrica, modular e rigorosa.",
+      voice: "Direta e enfática.",
+      avoid: "Decoração sem função.",
+      evidence: [],
+    },
+    creativeDirection: {
+      energy: { value: 0.75, confidence: 0.75, evidenceTerms: ["dinamica", "radical"] },
+      geometry: { value: 1, confidence: 0.75, evidenceTerms: ["geometrica", "modular"] },
+      density: { value: 0, confidence: 0, evidenceTerms: [] },
+      formality: { value: 0.5, confidence: 0.5, evidenceTerms: ["rigorosa"] },
+      materiality: { value: 1, confidence: 0.25, evidenceTerms: ["tecnologia"] },
+      contrast: { value: 1, confidence: 0.5, evidenceTerms: ["radical", "enfatica"] },
+      composition: "expansive" as const,
+      surface: "technical-grid" as const,
+      scaleContrast: 0.9,
+      negativeSpace: 0.35,
+      bleed: 0.85,
+      surfaceDensity: 0.52,
+      rationalePt: [
+        "A identidade se declara expansiva; sinais confirmados: “dinâmica”, “radical”.",
+        "A identidade se declara geométrica; sinais confirmados: “geométrica”, “modular”.",
+        "A estrutura usa contraste de escala e sangria como parte da expressão.",
+      ],
+    },
+  }
+  renderEditor(kitClient({ getBrandRevision: vi.fn(async () => brandIr) }))
+
+  expect(await screen.findByText("Escala sem contenção")).toBeInTheDocument()
+  expect(screen.getByText(/sinais confirmados: “dinâmica”, “radical”/i)).toBeInTheDocument()
+  await userEvent.click(screen.getByRole("button", { name: "Aplicar esta direção" }))
+
+  await waitFor(() => {
+    const content = lastPayload().contentSpec
+    expect(content.surface).toMatchObject({
+      kind: "technical-grid",
+      colorToken: "color.primary",
+    })
+    expect(content.overrides?.logo?.area?.[0]).toBeLessThan(0)
+    expect(content.overrides?.logo?.area?.[2]).toBeGreaterThan(1080)
+  })
+  expect(screen.getByText("Editar superfície aplicada")).toBeInTheDocument()
+})
+
 it("edita tipografia, posição, opacidade e escala da logo no arquivo final", async () => {
   renderEditor(kitClient())
   await screen.findByTestId("slot-input-headline")
@@ -385,15 +444,15 @@ it("edita tipografia, posição, opacidade e escala da logo no arquivo final", a
   )
 
   await userEvent.click(screen.getByRole("button", { name: "Logo" }))
-  fireEvent.change(screen.getByLabelText("X"), { target: { value: "800" } })
-  fireEvent.change(screen.getByLabelText("Y"), { target: { value: "800" } })
-  fireEvent.change(screen.getByLabelText("L"), { target: { value: "220" } })
-  fireEvent.change(screen.getByLabelText("A"), { target: { value: "180" } })
+  fireEvent.change(screen.getByLabelText("X"), { target: { value: "-180" } })
+  fireEvent.change(screen.getByLabelText("Y"), { target: { value: "760" } })
+  fireEvent.change(screen.getByLabelText("L"), { target: { value: "1600" } })
+  fireEvent.change(screen.getByLabelText("A"), { target: { value: "900" } })
   fireEvent.change(screen.getByLabelText("Opacidade"), { target: { value: "44" } })
 
   await waitFor(() =>
     expect(lastPayload().contentSpec.overrides?.logo).toMatchObject({
-      area: [800, 800, 220, 180],
+      area: [-180, 760, 1600, 900],
       opacity: 0.44,
     }),
   )

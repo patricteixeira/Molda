@@ -38,7 +38,7 @@ it("salva e reabre o conteúdo do folder", () => {
   }
 
   expect(saveEditorDraft("brandrev_1", layout.id, values, {})).toBe(true)
-  expect(loadEditorDraft("brandrev_1", layout)).toEqual({ values, overrides: {} })
+  expect(loadEditorDraft("brandrev_1", layout)).toEqual({ values, overrides: {}, surface: null })
 })
 
 it("preserva ajustes visuais por camada", () => {
@@ -53,7 +53,24 @@ it("preserva ajustes visuais por camada", () => {
   }
 
   expect(saveEditorDraft("brandrev_visual", layout.id, values, overrides)).toBe(true)
-  expect(loadEditorDraft("brandrev_visual", layout)).toEqual({ values, overrides })
+  expect(loadEditorDraft("brandrev_visual", layout)).toEqual({ values, overrides, surface: null })
+})
+
+it("preserva a superfície procedural aplicada", () => {
+  const surface = {
+    kind: "paper-grain" as const,
+    colorToken: "color.primary",
+    opacity: 0.12,
+    scalePx: 42,
+    weightPx: 1.4,
+    angleDeg: 0,
+  }
+  expect(saveEditorDraft("brandrev_surface", layout.id, {}, {}, surface)).toBe(true)
+  expect(loadEditorDraft("brandrev_surface", layout)).toEqual({
+    values: {},
+    overrides: {},
+    surface,
+  })
 })
 
 it("isola o rascunho por revisão e por peça", () => {
@@ -64,10 +81,15 @@ it("isola o rascunho por revisão e por peça", () => {
     {},
   )
 
-  expect(loadEditorDraft("brandrev_2", layout)).toEqual({ values: {}, overrides: {} })
+  expect(loadEditorDraft("brandrev_2", layout)).toEqual({
+    values: {},
+    overrides: {},
+    surface: null,
+  })
   expect(loadEditorDraft("brandrev_1", { ...layout, id: "outro-folder" })).toEqual({
     values: {},
     overrides: {},
+    surface: null,
   })
 })
 
@@ -83,7 +105,11 @@ it("ignora dados corrompidos, slots desconhecidos e valores incompatíveis", () 
     }),
   )
 
-  expect(loadEditorDraft("brandrev_1", layout)).toEqual({ values: {}, overrides: {} })
+  expect(loadEditorDraft("brandrev_1", layout)).toEqual({
+    values: {},
+    overrides: {},
+    surface: null,
+  })
 })
 
 it("remove o rascunho ao limpar a peça", () => {
@@ -95,5 +121,9 @@ it("remove o rascunho ao limpar a peça", () => {
   )
 
   expect(clearEditorDraft("brandrev_1", layout.id)).toBe(true)
-  expect(loadEditorDraft("brandrev_1", layout)).toEqual({ values: {}, overrides: {} })
+  expect(loadEditorDraft("brandrev_1", layout)).toEqual({
+    values: {},
+    overrides: {},
+    surface: null,
+  })
 })

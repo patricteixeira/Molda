@@ -70,7 +70,7 @@ def test_color_value_is_normalized():
 def test_json_is_camel_case_and_round_trips():
     ir = _minimal_ir()
     data = json.loads(ir.model_dump_json(by_alias=True))
-    assert data["schemaVersion"] == "0.3.0"
+    assert data["schemaVersion"] == "0.4.0"
     assert data["colors"]["color.primary"]["evidence"][0]["sourceType"] == "wizard-confirmation"
     assert BrandIR.model_validate(data) == ir
 
@@ -210,6 +210,7 @@ def test_export_schemas(tmp_path):
         "0.1.0",
         "0.2.0",
         "0.3.0",
+        "0.4.0",
     }
     assert schema["allOf"][0]["then"]["required"] == ["schemaVersion"]
 

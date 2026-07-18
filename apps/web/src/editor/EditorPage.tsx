@@ -8,13 +8,16 @@ import type {
   LayerOverride,
   LayoutSpec,
   SlotValue,
+  SurfaceStyle,
 } from "../api/types"
+import { brandThemeStyle } from "../brandTheme"
 import { placeholderContent } from "../kit/placeholder"
 import { Preview } from "../render/Preview"
 import { ExportControls } from "./ExportControls"
 import { LayerPanel } from "./LayerPanel"
 import { SlotForm } from "./SlotForm"
 import { clearEditorDraft, loadEditorDraft, saveEditorDraft } from "./draftStorage"
+import { directionApplication } from "./direction"
 import { exactOccurrenceCount } from "./emphasis"
 import { editorElements, elementArea, findEditorElement } from "./layerModel"
 
@@ -53,6 +56,7 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
   const [data, setData] = useState<EditorData | null>(null)
   const [values, setValues] = useState<Record<string, SlotValue>>({})
   const [overrides, setOverrides] = useState<Record<string, LayerOverride>>({})
+  const [surface, setSurface] = useState<SurfaceStyle | null>(null)
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
   const [zoom, setZoom] = useState(50)
   const [error, setError] = useState<string | null>(null)
@@ -67,6 +71,7 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
     setError(null)
     setValues({})
     setOverrides({})
+    setSurface(null)
     setSelectedLayerId(null)
     setUploading(false)
     setExporting(false)
@@ -89,9 +94,12 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
           const stored = loadEditorDraft(revisionId, activeLayout)
           const sample = placeholderContent(activeLayout, revisionId, brandIr.brand.name)
           const hasStoredDraft =
-            Object.keys(stored.values).length > 0 || Object.keys(stored.overrides).length > 0
+            Object.keys(stored.values).length > 0 ||
+            Object.keys(stored.overrides).length > 0 ||
+            stored.surface !== null
           setValues(hasStoredDraft ? stored.values : sample.values)
           setOverrides(hasStoredDraft ? stored.overrides : (sample.overrides ?? {}))
+          setSurface(hasStoredDraft ? stored.surface : null)
           setSelectedLayerId(initialSelection(activeLayout))
         }
         setDraftReady(true)
@@ -118,9 +126,9 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
   const contentSpec = useMemo<ContentSpec | null>(
     () =>
       revisionId && layout
-        ? { layoutId: layout.id, brandRevisionId: revisionId, values, overrides }
+        ? { layoutId: layout.id, brandRevisionId: revisionId, values, overrides, surface }
         : null,
-    [layout, overrides, revisionId, values],
+    [layout, overrides, revisionId, surface, values],
   )
 
   const previewContentSpec = useMemo<ContentSpec | null>(() => {
@@ -142,8 +150,8 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
 
   useEffect(() => {
     if (!draftReady || !revisionId || !layout) return
-    setDraftSaved(saveEditorDraft(revisionId, layout.id, values, overrides))
-  }, [draftReady, layout, overrides, revisionId, values])
+    setDraftSaved(saveEditorDraft(revisionId, layout.id, values, overrides, surface))
+  }, [draftReady, layout, overrides, revisionId, surface, values])
 
   if (error) {
     return (
@@ -195,11 +203,26 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
     })
   }
 
+  const applyBrandDirection = (): void => {
+    const application = directionApplication(data.brandIr, layout)
+    if (!application) return
+    setSurface(application.surface)
+    setOverrides((current) => {
+      const next = { ...current }
+      for (const [elementId, patch] of Object.entries(application.patches)) {
+        const merged = compactOverride({ ...(next[elementId] ?? {}), ...patch })
+        if (merged) next[elementId] = merged
+      }
+      return next
+    })
+  }
+
   const restoreComposition = (): void => {
     const sample = placeholderContent(layout, revisionId, data.brandIr.brand.name)
     clearEditorDraft(revisionId, layout.id)
     setValues(sample.values)
     setOverrides(sample.overrides ?? {})
+    setSurface(null)
     setSelectedLayerId(initialSelection(layout))
     setDraftSaved(true)
   }
@@ -216,7 +239,11 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
     ).length
 
   return (
-    <main id="main-content" className="editor-page">
+    <main
+      id="main-content"
+      className="editor-page brand-reactive-editor"
+      style={brandThemeStyle(data.brandIr)}
+    >
       <header className="editor-toolbar">
         <div className="editor-toolbar-context">
           <Link className="editor-back" to={`/marcas/${encodeURIComponent(revisionId)}/kit`}>
@@ -252,15 +279,6 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
       </header>
 
       <div className="editor-workbench">
-        <LayerPanel
-          layout={layout}
-          overrides={overrides}
-          selectedId={selectedLayerId}
-          onSelect={setSelectedLayerId}
-          onPatch={patchOverride}
-          onResetAll={restoreComposition}
-        />
-
         <section className="editor-preview" aria-label="Canvas da peça">
           <div className="canvas-ruler canvas-ruler-horizontal" aria-hidden="true" />
           <div className="canvas-ruler canvas-ruler-vertical" aria-hidden="true" />
@@ -278,6 +296,15 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
           />
         </section>
 
+        <LayerPanel
+          layout={layout}
+          overrides={overrides}
+          selectedId={selectedLayerId}
+          onSelect={setSelectedLayerId}
+          onPatch={patchOverride}
+          onResetAll={restoreComposition}
+        />
+
         <SlotForm
           brandIr={data.brandIr}
           layout={layout}
@@ -287,6 +314,9 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
           onChange={changeValue}
           onPatch={patchOverride}
           onReset={resetLayer}
+          surface={surface}
+          onSurfaceChange={setSurface}
+          onApplyDirection={applyBrandDirection}
           onUploadingChange={setUploading}
           disabled={exporting}
         />
@@ -305,6 +335,7 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
           revisionId={revisionId}
           values={values}
           overrides={overrides}
+          surface={surface}
           onPendingChange={setExporting}
         />
       </section>

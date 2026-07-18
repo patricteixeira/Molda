@@ -69,13 +69,47 @@ export interface CompositionRules {
 }
 
 export interface BrandIr {
-  schemaVersion?: "0.1.0" | "0.2.0" | "0.3.0";
+  schemaVersion?: "0.1.0" | "0.2.0" | "0.3.0" | "0.4.0";
+  identity?: {
+    essence: string;
+    personality?: string;
+    voice?: string;
+    avoid?: string;
+    evidence?: unknown[];
+  } | null;
+  creativeDirection?: {
+    energy: ExpressionAxis;
+    geometry: ExpressionAxis;
+    density: ExpressionAxis;
+    formality: ExpressionAxis;
+    materiality: ExpressionAxis;
+    contrast: ExpressionAxis;
+    composition: "contemplative" | "asymmetric" | "modular" | "expansive" | "layered";
+    surface:
+      | "none"
+      | "paper-grain"
+      | "linear-rhythm"
+      | "technical-grid"
+      | "point-field"
+      | "concentric-rings";
+    scaleContrast: number;
+    negativeSpace: number;
+    bleed: number;
+    surfaceDensity: number;
+    rationalePt: string[];
+  } | null;
   revision: { id: string };
   colors: Record<string, ColorToken>;
   fonts: Record<string, FontToken>;
   roles: Record<string, SemanticRole>;
   assets: Record<string, LogoAsset>;
   compositionRules?: CompositionRules | null;
+}
+
+export interface ExpressionAxis {
+  value: number;
+  confidence: number;
+  evidenceTerms?: string[];
 }
 
 export interface Canvas {
@@ -189,6 +223,16 @@ export interface ContentSpec {
   brandRevisionId: string;
   values: Record<string, SlotValue>;
   overrides?: Record<string, LayerOverride>;
+  surface?: SurfaceStyle | null;
+}
+
+export interface SurfaceStyle {
+  kind: "paper-grain" | "linear-rhythm" | "technical-grid" | "point-field" | "concentric-rings";
+  colorToken: string;
+  opacity: number;
+  scalePx: number;
+  weightPx: number;
+  angleDeg: number;
 }
 
 export interface Payload {

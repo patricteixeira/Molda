@@ -14,6 +14,7 @@ def test_question_set(brand_package):
     draft = build_draft(brand_package)
     ids = [q.id for q in draft.questions]
     for required in [
+        "identity.expression",
         "color.primary",
         "color.background",
         "color.text",
@@ -22,6 +23,43 @@ def test_question_set(brand_package):
         "logo.primary",
     ]:
         assert required in ids
+
+
+def test_identity_question_preserves_manual_meaning_as_editable_evidence(tmp_path):
+    package = tmp_path / "meaning-package"
+    package.mkdir()
+    manual = package / "manual.pdf"
+    with pymupdf.open() as document:
+        page = document.new_page(width=595, height=842)
+        page.insert_textbox(
+            pymupdf.Rect(40, 40, 555, 180),
+            "PROPÓSITO\nExistimos para devolver intenção e autoria à criação digital.",
+            fontname="helv",
+            fontsize=12,
+        )
+        page.insert_textbox(
+            pymupdf.Rect(40, 220, 555, 380),
+            "PERSONALIDADE E VALORES\nHumana, artesanal, precisa e radical.",
+            fontname="helv",
+            fontsize=12,
+        )
+        page.insert_textbox(
+            pymupdf.Rect(40, 420, 555, 560),
+            "TOM DE VOZ\nDireto, acessível e confiante.",
+            fontname="helv",
+            fontsize=12,
+        )
+        document.save(manual)
+
+    draft = build_draft(package)
+    question = next(item for item in draft.questions if item.id == "identity.expression")
+    value = question.candidates[0].value
+
+    assert question.kind == "review-identity"
+    assert "devolver intenção" in value["essence"]
+    assert "artesanal" in value["personality"]
+    assert "Direto" in value["voice"]
+    assert {item.page for item in question.candidates[0].evidence} == {1}
 
 
 def test_legacy_draft_without_recommended_count_remains_valid(brand_package):

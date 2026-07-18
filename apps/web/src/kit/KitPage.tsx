@@ -4,6 +4,8 @@ import { Link, useParams } from "react-router-dom"
 import { ApiError } from "../api/client"
 import { useApi } from "../api/context"
 import type { BrandIr, LayoutSpec } from "../api/types"
+import { brandThemeStyle } from "../brandTheme"
+import { BrandAperture } from "../components/BrandAperture"
 import { Preview } from "../render/Preview"
 import { placeholderContent } from "./placeholder"
 
@@ -92,17 +94,35 @@ export function KitPage(): JSX.Element {
   }
 
   const assetsBaseUrl = api.revisionAssetsBaseUrl(revisionId)
+  const headingFont = kit.brandIr.fonts["font.heading"]?.family ?? "Tipografia da marca"
 
   return (
-    <main id="main-content" className="kit-page">
+    <main
+      id="main-content"
+      className="kit-page brand-reactive-page"
+      style={brandThemeStyle(kit.brandIr)}
+    >
+      <BrandAperture />
       <div className="kit-layout">
         <header className="kit-heading" data-motion-enter>
-          <p className="product-kicker">Aplicações publicadas</p>
+          <p className="kit-brand-name">{kit.brandIr.brand.name}</p>
           <h1>Kit da marca</h1>
           <p className="kit-intro">
-            Escolha uma peça para editar textos e imagens sem abandonar as decisões da identidade.
+            Todos os formatos partem dos mesmos materiais e decisões. Escolha uma peça e crie com
+            liberdade.
           </p>
           <p className="kit-count">{kit.layouts.length} formatos disponíveis</p>
+          <div className="brand-material-summary" aria-label="Matéria visual ativa">
+            <span className="brand-material-swatches" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>
+              <small>Tipografia ativa</small>
+              <strong>{headingFont}</strong>
+            </span>
+          </div>
           <Link className="text-action" to="/">
             Instalar outra marca
           </Link>
@@ -110,26 +130,23 @@ export function KitPage(): JSX.Element {
 
         <section className="kit-workflows" aria-labelledby="kit-workflows-title">
           <div className="kit-workflows-heading">
-            <p className="product-kicker">Fluxos recorrentes</p>
-            <h2 id="kit-workflows-title">Faça o trabalho inteiro, não peça por peça</h2>
+            <h2 id="kit-workflows-title">Uma origem. Todo o trabalho conectado.</h2>
           </div>
           <div className="kit-workflow-grid">
             <Link
               className="kit-workflow-card kit-workflow-card-primary"
               to={`/marcas/${encodeURIComponent(revisionId)}/campanhas`}
             >
-              <span className="kit-workflow-index">01</span>
               <span>
                 <strong>Modo Campanha</strong>
                 <small>Uma mensagem mantém post, story, apresentação e documento ligados.</small>
               </span>
-              <span className="kit-workflow-action">Criar campanha →</span>
+              <span className="kit-workflow-action">Abrir campanha →</span>
             </Link>
             <Link
               className="kit-workflow-card"
               to={`/marcas/${encodeURIComponent(revisionId)}/word`}
             >
-              <span className="kit-workflow-index">02</span>
               <span>
                 <strong>Aplicar marca ao Word</strong>
                 <small>Transforme um `.docx` existente sem perder conteúdo nem edição.</small>

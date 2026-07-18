@@ -80,7 +80,11 @@ def _bounds_changed(before: BoundsPt, after: BoundsPt, tolerance_pt: float = 0.0
     )
 
 
-def _brand_findings(node: DocumentNode, ir: BrandIR) -> list[RoundtripFinding]:
+def _brand_findings(
+    node: DocumentNode,
+    baseline_node: DocumentNode,
+    ir: BrandIR,
+) -> list[RoundtripFinding]:
     if (
         node.kind != "text"
         or node.role not in ir.roles
@@ -94,36 +98,39 @@ def _brand_findings(node: DocumentNode, ir: BrandIR) -> list[RoundtripFinding]:
     minimum_pt = role.min_size_px * 0.75
     maximum_pt = role.max_size_px * 0.75
     findings: list[RoundtripFinding] = []
-    if node.font_family != expected_font:
+    if node.font_family != expected_font and node.font_family != baseline_node.font_family:
         findings.append(
             _finding(
                 "brand-font",
-                "error",
-                "A fonte não pertence ao papel semântico previsto pela marca.",
+                "warning",
+                "A fonte saiu do papel semântico previsto pela marca.",
                 node=node,
                 expected=expected_font,
                 actual=node.font_family,
                 fixable=True,
             )
         )
-    if node.color != expected_color:
+    if node.color != expected_color and node.color != baseline_node.color:
         findings.append(
             _finding(
                 "brand-color",
-                "error",
-                "A cor do texto não corresponde ao token previsto pela marca.",
+                "warning",
+                "A cor saiu do token previsto para este papel.",
                 node=node,
                 expected=expected_color,
                 actual=node.color,
                 fixable=True,
             )
         )
-    if node.font_size_pt is None or not minimum_pt <= node.font_size_pt <= maximum_pt:
+    outside_recommended_range = (
+        node.font_size_pt is None or not minimum_pt <= node.font_size_pt <= maximum_pt
+    )
+    if outside_recommended_range and node.font_size_pt != baseline_node.font_size_pt:
         findings.append(
             _finding(
                 "brand-font-size",
-                "error",
-                "O tamanho da fonte está fora da faixa permitida para este papel.",
+                "warning",
+                "O tamanho saiu da faixa recomendada para este papel.",
                 node=node,
                 expected={"minimumPt": minimum_pt, "maximumPt": maximum_pt},
                 actual=node.font_size_pt,
@@ -235,7 +242,7 @@ def lint_roundtrip(
                 )
             )
         if ir is not None:
-            findings.extend(_brand_findings(actual, ir))
+            findings.extend(_brand_findings(actual, expected, ir))
 
     for key, actual in actual_nodes.items():
         if key not in expected_nodes:

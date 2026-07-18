@@ -37,6 +37,41 @@ export function ProductMotion() {
         )
       }
 
+      const aperture = root.querySelector<HTMLElement>(".brand-aperture")
+      if (aperture) {
+        const apertureOpacity = Number.parseFloat(window.getComputedStyle(aperture).opacity)
+        gsap.fromTo(
+          aperture,
+          { opacity: 0, x: 72, scaleX: 0.68 },
+          {
+            opacity: Number.isFinite(apertureOpacity) ? apertureOpacity : 0.82,
+            x: 0,
+            scaleX: 1,
+            duration: 1.15,
+            ease: "power4.out",
+            clearProps: "opacity,transform",
+          },
+        )
+      }
+
+      const continuity = root.querySelectorAll<HTMLElement>(
+        ".campaign-continuity > span, .docx-brand-flow > section",
+      )
+      if (continuity.length > 0) {
+        gsap.fromTo(
+          continuity,
+          { opacity: 0, y: 18 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.65,
+            ease: "power3.out",
+            stagger: 0.09,
+            clearProps: "opacity,transform",
+          },
+        )
+      }
+
       const kitLayout = root.querySelector<HTMLElement>(".kit-layout")
       const kitHeading = root.querySelector<HTMLElement>(".kit-heading")
       const kitGrid = root.querySelector<HTMLElement>(".kit-grid")

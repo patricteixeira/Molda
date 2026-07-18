@@ -66,6 +66,50 @@ function activeCompositionMode(payload: Payload): CompositionModeRule | null {
   return payload.brandIr.compositionRules?.modes?.[name] ?? null;
 }
 
+function appendSurface(container: HTMLElement, payload: Payload): void {
+  const surface = payload.contentSpec.surface;
+  if (!surface) return;
+  const element = document.createElement("div");
+  element.dataset.surfaceKind = surface.kind;
+  applyAreaStyle(
+    element,
+    [0, 0, payload.layoutSpec.canvas.widthPx, payload.layoutSpec.canvas.heightPx],
+    "0",
+  );
+  element.style.pointerEvents = "none";
+  element.style.opacity = String(surface.opacity);
+  const color = payload.brandIr.colors[surface.colorToken].value;
+  const scale = surface.scalePx;
+  const weight = Math.min(surface.weightPx, scale / 2);
+
+  if (surface.kind === "linear-rhythm") {
+    element.style.backgroundImage = `repeating-linear-gradient(${surface.angleDeg}deg, ${color} 0 ${weight}px, transparent ${weight}px ${scale}px)`;
+  } else if (surface.kind === "technical-grid") {
+    element.style.backgroundImage = [
+      `repeating-linear-gradient(0deg, ${color} 0 ${weight}px, transparent ${weight}px ${scale}px)`,
+      `repeating-linear-gradient(90deg, ${color} 0 ${weight}px, transparent ${weight}px ${scale}px)`,
+    ].join(", ");
+  } else if (surface.kind === "point-field") {
+    element.style.backgroundImage = `radial-gradient(circle, ${color} 0 ${weight}px, transparent ${weight}px)`;
+    element.style.backgroundSize = `${scale}px ${scale}px`;
+  } else if (surface.kind === "concentric-rings") {
+    element.style.backgroundImage = `repeating-radial-gradient(circle at 50% 50%, transparent 0 ${Math.max(0, scale - weight)}px, ${color} ${Math.max(0, scale - weight)}px ${scale}px)`;
+  } else {
+    const grain = Math.max(1, weight);
+    element.style.backgroundImage = [
+      `radial-gradient(circle at 18% 23%, ${color} 0 ${grain}px, transparent ${grain}px)`,
+      `radial-gradient(circle at 73% 61%, ${color} 0 ${grain * 0.72}px, transparent ${grain * 0.72}px)`,
+      `radial-gradient(circle at 41% 82%, ${color} 0 ${grain * 0.55}px, transparent ${grain * 0.55}px)`,
+    ].join(", ");
+    element.style.backgroundSize = [
+      `${scale}px ${scale * 0.88}px`,
+      `${scale * 0.73}px ${scale * 0.69}px`,
+      `${scale * 1.17}px ${scale * 0.91}px`,
+    ].join(", ");
+  }
+  container.appendChild(element);
+}
+
 function appendLockedLayer(
   container: HTMLElement,
   payload: Payload,
@@ -170,6 +214,7 @@ export function renderDocument(
   const style = document.createElement("style");
   style.textContent = fontBuild.css;
   container.appendChild(style);
+  appendSurface(container, payload);
 
   for (const [index, layer] of (layout.lockedLayers ?? []).entries()) {
     appendLockedLayer(container, payload, layer, index);

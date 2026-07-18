@@ -50,6 +50,38 @@ def _graph(digest: str, nodes: list[DocumentNode]) -> DocumentGraph:
     )
 
 
+def _ir() -> BrandIR:
+    return BrandIR(
+        brand=BrandInfo(name="Marca"),
+        revision=RevisionInfo(id="brandrev_test", created_at=datetime.now(UTC)),
+        colors={"text": ColorToken(value="#111111", evidence=[])},
+        fonts={
+            "body": FontToken(
+                family="Arial",
+                source="fallback",
+                evidence=[],
+            )
+        },
+        roles={
+            "body": SemanticRole(
+                font="body",
+                color="text",
+                min_size_px=16,
+                max_size_px=32,
+                line_height=1.4,
+            ),
+            "heading": SemanticRole(
+                font="body",
+                color="text",
+                min_size_px=24,
+                max_size_px=96,
+                line_height=1.1,
+            ),
+        },
+        assets={},
+    )
+
+
 def test_roundtrip_lint_passes_when_semantic_document_is_unchanged():
     baseline = _graph("a", [_node("headline", "heading", 2)])
     edited = _graph("b", [baseline.nodes[0].model_copy(update={"shape_id": 84})])
@@ -113,30 +145,49 @@ def test_brand_lint_ignores_empty_text_placeholder():
     )
     baseline = _graph("a", [empty])
     edited = _graph("b", [empty])
-    ir = BrandIR(
-        brand=BrandInfo(name="Marca"),
-        revision=RevisionInfo(id="brandrev_test", created_at=datetime.now(UTC)),
-        colors={"text": ColorToken(value="#111111", evidence=[])},
-        fonts={
-            "body": FontToken(
-                family="Arial",
-                source="fallback",
-                evidence=[],
-            )
-        },
-        roles={
-            "body": SemanticRole(
-                font="body",
-                color="text",
-                min_size_px=16,
-                max_size_px=32,
-                line_height=1.4,
-            )
-        },
-        assets={},
-    )
-
-    report = lint_roundtrip(baseline, edited, ir)
+    report = lint_roundtrip(baseline, edited, _ir())
 
     assert report.summary.status == "pass"
     assert report.findings == []
+
+
+def test_brand_lint_preserves_accepted_author_choice_from_baseline():
+    oversized = _node("headline", "heading", 2).model_copy(update={"font_size_pt": 102.75})
+    baseline = _graph("a", [oversized])
+    edited = _graph("b", [oversized.model_copy(update={"shape_id": 84})])
+
+    report = lint_roundtrip(baseline, edited, _ir())
+
+    assert report.summary.status == "pass"
+    assert report.findings == []
+
+
+def test_brand_lint_guides_new_external_deviation_without_blocking():
+    heading = _node("headline", "heading", 2)
+    baseline = _graph("a", [heading])
+    edited = _graph(
+        "b",
+        [
+            heading.model_copy(
+                update={
+                    "font_family": "Comic Sans MS",
+                    "font_size_pt": 102.75,
+                    "color": "#FF00FF",
+                }
+            )
+        ],
+    )
+
+    report = lint_roundtrip(baseline, edited, _ir())
+
+    assert report.summary.status == "review"
+    assert report.summary.warning == 6
+    assert report.summary.error == 0
+    assert [finding.code for finding in report.findings] == [
+        "font-changed",
+        "font-size-changed",
+        "color-changed",
+        "brand-font",
+        "brand-color",
+        "brand-font-size",
+    ]

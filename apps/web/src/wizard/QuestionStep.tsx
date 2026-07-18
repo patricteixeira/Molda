@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import type { DraftQuestion } from "../api/types"
 import { ColorOptions } from "./options/ColorOptions"
 import { FontOptions } from "./options/FontOptions"
+import { IdentityOptions } from "./options/IdentityOptions"
 import { LogoOptions } from "./options/LogoOptions"
 
 interface Props {
@@ -19,6 +20,13 @@ interface Props {
 function automaticallySuggestedFont(question: DraftQuestion): unknown | null {
   if (question.kind !== "pick-font") return null
   return question.candidates[0]?.value ?? null
+}
+
+function validSelection(question: DraftQuestion, value: unknown): boolean {
+  if (question.kind !== "review-identity") return value !== null
+  if (typeof value !== "object" || value === null) return false
+  const essence = (value as Record<string, unknown>).essence
+  return typeof essence === "string" && essence.trim().length > 0
 }
 
 export function QuestionStep(props: Props) {
@@ -71,6 +79,9 @@ export function QuestionStep(props: Props) {
             />
           )}
           {question.kind === "confirm-logo" && <LogoOptions draftId={draftId} {...optionProps} />}
+          {question.kind === "review-identity" && (
+            <IdentityOptions key={question.id} {...optionProps} />
+          )}
         </>
       )}
       <div className="action-row">
@@ -103,7 +114,7 @@ export function QuestionStep(props: Props) {
         <button
           data-testid="wizard-confirmar"
           type="button"
-          disabled={selected === null || missingDetectedOptions}
+          disabled={!validSelection(question, selected) || missingDetectedOptions}
           onClick={() => onConfirm(selected)}
         >
           Confirmar

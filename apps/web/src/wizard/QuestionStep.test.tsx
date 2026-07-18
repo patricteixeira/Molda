@@ -52,6 +52,48 @@ it("mostra o prompt do servidor, o progresso e confirma a seleção", async () =
   expect(props.onConfirm).toHaveBeenCalledWith("#1A4D8F")
 })
 
+it("faz a pessoa revisar a visão da marca antes de usá-la como direção", async () => {
+  const extracted = {
+    essence: "Existimos para tornar sistemas complexos claros e humanos.",
+    personality: "Precisa, artesanal e acessível.",
+    voice: "Direta e acolhedora.",
+    avoid: "Automação sem intenção.",
+  }
+  const props = renderStep({
+    question: {
+      id: "identity.expression",
+      kind: "review-identity",
+      promptPt: "O que nesta identidade deve orientar todas as criações?",
+      candidates: [
+        {
+          value: extracted,
+          score: 3,
+          evidence: [
+            {
+              sourceType: "pdf-guideline",
+              page: 2,
+              confidence: 0.9,
+              authoritative: true,
+            },
+          ],
+        },
+      ],
+      required: true,
+    },
+  })
+
+  expect(await screen.findByLabelText("Essência e propósito")).toHaveValue(extracted.essence)
+  expect(screen.getByText(/1 trecho do manual sustenta/i)).toBeInTheDocument()
+  await userEvent.clear(screen.getByLabelText("Personalidade e valores"))
+  await userEvent.type(screen.getByLabelText("Personalidade e valores"), "Tátil e experimental.")
+  await userEvent.click(screen.getByTestId("wizard-confirmar"))
+
+  expect(props.onConfirm).toHaveBeenCalledWith({
+    ...extracted,
+    personality: "Tátil e experimental.",
+  })
+})
+
 it("pergunta sem candidatos oferece retorno aos materiais", async () => {
   const props = renderStep({ question: { ...question, candidates: [] } })
 

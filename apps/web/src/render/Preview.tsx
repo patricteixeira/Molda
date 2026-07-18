@@ -34,15 +34,15 @@ interface PointerSession {
 }
 
 const DRAG_START_THRESHOLD_PX = 3
+const MAX_EDITOR_AREA_PX = 32_768
 
-function clampArea(
+function normalizeEditorArea(
   area: [number, number, number, number],
-  canvas: LayoutSpec["canvas"],
 ): [number, number, number, number] {
-  const width = Math.max(8, Math.min(Math.round(area[2]), canvas.widthPx))
-  const height = Math.max(8, Math.min(Math.round(area[3]), canvas.heightPx))
-  const x = Math.max(0, Math.min(Math.round(area[0]), canvas.widthPx - width))
-  const y = Math.max(0, Math.min(Math.round(area[1]), canvas.heightPx - height))
+  const width = Math.max(8, Math.min(Math.round(area[2]), MAX_EDITOR_AREA_PX))
+  const height = Math.max(8, Math.min(Math.round(area[3]), MAX_EDITOR_AREA_PX))
+  const x = Math.max(-MAX_EDITOR_AREA_PX, Math.min(Math.round(area[0]), MAX_EDITOR_AREA_PX))
+  const y = Math.max(-MAX_EDITOR_AREA_PX, Math.min(Math.round(area[1]), MAX_EDITOR_AREA_PX))
   return [x, y, width, height]
 }
 
@@ -208,8 +208,8 @@ export function Preview({
     const [x, y, width, height] = session.startArea
     const next =
       session.action === "move"
-        ? clampArea([x + dx, y + dy, width, height], layoutSpec.canvas)
-        : clampArea([x, y, width + dx, height + dy], layoutSpec.canvas)
+        ? normalizeEditorArea([x + dx, y + dy, width, height])
+        : normalizeEditorArea([x, y, width + dx, height + dy])
     liveAreaRef.current = next
     applyLiveArea(session, next)
   }
@@ -242,14 +242,13 @@ export function Preview({
     event.preventDefault()
     onAreaChange(
       selectedLayerId,
-      clampArea(
+      normalizeEditorArea(
         [
           selectedArea[0] + movement[0],
           selectedArea[1] + movement[1],
           selectedArea[2],
           selectedArea[3],
         ],
-        layoutSpec.canvas,
       ),
     )
   }

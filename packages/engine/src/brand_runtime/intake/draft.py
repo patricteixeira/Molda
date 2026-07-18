@@ -28,6 +28,7 @@ from brand_runtime.colors import dedupe_colors, delta_e, is_neutral, lightness
 from brand_runtime.intake.base import Candidate
 from brand_runtime.intake.dtcg import load_dtcg
 from brand_runtime.intake.fonts import introspect_font
+from brand_runtime.intake.identity import identity_candidate
 from brand_runtime.intake.pdf_colors import extract_pdf_colors, extract_pdf_declared_colors
 from brand_runtime.intake.pdf_composition import (
     CompositionDeclarations,
@@ -91,6 +92,7 @@ def _files_with_suffixes(directory: Path, suffixes: set[str]) -> list[Path]:
 
 # Prompts exatos da regra 9 — strings visíveis ao usuário, PT-BR.
 _PROMPTS = {
+    "identity.expression": "O que nesta identidade deve orientar todas as criações?",
     "color.primary": "Qual destas é a cor principal da marca?",
     "color.background": "Qual é a cor de fundo mais comum nos materiais?",
     "color.text": "Qual cor é usada para textos longos?",
@@ -105,7 +107,7 @@ class DraftQuestion(CamelModel):
     """Pergunta do wizard com candidatos ordenados do mais provável ao menos."""
 
     id: str  # "color.primary", "font.heading", "logo.primary", ...
-    kind: Literal["pick-color", "pick-font", "confirm-logo"]
+    kind: Literal["pick-color", "pick-font", "confirm-logo", "review-identity"]
     prompt_pt: str
     candidates: list[Candidate]
     # ``0`` mantém drafts persistidos antes deste campo compiláveis. Novos
@@ -125,7 +127,7 @@ class BrandDraft(CamelModel):
 
 def _question(
     question_id: str,
-    kind: Literal["pick-color", "pick-font", "confirm-logo"],
+    kind: Literal["pick-color", "pick-font", "confirm-logo", "review-identity"],
     candidates: list[Candidate],
     *,
     required: bool,
@@ -620,6 +622,7 @@ def build_draft(package_dir: Path) -> BrandDraft:
     composition_declarations = merge_composition_declarations(
         [extract_pdf_composition(path) for path in pdfs]
     )
+    expression_candidate = identity_candidate(pdfs)
 
     dtcg = _dtcg_candidates(package_dir)
     dtcg_colors = [c for key, c in dtcg.items() if key.startswith("color.")]
@@ -707,6 +710,13 @@ def build_draft(package_dir: Path) -> BrandDraft:
     logo_candidates = _logo_candidates(svg_logos, png_logos, package_dir)
 
     questions = [
+        _question(
+            "identity.expression",
+            "review-identity",
+            [expression_candidate],
+            required=True,
+            recommended_count=1,
+        ),
         _question(
             "color.primary",
             "pick-color",

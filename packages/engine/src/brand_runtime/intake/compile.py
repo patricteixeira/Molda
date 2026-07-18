@@ -11,7 +11,9 @@ from pydantic import ValidationError
 
 from brand_runtime.colors import lightness, normalize_color
 from brand_runtime.intake.base import Candidate
+from brand_runtime.intake.direction import derive_creative_direction
 from brand_runtime.intake.draft import BrandDraft, DraftQuestion
+from brand_runtime.intake.identity import IdentityDraftValue
 from brand_runtime.intake.svg_logo import (
     SvgInvalid,
     extract_svg_colors,
@@ -19,6 +21,7 @@ from brand_runtime.intake.svg_logo import (
 )
 from brand_runtime.ir.models import (
     AccentRule,
+    BrandIdentity,
     BrandIR,
     BrandInfo,
     CamelModel,
@@ -51,7 +54,7 @@ _IDENTITY_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 # A revisão persiste IR e kit como um único bundle write-once. Mudanças
 # semânticas no gerador precisam trocar este domínio para não ressuscitar um
 # kit antigo sob o mesmo id depois de um upgrade.
-_REVISION_BUNDLE_DOMAIN = b"brand-ir-0.3-kit-v3\0"
+_REVISION_BUNDLE_DOMAIN = b"brand-ir-0.4-kit-v4\0"
 
 
 class Answers(CamelModel):
@@ -67,6 +70,37 @@ class CompileError(Exception):
 def _question(draft: BrandDraft, question_id: str) -> DraftQuestion | None:
     """Localiza uma pergunta sem pressupor que as opcionais existam."""
     return next((item for item in draft.questions if item.id == question_id), None)
+
+
+def _compile_identity(
+    draft: BrandDraft,
+    value: Any,
+    created_at: datetime,
+) -> BrandIdentity:
+    """Valida a leitura revisada e preserva a origem textual do manual."""
+    try:
+        parsed = IdentityDraftValue.model_validate(value)
+    except ValidationError as exc:
+        raise CompileError("A leitura da identidade possui campos inválidos.") from exc
+    essence = parsed.essence.strip()
+    if not essence:
+        raise CompileError("Explique a essência ou o propósito da marca antes de publicar.")
+    question = _question(draft, "identity.expression")
+    inherited = (
+        [
+            _portable_evidence(item, Path(draft.package_dir))
+            for item in question.candidates[0].evidence
+        ]
+        if question is not None and question.candidates
+        else []
+    )
+    return BrandIdentity(
+        essence=essence,
+        personality=parsed.personality.strip(),
+        voice=parsed.voice.strip(),
+        avoid=parsed.avoid.strip(),
+        evidence=[*inherited, _confirmation(created_at)],
+    )
 
 
 def _match_color(question: DraftQuestion | None, value: Any) -> Candidate | None:
@@ -577,6 +611,8 @@ def _revision_id(ir: BrandIR) -> str:
         *(token.evidence for token in identity.fonts.values()),
         *(asset.evidence for asset in identity.assets.values()),
     ]
+    if identity.identity is not None:
+        evidence_groups.append(identity.identity.evidence)
     if identity.composition_rules is not None:
         rules = identity.composition_rules
         evidence_groups.extend(
@@ -605,12 +641,35 @@ def compile_ir(
     created_at: datetime | None = None,
 ) -> BrandIR:
     """Transforma um draft confirmado em uma revisão determinística do Brand IR."""
-    missing = [answer_id for answer_id in _REQUIRED_ANSWERS if answer_id not in answers.values]
+    required_answers = {
+        *_REQUIRED_ANSWERS,
+        *(question.id for question in draft.questions if question.required),
+    }
+    missing = sorted(answer_id for answer_id in required_answers if answer_id not in answers.values)
     if missing:
         raise CompileError("Responda às perguntas obrigatórias: " + ", ".join(missing) + ".")
 
     timestamp = created_at if created_at is not None else datetime.now(timezone.utc)
     diagnostics = [item.model_copy(deep=True) for item in draft.diagnostics]
+    identity_question = _question(draft, "identity.expression")
+    identity = (
+        _compile_identity(draft, answers.values["identity.expression"], timestamp)
+        if identity_question is not None
+        else None
+    )
+    creative_direction = derive_creative_direction(identity) if identity is not None else None
+    if identity is not None and creative_direction is None:
+        diagnostics.append(
+            Diagnostic(
+                code="IDENTITY_SIGNAL_WEAK",
+                target="identity.expression",
+                message=(
+                    "A identidade foi preservada, mas ainda não traz sinais suficientes "
+                    "para sugerir uma direção estrutural específica."
+                ),
+                resolution="review-brand-expression",
+            )
+        )
 
     colors = {
         token_id: _compile_color(draft, token_id, answers.values[token_id], timestamp)
@@ -711,8 +770,10 @@ def compile_ir(
         )
 
     ir = BrandIR(
-        schema_version="0.3.0",
+        schema_version="0.4.0" if identity is not None else "0.3.0",
         brand=BrandInfo(name=brand_name),
+        identity=identity,
+        creative_direction=creative_direction,
         revision=RevisionInfo(id="", created_at=timestamp),
         colors=colors,
         fonts=fonts,

@@ -13,6 +13,12 @@ PositiveInt = Annotated[int, Field(gt=0)]
 NonNegativeInt = Annotated[int, Field(ge=0)]
 NonBlankString = Annotated[str, Field(min_length=1, pattern=r".*\S.*")]
 Area = tuple[NonNegativeInt, NonNegativeInt, PositiveInt, PositiveInt]
+# Overrides autorais aceitam sangria real. O teto protege serialização, CSS e
+# OOXML contra valores patológicos sem transformar o canvas em uma barreira
+# criativa: 32.768 px cobre mais de 17 vezes o maior perfil publicado.
+EditorCoordinate = Annotated[int, Field(ge=-32768, le=32768)]
+EditorDimension = Annotated[int, Field(gt=0, le=32768)]
+EditorArea = tuple[EditorCoordinate, EditorCoordinate, EditorDimension, EditorDimension]
 Resolution = tuple[PositiveInt, PositiveInt]
 Opacity = Annotated[float, Field(ge=0.0, le=1.0, allow_inf_nan=False)]
 ZIndex = Annotated[int, Field(ge=0, le=20)]
@@ -22,6 +28,9 @@ EditorLetterSpacing = Annotated[float, Field(ge=-0.25, le=1.0, allow_inf_nan=Fal
 EditorFontSize = Annotated[float, Field(ge=6.0, le=1024.0, allow_inf_nan=False)]
 EditorFontWeight = Annotated[int, Field(ge=100, le=900)]
 EditorLineHeight = Annotated[float, Field(ge=0.5, le=3.0, allow_inf_nan=False)]
+SurfaceScale = Annotated[float, Field(ge=4.0, le=512.0, allow_inf_nan=False)]
+SurfaceWeight = Annotated[float, Field(gt=0.0, le=32.0, allow_inf_nan=False)]
+SurfaceAngle = Annotated[float, Field(ge=-180.0, le=180.0, allow_inf_nan=False)]
 
 PROFILES: dict[Profile, tuple[int, int, int]] = {
     "post-1x1": (1080, 1080, 48),
@@ -254,10 +263,27 @@ class ImageValue(CamelModel):
     sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")] | None = None
 
 
+class SurfaceStyle(CamelModel):
+    """Textura procedural de uma peça, editável e recortada pelo canvas."""
+
+    kind: Literal[
+        "paper-grain",
+        "linear-rhythm",
+        "technical-grid",
+        "point-field",
+        "concentric-rings",
+    ]
+    color_token: NonBlankString
+    opacity: Opacity = 0.12
+    scale_px: SurfaceScale = 48.0
+    weight_px: SurfaceWeight = 1.0
+    angle_deg: SurfaceAngle = 0.0
+
+
 class LayerOverride(CamelModel):
     """Ajustes autorais de uma instância sem alterar o layout publicado."""
 
-    area: Area | None = None
+    area: EditorArea | None = None
     opacity: Opacity | None = None
     hidden: bool = False
     z_index: ZIndex | None = None
@@ -297,3 +323,4 @@ class ContentSpec(CamelModel):
     brand_revision_id: NonBlankString
     values: dict[str, TextValue | ImageValue]
     overrides: dict[str, LayerOverride] = Field(default_factory=dict)
+    surface: SurfaceStyle | None = None
