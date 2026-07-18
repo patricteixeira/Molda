@@ -406,6 +406,7 @@ def _compile_composition_rules(
     draft: BrandDraft,
     colors: dict[str, ColorToken],
     assets: dict[str, LogoAsset],
+    diagnostics: list[Diagnostic],
 ) -> CompositionRules | None:
     """Liga declarações explícitas a tokens sem completar lacunas por inferência."""
     declarations = draft.composition_declarations
@@ -462,14 +463,48 @@ def _compile_composition_rules(
             evidence=_portable_evidence_list(declarations.dark_mode_evidence, package_dir),
         )
 
+    # Uma escolha legítima do wizard pode fazer dois papéis declarados apontarem
+    # para o mesmo token (por exemplo, a tinta de acento confirmada como fundo).
+    # O IR admite uma proporção por token, portanto somamos as participações e
+    # preservamos a evidência de cada papel em vez de rejeitar a marca inteira.
+    ratio_order: list[str] = []
+    ratio_values: dict[str, float] = {}
+    ratio_evidence: dict[str, list[Evidence]] = {}
+    ratio_roles: dict[str, list[str]] = {}
+    for item in declarations.color_ratios:
+        token = role_tokens[item.role]
+        if token not in colors:
+            continue
+        if token not in ratio_values:
+            ratio_order.append(token)
+            ratio_values[token] = 0.0
+            ratio_evidence[token] = []
+            ratio_roles[token] = []
+        ratio_values[token] += item.ratio
+        ratio_evidence[token].extend(_portable_evidence_list(item.evidence, package_dir))
+        ratio_roles[token].append(item.role)
+
+    collided_roles = [roles for roles in ratio_roles.values() if len(roles) > 1]
+    if collided_roles:
+        diagnostics.append(
+            Diagnostic(
+                code="COMPOSITION_ROLE_COLLISION",
+                target="composition.colorRatios",
+                message=(
+                    "A mesma cor foi confirmada para mais de um papel de composição; "
+                    "as proporções correspondentes foram combinadas."
+                ),
+                resolution="review-color-roles",
+            )
+        )
+
     ratios = [
         ColorRatioRule(
-            color_token=role_tokens[item.role],
-            ratio=item.ratio,
-            evidence=_portable_evidence_list(item.evidence, package_dir),
+            color_token=token,
+            ratio=ratio_values[token],
+            evidence=ratio_evidence[token],
         )
-        for item in declarations.color_ratios
-        if role_tokens[item.role] in colors
+        for token in ratio_order
     ]
     accent = None
     accent_ratio = next(
@@ -477,7 +512,15 @@ def _compile_composition_rules(
         None,
     )
     accent_token = role_tokens["accent"]
-    if accent_token in colors and (declarations.accent is not None or accent_ratio is not None):
+    accent_is_distinct = accent_token not in {
+        role_tokens["primary"],
+        role_tokens["background"],
+    }
+    if (
+        accent_token in colors
+        and accent_is_distinct
+        and (declarations.accent is not None or accent_ratio is not None)
+    ):
         max_ratio = (
             declarations.accent.max_ratio if declarations.accent is not None else accent_ratio.ratio
         )
@@ -607,7 +650,7 @@ def compile_ir(
         ),
         **_compile_logo_variants(draft, timestamp),
     }
-    composition_rules = _compile_composition_rules(draft, colors, assets)
+    composition_rules = _compile_composition_rules(draft, colors, assets, diagnostics)
 
     roles = {
         "heading": SemanticRole(

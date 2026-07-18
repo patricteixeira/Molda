@@ -67,8 +67,8 @@ def test_overflow_medido_com_quarenta_linhas(brand_package, render_dist):
     assert overflow["headline"].content_px > 432
 
 
-def test_report_vira_verdict_bloqueado_e_corrigido(brand_package):
-    """Overflow e falha de carga bloqueiam na ordem do slot."""
+def test_report_vira_orientacoes_na_ordem_do_slot(brand_package):
+    """Overflow e falha de carga orientam sem impedir a exportação."""
     ir, layout, content = _triplet(brand_package, "A\n" * 40)
     report = MeasuredGuardReport.model_validate(
         {
@@ -86,8 +86,8 @@ def test_report_vira_verdict_bloqueado_e_corrigido(brand_package):
     verdict = build_guard_verdict(ir, layout, content, brand_package, report)
     measured = [check for check in verdict.checks if check.id in {"text-overflow", "font-fallback"}]
     assert [(check.id, check.status) for check in measured] == [
-        ("text-overflow", "blocked"),
-        ("font-fallback", "blocked"),
+        ("text-overflow", "warning"),
+        ("font-fallback", "warning"),
     ]
 
 

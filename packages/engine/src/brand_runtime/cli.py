@@ -35,6 +35,12 @@ from brand_runtime.roundtrip.fix import (
     apply_pptx_fix_plan,
     build_fix_plan,
 )
+from brand_runtime.roundtrip.docx import (
+    DocxBrandError,
+    DocxBrandPlan,
+    analyze_docx_brand,
+    apply_docx_brand_plan,
+)
 from brand_runtime.roundtrip.lint import RoundtripReport, lint_roundtrip
 from brand_runtime.roundtrip.models import DocumentGraph
 from brand_runtime.roundtrip.pptx import PptxParseError, parse_pptx_document_graph
@@ -71,6 +77,7 @@ _EXPECTED_ERRORS = (
     PptxParseError,
     RoundtripFixError,
     PackageValidationError,
+    DocxBrandError,
 )
 
 
@@ -177,6 +184,56 @@ def roundtrip_fix_command(
             _read_model(plan, FixPlan),
             _read_model(baseline, DocumentGraph),
             _read_model(brand_ir, BrandIR) if brand_ir is not None else None,
+        )
+        if result_out is not None:
+            atomic_write_text(result_out, _model_json(result))
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    typer.echo(str(out))
+
+
+@app.command("docx-brand-plan")
+def docx_brand_plan_command(
+    source: Path = typer.Argument(..., help="DOCX existente que receberá a identidade."),
+    brand_ir: Path = typer.Argument(..., help="Brand IR autoritativo."),
+    out: Path | None = typer.Option(None, "--out", help="JSON do plano de aplicação."),
+) -> None:
+    """Analisa um Word existente e explica as mudanças antes de gravar uma cópia."""
+    try:
+        plan = analyze_docx_brand(source, _read_model(brand_ir, BrandIR))
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    payload = _model_json(plan)
+    if out is None:
+        typer.echo(payload, nl=False)
+        return
+    atomic_write_text(out, payload)
+    typer.echo(str(out))
+
+
+@app.command("docx-brand-apply")
+def docx_brand_apply_command(
+    source: Path = typer.Argument(..., help="DOCX exato que originou o plano."),
+    brand_ir: Path = typer.Argument(..., help="Brand IR autoritativo."),
+    plan: Path = typer.Argument(..., help="Plano produzido por docx-brand-plan."),
+    assets_dir: Path = typer.Option(..., "--assets-dir", help="Raiz autorizada dos assets."),
+    out: Path = typer.Option(..., "--out", help="Nova cópia DOCX com a marca."),
+    result_out: Path | None = typer.Option(
+        None,
+        "--result-out",
+        help="JSON com hashes e prova de preservação.",
+    ),
+) -> None:
+    """Aplica estilos, página, tabelas e logo sem sobrescrever o Word original."""
+    try:
+        if not assets_dir.is_dir():
+            raise CliInputError(f"O diretório de assets «{assets_dir}» não existe.")
+        result = apply_docx_brand_plan(
+            source,
+            out,
+            _read_model(plan, DocxBrandPlan),
+            _read_model(brand_ir, BrandIR),
+            asset_root=assets_dir,
         )
         if result_out is not None:
             atomic_write_text(result_out, _model_json(result))
@@ -348,7 +405,7 @@ def schemas_command(
         if out_dir.exists() and not out_dir.is_dir():
             raise CliInputError(f"O destino «{out_dir}» não é um diretório.")
         paths = export_schemas(out_dir)
-        if len(paths) != 10:
+        if len(paths) != 12:
             raise CliInputError("A publicação de schemas não produziu os contratos esperados.")
     except _EXPECTED_ERRORS as error:
         _fail(error)

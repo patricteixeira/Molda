@@ -105,19 +105,15 @@ def test_cli_export_pdf_de_post_falha_com_exit_2(brand_package, render_dist, tmp
     assert result.exit_code == 2
 
 
-def test_cli_export_bloqueado_emite_verdict_exit_3_sem_arquivo(
-    brand_package, render_dist, tmp_path
-):
-    """Bloqueio medido retorna o GuardVerdict em stderr sem arquivo parcial."""
+def test_cli_export_com_overflow_emite_aviso_e_arquivo(brand_package, render_dist, tmp_path):
+    """Orientação medida não sequestra do usuário a decisão de exportar."""
     paths = _write_inputs(
         brand_package,
         tmp_path,
         "statement-post-1x1",
         {"headline": {"kind": "text", "text": "A\n" * 40}},
     )
-    output = tmp_path / "blocked.png"
+    output = tmp_path / "com-aviso.png"
     result = _invoke(paths, brand_package, render_dist, output)
-    assert result.exit_code == 3
-    assert not output.exists()
-    verdict = json.loads(result.stderr)
-    assert any(check["id"] == "text-overflow" for check in verdict["checks"])
+    assert result.exit_code == 0, result.output
+    assert output.exists()

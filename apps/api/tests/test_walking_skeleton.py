@@ -36,9 +36,11 @@ def test_walking_skeleton_api(client, package_zip):
             "values": {"headline": {"kind": "text", "text": "A" * 200}},
         },
     ).json()
-    assert any(check["status"] == "blocked" for check in bad["checks"])
+    assert any(check["status"] == "warning" for check in bad["checks"])
     response = client.post(f"/v1/documents/{bad['documentId']}/exports", json={"format": "png"})
-    assert response.status_code == 409
+    assert response.status_code == 202
+    assert _run_one(client) is True
+    assert client.get(f"/v1/jobs/{response.json()['jobId']}").json()["status"] == "succeeded"
 
     low_resolution_sha = client.post(
         "/v1/assets",
@@ -60,7 +62,7 @@ def test_walking_skeleton_api(client, package_zip):
         },
     ).json()
     assert any(
-        check["id"] == "image-resolution" and check["status"] == "blocked"
+        check["id"] == "image-resolution" and check["status"] == "warning"
         for check in bad_image["checks"]
     )
 

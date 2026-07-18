@@ -59,29 +59,29 @@ def test_export_png_do_queued_ao_succeeded(client, compiled):
     assert png.content[:8] == b"\x89PNG\r\n\x1a\n"
 
 
-def test_export_bloqueado_409_com_shape_raiz_exato_e_sem_job(client, compiled):
+def test_export_com_orientacao_de_texto_cria_job(client, compiled):
     document_id = _make_doc(client, compiled, text="A" * 200)
     response = client.post(f"/v1/documents/{document_id}/exports", json={"format": "png"})
 
-    assert response.status_code == 409
-    body = response.json()
-    assert set(body) == {"detail", "checks"}
-    assert body["detail"] == "O documento tem pendências do guard — corrija antes de exportar."
-    assert any(
-        check["id"] == "text-length" and check["status"] == "blocked" for check in body["checks"]
-    )
+    assert response.status_code == 202
     with client.app.state.session_factory() as session:
-        assert session.query(Job).count() == 0
+        job = session.get(Job, response.json()["jobId"])
+        assert job is not None
+        assert any(
+            check["id"] == "text-length" and check["status"] == "warning" for check in job.checks
+        )
 
 
-def test_enqueue_reexecuta_guard_em_vez_de_confiar_nos_checks_persistidos(client, compiled):
+def test_enqueue_reexecuta_bloqueio_tecnico_em_vez_de_confiar_nos_checks_persistidos(
+    client, compiled
+):
     document_id = _make_doc(client, compiled)
     with client.app.state.session_factory() as session:
         document = session.get(Document, document_id)
         assert document is not None
         document.content = {
             **document.content,
-            "values": {"headline": {"kind": "text", "text": "A" * 200}},
+            "layoutId": "layout-alheio",
         }
         document.checks = []
         session.commit()
@@ -262,7 +262,7 @@ def test_job_que_estoura_vira_failed(client, compiled):
     assert "Falha no export" in body["error"]
 
 
-def test_overflow_medido_vira_failed_com_checks_sem_blob(client, compiled):
+def test_bloqueio_tecnico_medido_vira_failed_com_checks_sem_blob(client, compiled):
     from brand_api.exporters import ExportRejected
     from brand_api.worker import run_next_job
     from brand_runtime.guard.static_checks import GuardCheck
@@ -272,11 +272,11 @@ def test_overflow_medido_vira_failed_com_checks_sem_blob(client, compiled):
             raise ExportRejected(
                 [
                     GuardCheck(
-                        id="text-overflow",
-                        slot_id="headline",
+                        id="asset-integrity",
+                        slot_id="photo",
                         status="blocked",
-                        message_pt="O texto ultrapassa a área disponível.",
-                        detail={"contentPx": 500, "boxPx": 432},
+                        message_pt="O arquivo não corresponde ao conteúdo enviado.",
+                        detail={},
                     )
                 ]
             )
@@ -295,7 +295,8 @@ def test_overflow_medido_vira_failed_com_checks_sem_blob(client, compiled):
     body = client.get(f"/v1/jobs/{job_id}").json()
     assert body["status"] == "failed" and body["result"] is None
     assert any(
-        check["id"] == "text-overflow" and check["status"] == "blocked" for check in body["checks"]
+        check["id"] == "asset-integrity" and check["status"] == "blocked"
+        for check in body["checks"]
     )
 
 

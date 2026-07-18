@@ -4,10 +4,21 @@ import { Link, useLocation } from "react-router-dom"
 export function AppChrome({ children }: PropsWithChildren) {
   const { pathname } = useLocation()
   const editorMatch = pathname.match(/^\/marcas\/([^/]+)\/editor\//)
-  const kitMatch = pathname.match(/^\/marcas\/([^/]+)\/kit$/)
-  const currentArea = editorMatch ? "Editor" : kitMatch ? "Kit" : pathname === "/" ? "Instalação" : "404"
-  const contextHref = "/"
-  const contextLabel = pathname === "/" ? "Instalar marca" : "Instalação"
+  const revisionAreaMatch = pathname.match(/^\/marcas\/([^/]+)\/(kit|campanhas|word)$/)
+  const revisionId = revisionAreaMatch?.[1]
+  const area = revisionAreaMatch?.[2]
+  const currentArea =
+    area === "kit"
+      ? "Kit"
+      : area === "campanhas"
+        ? "Campanhas"
+        : area === "word"
+          ? "Word"
+          : pathname === "/"
+            ? "Instalação"
+            : "Página não encontrada"
+  const contextHref = revisionId && area !== "kit" ? `/marcas/${encodeURIComponent(revisionId)}/kit` : "/"
+  const contextLabel = revisionId && area !== "kit" ? "Kit" : pathname === "/" ? "Instalar marca" : "Instalação"
 
   if (editorMatch) {
     return <div className="app-shell app-shell-editor">{children}</div>
@@ -16,12 +27,12 @@ export function AppChrome({ children }: PropsWithChildren) {
   return (
     <div className="app-shell">
       <header className="app-nav">
-        <Link className="wordmark" to="/" aria-label="brand-runtime, início">
+        <Link className="wordmark" to="/" aria-label="Molda, início">
           <span className="wordmark-mark" aria-hidden="true">
-            <span>b</span>
-            <span>r</span>
+            <span>m</span>
+            <span>d</span>
           </span>
-          <span>brand-runtime</span>
+          <span>Molda</span>
         </Link>
         <nav className="app-nav-links" aria-label="Navegação principal">
           <Link to={contextHref} aria-current={pathname === "/" ? "page" : undefined}>

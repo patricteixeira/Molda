@@ -22,18 +22,20 @@ export function ProductMotion() {
       gsap.registerPlugin(ScrollTrigger)
 
       const entrance = root.querySelectorAll<HTMLElement>("[data-motion-enter]")
-      gsap.fromTo(
-        entrance,
-        { opacity: 0, y: 24 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          ease: "power3.out",
-          stagger: 0.07,
-          clearProps: "transform",
-        },
-      )
+      if (entrance.length > 0) {
+        gsap.fromTo(
+          entrance,
+          { opacity: 0, y: 24 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            ease: "power3.out",
+            stagger: 0.07,
+            clearProps: "transform",
+          },
+        )
+      }
 
       const kitLayout = root.querySelector<HTMLElement>(".kit-layout")
       const kitHeading = root.querySelector<HTMLElement>(".kit-heading")

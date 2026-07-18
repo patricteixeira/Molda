@@ -23,7 +23,7 @@ class GuardCheck(CamelModel):
 
     id: str
     slot_id: str | None = None
-    status: Literal["pass", "fixed", "blocked"]
+    status: Literal["pass", "fixed", "warning", "blocked"]
     message_pt: str
     detail: dict[str, Any] = Field(default_factory=dict)
 
@@ -63,6 +63,23 @@ def _passed(
         id=check_id,
         slot_id=slot_id,
         status="pass",
+        message_pt=message,
+        detail=detail or {},
+    )
+
+
+def _warning(
+    check_id: str,
+    message: str,
+    *,
+    slot_id: str | None = None,
+    detail: dict[str, Any] | None = None,
+) -> GuardCheck:
+    """Orienta sobre uma decisão de marca sem impedir criação ou exportação."""
+    return GuardCheck(
+        id=check_id,
+        slot_id=slot_id,
+        status="warning",
         message_pt=message,
         detail=detail or {},
     )
@@ -143,7 +160,7 @@ def _override_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> l
             x, y, width, height = override.area
             if x + width > layout.canvas.width_px or y + height > layout.canvas.height_px:
                 checks.append(
-                    _blocked(
+                    _warning(
                         "override-geometry",
                         f"A posição de «{element_id}» ultrapassa o canvas.",
                         slot_id=element_id,
@@ -223,7 +240,7 @@ def _override_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> l
             asset = ir.assets.get(asset_token)
             if asset is not None and override.area[2] < asset.min_width_px:
                 checks.append(
-                    _blocked(
+                    _warning(
                         "asset-size",
                         "O logo ficou menor do que o uso mínimo permitido pela marca.",
                         slot_id=element_id,
@@ -335,7 +352,7 @@ def _reference_checks(ir: BrandIR, layout: LayoutSpec) -> list[GuardCheck]:
                 _, _, width, height = layer.area
                 if width < asset.min_width_px:
                     checks.append(
-                        _blocked(
+                        _warning(
                             "asset-size",
                             "Um elemento fixo da marca está menor do que o uso permitido.",
                             detail={
@@ -418,7 +435,7 @@ def _presence_and_type_checks(layout: LayoutSpec, content: ContentSpec) -> list[
         value = content.values.get(slot.id)
         if slot.required and (value is None or _is_blank_required_text(slot, value)):
             checks.append(
-                _blocked(
+                _warning(
                     "required-slot",
                     f"Preencha o campo obrigatório «{slot.id}».",
                     slot_id=slot.id,
@@ -456,7 +473,7 @@ def _text_length_checks(layout: LayoutSpec, content: ContentSpec) -> list[GuardC
         detail = {"chars": chars, "maxChars": slot.max_chars}
         if chars > slot.max_chars:
             checks.append(
-                _blocked(
+                _warning(
                     "text-length",
                     (
                         f"O texto de «{slot.id}» tem {chars} caracteres; "
@@ -500,7 +517,7 @@ def _emphasis_checks(layout: LayoutSpec, content: ContentSpec) -> list[GuardChec
         if emphasis_color is None:
             if emphasis is not None and emphasis.strip():
                 checks.append(
-                    _blocked(
+                    _warning(
                         "emphasis",
                         f"Este layout não prevê um trecho em destaque em «{slot.id}».",
                         slot_id=slot.id,
@@ -510,7 +527,7 @@ def _emphasis_checks(layout: LayoutSpec, content: ContentSpec) -> list[GuardChec
 
         if emphasis is None or not emphasis.strip():
             checks.append(
-                _blocked(
+                _warning(
                     "emphasis",
                     f"Escolha um trecho da frase de «{slot.id}» para destacar.",
                     slot_id=slot.id,
@@ -523,7 +540,7 @@ def _emphasis_checks(layout: LayoutSpec, content: ContentSpec) -> list[GuardChec
         detail = {"occurrences": occurrences, "emphasisChars": len(emphasis)}
         if occurrences == 0:
             checks.append(
-                _blocked(
+                _warning(
                     "emphasis",
                     "O trecho em destaque precisa ser copiado exatamente da frase principal.",
                     slot_id=slot.id,
@@ -532,7 +549,7 @@ def _emphasis_checks(layout: LayoutSpec, content: ContentSpec) -> list[GuardChec
             )
         elif occurrences > 1:
             checks.append(
-                _blocked(
+                _warning(
                     "emphasis",
                     "Escolha um trecho que apareça apenas uma vez na frase principal.",
                     slot_id=slot.id,
@@ -669,7 +686,7 @@ def _image_resolution_checks(
         }
         if width < min_width or height < min_height:
             checks.append(
-                _blocked(
+                _warning(
                     "image-resolution",
                     (
                         f"A imagem de «{slot.id}» tem {width}×{height}px; "
@@ -778,7 +795,7 @@ def _accent_usage_checks(
     }
     if estimated_ratio > accent.max_ratio + 1e-6:
         return [
-            _blocked(
+            _warning(
                 "accent-ratio",
                 "O destaque ocupa mais espaço do que este sistema de marca permite.",
                 detail=detail,
@@ -814,7 +831,7 @@ def _contrast_check(
     ratio = wcag_contrast(foreground, background)
     detail = {"ratio": round(ratio, 2), "threshold": threshold}
     if ratio < threshold:
-        return _blocked(
+        return _warning(
             check_id,
             f"O contraste do {subject} de «{slot.id}» com o fundo é insuficiente para leitura.",
             slot_id=slot.id,

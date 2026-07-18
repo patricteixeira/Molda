@@ -29,7 +29,8 @@ export function GuardPanel({ checks, onAction }: GuardPanelProps) {
       aria-labelledby="guard-heading"
       aria-live="polite"
     >
-      <h2 id="guard-heading">Antes de exportar</h2>
+      <h2 id="guard-heading">Orientações da marca</h2>
+      <p>Você pode ajustar estas escolhas ou exportar assim mesmo.</p>
       <ul>
         {visibleChecks.map((check, index) => (
           <li
@@ -37,6 +38,7 @@ export function GuardPanel({ checks, onAction }: GuardPanelProps) {
             className="guard-item"
             data-testid="guard-item"
             data-check-id={check.id}
+            data-status={check.status}
             data-slot-id={check.slotId ?? undefined}
           >
             <p>{check.messagePt}</p>

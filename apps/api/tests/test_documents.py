@@ -68,7 +68,7 @@ def test_violacao_reportada_sem_bloquear_criacao(client, compiled):
     response = client.post("/v1/documents", json=_statement(compiled, text="A" * 200))
     assert response.status_code == 201
     text_length = next(check for check in response.json()["checks"] if check["id"] == "text-length")
-    assert text_length["status"] == "blocked"
+    assert text_length["status"] == "warning"
     assert "200" in text_length["messagePt"]
 
 

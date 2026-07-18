@@ -347,10 +347,10 @@ def test_worker_outcome_com_blocked_falha_fechado_e_limpa_workdir(client, compil
                 out_path,
                 [
                     GuardCheck(
-                        id="text-overflow",
-                        slot_id="headline",
+                        id="asset-integrity",
+                        slot_id="photo",
                         status="blocked",
-                        message_pt="O texto ultrapassa a área disponível.",
+                        message_pt="O arquivo não corresponde ao conteúdo enviado.",
                     )
                 ],
             )

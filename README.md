@@ -1,16 +1,22 @@
-# brand-runtime <small>(nome provisório)</small>
+# Molda
 
 > Runtime de marca open source e self-hosted: interpreta uma identidade visual
 > existente, converte-a num perfil executável e dá a pessoas leigas um ambiente
-> de criação onde sair da marca é impossível por construção.
+> de criação orientado pelas decisões reais da marca.
 
 O sistema **não cria identidade visual** — ele lê a que já existe (manual em
 PDF, logos, fontes, cores anotadas), transforma tudo num **Brand IR**
 versionado e gera trilhos (kits de layout com slots) dentro dos quais qualquer
-pessoa produz posts, documentos e materiais corretos em relação à marca.
+pessoa produz posts, documentos e materiais orientados pela marca.
 
-**Status: Marco 1 implementado** — motor, renderer, API, worker e app web
-compõem um walking skeleton executável de ponta a ponta, coberto por E2E real.
+O Guard orienta sem policiar: decisões criativas geram recomendações, mas
+continuam salváveis e exportáveis. Apenas falhas de segurança, integridade ou
+contrato técnico impedem a produção do arquivo. Veja o
+[ADR 0014](docs/adr/0014-guard-orienta-sem-policiar.md).
+
+**Status: produto funcional em evolução** — motor, renderer, API, worker e app
+web compõem fluxos executáveis de ponta a ponta, cobertos por testes de contrato,
+integração e interface.
 A spec fundadora está em
 [`docs/superpowers/specs/2026-07-11-brand-runtime-design.md`](docs/superpowers/specs/2026-07-11-brand-runtime-design.md).
 
@@ -45,7 +51,7 @@ docker compose down -v
 | `postgres` | Revisões, documentos e fila persistente | nenhuma |
 | `font-fetch` | Egress restrito ao snapshot oficial de fontes abertas | nenhuma |
 | `api` | Intake, Brand IR, kit, Guard e jobs HTTP | nenhuma |
-| `worker` | Export PNG/PDF com Chromium headless | nenhuma |
+| `worker` | Export PNG/PDF, round-trip e aplicação de marca no Word | nenhuma |
 | `web` | SPA e proxy nginx autenticado | `127.0.0.1:8080` |
 
 O Compose também executa `data-init`, um job efêmero e sem rede que prepara a
@@ -73,11 +79,28 @@ moldura, padrão, hierarquia, contraste e logo adequada ao fundo permanecem
 travados por construção. A decisão está registrada na
 [`ADR 0010`](docs/adr/0010-gramatica-de-composicao-editorial.md).
 
+## Fluxos recorrentes
+
+Além da edição de uma peça por vez, o kit oferece dois fluxos pensados para o
+trabalho semanal:
+
+- **Modo Campanha:** título, mensagem, data, CTA e imagem formam uma fonte única.
+  Post, story, apresentação e documento permanecem vinculados; salvar a fonte
+  recalcula todos os documentos na mesma transação e reexecuta o Guard.
+- **Aplicar marca ao Word:** um `.docx` existente é analisado antes de qualquer
+  mudança. Depois do consentimento, o worker cria uma nova cópia editável com
+  estilos, hierarquia, margens, tabelas e logo da marca, preservando texto e
+  mídias originais.
+
+As decisões e limites estão registrados nas
+[`ADR 0012`](docs/adr/0012-campanhas-com-fonte-compartilhada.md) e
+[`ADR 0013`](docs/adr/0013-aplicacao-nao-destrutiva-de-marca-em-docx.md).
+
 ## Interface web
 
-O app organiza a jornada em três superfícies: instalação da marca, kit de
-composições e editor por slots. A linguagem visual combina tipografia editorial,
-grade assimétrica e uma paleta mineral com um único acento funcional. A interface
+O app organiza a jornada em instalação da marca, kit de composições, editor por
+slots, campanhas e aplicação de marca em Word. A linguagem visual combina
+tipografia editorial, grade assimétrica e um único acento funcional. A interface
 é responsiva, oferece modos claro e escuro conforme a preferência do sistema e
 reduz o movimento quando solicitado pelo navegador.
 
@@ -93,8 +116,8 @@ packages/engine/   Motor Python: intake (extração + confirmação), Brand IR,
 packages/adapter-sdk-python/
                    SDK MIT sem dependências + adapter DTCG de referência
 packages/render/   Biblioteca TypeScript única de preview/export, DOM 1:1 px
-apps/api/          API FastAPI e worker transacional de export
-apps/web/          Wizard e editor React por slots
+apps/api/          API FastAPI, campanhas e worker transacional
+apps/web/          Wizard, kit, editor, campanhas e fluxo Word em React
 infra/docker/      Imagens e proxy da instância self-hosted
 schemas/           JSON Schemas públicos do motor (licença MIT)
 examples/          Fixtures portáteis para adapters e SDKs (licença MIT)

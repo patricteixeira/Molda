@@ -453,7 +453,7 @@ def build_guard_verdict(
                 GuardCheck(
                     id="text-overflow",
                     slot_id=slot.id,
-                    status="blocked",
+                    status="warning",
                     message_pt=f"O texto de «{slot.id}» ultrapassa a altura disponível.",
                     detail={
                         "contentPx": overflow.content_px,
@@ -463,15 +463,15 @@ def build_guard_verdict(
             )
         fallback = fallbacks.get(slot.id)
         if fallback is not None:
-            blocked = fallback.reason == "load-failed"
+            warned = fallback.reason == "load-failed"
             checks.append(
                 GuardCheck(
                     id="font-fallback",
                     slot_id=slot.id,
-                    status="blocked" if blocked else "fixed",
+                    status="warning" if warned else "fixed",
                     message_pt=(
-                        f"A fonte de «{slot.id}» não pôde ser carregada."
-                        if blocked
+                        f"A fonte de «{slot.id}» não pôde ser carregada; uma substituta foi usada."
+                        if warned
                         else f"A fonte de «{slot.id}» foi substituída de forma controlada."
                     ),
                     detail={

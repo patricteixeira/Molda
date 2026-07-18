@@ -18,6 +18,7 @@ from brand_runtime.kit.models import ContentSpec, LayoutSpec
 from brand_runtime.roundtrip.fix import FixPlan, FixResult
 from brand_runtime.roundtrip.lint import RoundtripReport
 from brand_runtime.roundtrip.models import DocumentGraph
+from brand_runtime.roundtrip.docx import DocxBrandPlan, DocxBrandResult
 
 _SCHEMAS: list[tuple[str, type[BaseModel]]] = [
     ("brand-ir.schema.json", BrandIR),
@@ -28,6 +29,8 @@ _SCHEMAS: list[tuple[str, type[BaseModel]]] = [
     ("roundtrip-report.schema.json", RoundtripReport),
     ("fix-plan.schema.json", FixPlan),
     ("fix-result.schema.json", FixResult),
+    ("docx-brand-plan.schema.json", DocxBrandPlan),
+    ("docx-brand-result.schema.json", DocxBrandResult),
     ("brand-package.schema.json", BrandPackageManifest),
     ("package-validation-report.schema.json", PackageValidationReport),
 ]

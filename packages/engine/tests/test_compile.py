@@ -12,6 +12,7 @@ from brand_runtime.intake.pdf_composition import (
     DeclaredLayoutStyle,
 )
 from brand_runtime.ir.models import Evidence
+from brand_runtime.kit.generator import generate_kit
 
 FIXED = datetime(2026, 7, 11, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -221,6 +222,33 @@ def test_composition_binds_by_declared_color_value_not_misleading_token_name(bra
     assert sum(item.ratio for item in rules.color_ratios) == pytest.approx(1.0)
     assert rules.accent is not None
     assert (rules.accent.color_token, rules.accent.max_ratio) == ("color.primary", 0.1)
+
+
+def test_composition_merges_roles_when_confirmed_colors_collide(brand_package):
+    draft = _composition_draft(brand_package)
+    answers = _answers(draft)
+    answers.values.update(
+        {
+            "color.primary": "#1F232A",
+            # Regressão do pacote real: o wizard oferece o âmbar declarado
+            # como acento também como uma escolha válida para o fundo.
+            "color.background": "#CA6B0B",
+            "color.text": "#1F232A",
+        }
+    )
+
+    ir = compile_ir(draft, answers, "Digital Artisan", created_at=FIXED)
+    rules = ir.composition_rules
+
+    assert rules is not None
+    assert [(item.color_token, item.ratio) for item in rules.color_ratios] == [
+        ("color.primary", 0.6),
+        ("color.background", pytest.approx(0.4)),
+    ]
+    assert sum(item.ratio for item in rules.color_ratios) == pytest.approx(1.0)
+    assert rules.accent is None
+    assert any(diagnostic.code == "COMPOSITION_ROLE_COLLISION" for diagnostic in ir.diagnostics)
+    assert generate_kit(ir)
 
 
 def test_declared_layout_style_compiles_with_portable_evidence(brand_package):

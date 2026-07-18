@@ -45,19 +45,19 @@ def test_layer_overrides_are_validated_as_part_of_the_brand_contract(brand_packa
     assert not [check for check in checks if check.status == "blocked"]
 
 
-def test_resized_locked_brand_mark_cannot_violate_minimum_use(brand_package):
+def test_resized_locked_brand_mark_warns_about_minimum_use(brand_package):
     ir = _composition_ir(brand_package)
     layout = _layout(ir, "editorial-light-post-4x5")
     content = _editorial_content(ir, layout)
     content.overrides = {"brand-mark": LayerOverride(area=(918, 116, 12, 12))}
 
-    blocked = [
+    warnings = [
         check
         for check in run_static_checks(ir, layout, content, brand_package)
-        if check.status == "blocked"
+        if check.status == "warning"
     ]
 
-    assert any(check.id == "asset-size" and check.slot_id == "brand-mark" for check in blocked)
+    assert any(check.id == "asset-size" and check.slot_id == "brand-mark" for check in warnings)
 
 
 def test_text_color_override_is_included_in_contrast_validation(brand_package):
@@ -66,13 +66,13 @@ def test_text_color_override_is_included_in_contrast_validation(brand_package):
     content = _editorial_content(ir, layout)
     content.overrides = {"headline": LayerOverride(color_token=layout.background.color_token)}
 
-    blocked = [
+    warnings = [
         check
         for check in run_static_checks(ir, layout, content, brand_package)
-        if check.status == "blocked"
+        if check.status == "warning"
     ]
 
-    assert any(check.id == "contrast" and check.slot_id == "headline" for check in blocked)
+    assert any(check.id == "contrast" and check.slot_id == "headline" for check in warnings)
 
 
 def test_text_within_limit_passes(brand_package):
@@ -89,7 +89,7 @@ def test_text_within_limit_passes(brand_package):
     assert by_id[("contrast", "headline")] == "pass"
 
 
-def test_text_overflow_blocked_with_counts(brand_package):
+def test_text_overflow_warns_with_counts(brand_package):
     ir = _ir(brand_package)
     layout = _layout(ir, "statement-post-1x1")
     content = ContentSpec(
@@ -99,20 +99,20 @@ def test_text_overflow_blocked_with_counts(brand_package):
     )
     checks = run_static_checks(ir, layout, content, brand_package)
     check = next(check for check in checks if check.id == "text-length")
-    assert check.status == "blocked"
+    assert check.status == "warning"
     assert check.detail == {"chars": 91, "maxChars": 90}
     assert "91" in check.message_pt
 
 
-def test_missing_required_slot_blocked(brand_package):
+def test_missing_required_slot_warns(brand_package):
     ir = _ir(brand_package)
     layout = _layout(ir, "statement-post-1x1")
     content = ContentSpec(layout_id=layout.id, brand_revision_id=ir.revision.id, values={})
     checks = run_static_checks(ir, layout, content, brand_package)
-    assert any(check.id == "required-slot" and check.status == "blocked" for check in checks)
+    assert any(check.id == "required-slot" and check.status == "warning" for check in checks)
 
 
-def test_low_resolution_image_blocked(brand_package, tmp_path):
+def test_low_resolution_image_warns(brand_package, tmp_path):
     from PIL import Image
 
     ir = _ir(brand_package)
@@ -126,7 +126,7 @@ def test_low_resolution_image_blocked(brand_package, tmp_path):
     )
     checks = run_static_checks(ir, layout, content, tmp_path)
     check = next(check for check in checks if check.id == "image-resolution")
-    assert check.status == "blocked"
+    assert check.status == "warning"
 
 
 def test_raster_sem_extensao_e_validado_pelo_conteudo(brand_package, tmp_path):
@@ -170,10 +170,10 @@ def test_bad_contrast_detected_with_doctored_ir(brand_package):
     )
     checks = run_static_checks(ir, layout, content, brand_package)
     contrast = [check for check in checks if check.id == "contrast" and check.slot_id == "headline"]
-    assert contrast and contrast[0].status == "blocked"
+    assert contrast and contrast[0].status == "warning"
 
 
-def test_guard_check_contract_accepts_fixed_and_has_isolated_details():
+def test_guard_check_contract_accepts_guidance_statuses_and_has_isolated_details():
     fixed = GuardCheck(id="measured-overflow", status="fixed", message_pt="Ajustado.")
     other = GuardCheck(id="contrast", status="pass", message_pt="Aprovado.")
     fixed.detail["x"] = 1
@@ -190,6 +190,8 @@ def test_guard_check_contract_accepts_fixed_and_has_isolated_details():
             }
         ]
     }
+    warning = GuardCheck(id="text-length", status="warning", message_pt="Revise se quiser.")
+    assert warning.status == "warning"
 
 
 def test_statement_check_order_is_stable(brand_package):
@@ -212,7 +214,7 @@ def test_statement_check_order_is_stable(brand_package):
     assert all(check.status == "pass" for check in first)
 
 
-def test_required_whitespace_is_blocked_but_contrast_is_still_evaluated(brand_package):
+def test_required_whitespace_warns_but_contrast_is_still_evaluated(brand_package):
     ir = _ir(brand_package)
     layout = _layout(ir, "statement-post-1x1")
     content = ContentSpec(
@@ -225,6 +227,7 @@ def test_required_whitespace_is_blocked_but_contrast_is_still_evaluated(brand_pa
         ("required-slot", "headline"),
         ("contrast", "headline"),
     ]
+    assert [check.status for check in checks] == ["warning", "pass"]
 
 
 def test_quote_complete_checks_text_and_raster_only(brand_package, tmp_path):
@@ -404,7 +407,7 @@ def test_editorial_emphasis_must_be_present_and_unambiguous(
         if item.id == "emphasis" and item.slot_id == "headline"
     )
 
-    assert check.status == "blocked"
+    assert check.status == "warning"
     assert expected_message in check.message_pt
 
 
@@ -500,7 +503,7 @@ def test_emphasis_is_rejected_when_layout_does_not_offer_it(brand_package):
         if item.id == "emphasis"
     )
 
-    assert check.status == "blocked"
+    assert check.status == "warning"
     assert "não prevê" in check.message_pt
 
 
@@ -531,7 +534,7 @@ def test_editorial_accent_estimate_combines_locked_layers_text_and_opacity(brand
     assert faded.detail["emphasisRatio"] < check.detail["emphasisRatio"]
 
 
-def test_editorial_accent_above_declared_limit_is_blocked(brand_package):
+def test_editorial_accent_above_declared_limit_warns(brand_package):
     ir = _composition_ir(brand_package)
     layout = _layout(ir, "editorial-light-post-4x5")
     ir.composition_rules.accent.max_ratio = 0.001
@@ -543,7 +546,7 @@ def test_editorial_accent_above_declared_limit_is_blocked(brand_package):
         if item.id == "accent-ratio"
     )
 
-    assert check.status == "blocked"
+    assert check.status == "warning"
     assert check.detail["estimatedRatio"] > check.detail["maxRatio"]
     assert "%" not in check.message_pt
 
@@ -601,7 +604,7 @@ def test_locked_asset_reference_and_minimum_size_are_guarded(brand_package):
         for item in run_static_checks(ir, layout, content, brand_package)
         if item.id == "asset-size"
     )
-    assert undersized.status == "blocked"
+    assert undersized.status == "warning"
     assert undersized.detail["minWidth"] == 24
     assert "px" not in undersized.message_pt
 
@@ -657,7 +660,7 @@ def test_slot_color_override_and_large_text_threshold_drive_contrast(brand_packa
         for item in run_static_checks(ir, layout, content, brand_package)
         if item.id == "contrast" and item.slot_id == "kicker"
     )
-    assert small_text.status == "blocked"
+    assert small_text.status == "warning"
     assert small_text.detail["threshold"] == 4.5
 
     headline = next(slot for slot in layout.slots if slot.id == "headline")
@@ -667,7 +670,7 @@ def test_slot_color_override_and_large_text_threshold_drive_contrast(brand_packa
         for item in run_static_checks(ir, layout, content, brand_package)
         if item.id == "contrast" and item.slot_id == "headline"
     )
-    assert overridden.status == "blocked"
+    assert overridden.status == "warning"
     assert overridden.detail["ratio"] == 1.0
 
 
@@ -679,20 +682,20 @@ def test_guard_verdict_schema_is_published(tmp_path):
 
 
 _SEEDED_EDITORIAL_MUTATIONS = [
-    ("layout-id", "document-contract", None),
-    ("brand-revision-id", "document-contract", None),
-    ("unknown-slot", "unknown-slot", "fantasma"),
-    ("wrong-content-kind", "content-type", "headline"),
-    ("missing-required-slot", "required-slot", "headline"),
-    ("text-overflow", "text-length", "headline"),
-    ("missing-emphasis", "emphasis", "headline"),
-    ("ambiguous-emphasis", "emphasis", "headline"),
-    ("missing-background-token", "layout-reference", None),
-    ("undeclared-motif", "layout-reference", None),
-    ("missing-locked-logo", "layout-reference", None),
-    ("undersized-locked-logo", "asset-size", None),
-    ("accent-overuse", "accent-ratio", None),
-    ("low-contrast", "contrast", "headline"),
+    ("layout-id", "document-contract", None, "blocked"),
+    ("brand-revision-id", "document-contract", None, "blocked"),
+    ("unknown-slot", "unknown-slot", "fantasma", "blocked"),
+    ("wrong-content-kind", "content-type", "headline", "blocked"),
+    ("missing-required-slot", "required-slot", "headline", "warning"),
+    ("text-overflow", "text-length", "headline", "warning"),
+    ("missing-emphasis", "emphasis", "headline", "warning"),
+    ("ambiguous-emphasis", "emphasis", "headline", "warning"),
+    ("missing-background-token", "layout-reference", None, "blocked"),
+    ("undeclared-motif", "layout-reference", None, "blocked"),
+    ("missing-locked-logo", "layout-reference", None, "blocked"),
+    ("undersized-locked-logo", "asset-size", None, "warning"),
+    ("accent-overuse", "accent-ratio", None, "warning"),
+    ("low-contrast", "contrast", "headline", "warning"),
 ]
 
 
@@ -734,7 +737,7 @@ def _seed_editorial_mutation(name, ir, layout, content):
 
 
 @pytest.mark.parametrize(
-    ("mutation", "expected_id", "expected_slot"),
+    ("mutation", "expected_id", "expected_slot", "expected_status"),
     _SEEDED_EDITORIAL_MUTATIONS,
     ids=[item[0] for item in _SEEDED_EDITORIAL_MUTATIONS],
 )
@@ -743,6 +746,7 @@ def test_every_seeded_editorial_violation_is_intercepted(
     mutation,
     expected_id,
     expected_slot,
+    expected_status,
 ):
     ir = _composition_ir(brand_package)
     layout = _layout(ir, "editorial-light-post-4x5")
@@ -754,25 +758,25 @@ def test_every_seeded_editorial_violation_is_intercepted(
     ]
 
     _seed_editorial_mutation(mutation, ir, layout, content)
-    blocked = {
+    findings = {
         (check.id, check.slot_id)
         for check in run_static_checks(ir, layout, content, brand_package)
-        if check.status == "blocked"
+        if check.status == expected_status
     }
 
-    assert (expected_id, expected_slot) in blocked
+    assert (expected_id, expected_slot) in findings
 
 
 _SEEDED_IMAGE_MUTATIONS = [
-    ("missing-file", "image-resolution"),
-    ("corrupt-raster", "image-resolution"),
-    ("low-resolution", "image-resolution"),
-    ("wrong-sha256", "asset-integrity"),
+    ("missing-file", "image-resolution", "blocked"),
+    ("corrupt-raster", "image-resolution", "blocked"),
+    ("low-resolution", "image-resolution", "warning"),
+    ("wrong-sha256", "asset-integrity", "blocked"),
 ]
 
 
 @pytest.mark.parametrize(
-    ("mutation", "expected_id"),
+    ("mutation", "expected_id", "expected_status"),
     _SEEDED_IMAGE_MUTATIONS,
     ids=[item[0] for item in _SEEDED_IMAGE_MUTATIONS],
 )
@@ -781,6 +785,7 @@ def test_every_seeded_image_violation_is_intercepted(
     tmp_path,
     mutation,
     expected_id,
+    expected_status,
 ):
     ir = _ir(brand_package)
     layout = _layout(ir, "quote-post-1x1")
@@ -817,9 +822,9 @@ def test_every_seeded_image_violation_is_intercepted(
     else:
         raise AssertionError(f"Mutação desconhecida: {mutation}")
 
-    blocked = {
+    findings = {
         check.id
         for check in run_static_checks(ir, layout, content, tmp_path)
-        if check.status == "blocked"
+        if check.status == expected_status
     }
-    assert expected_id in blocked
+    assert expected_id in findings

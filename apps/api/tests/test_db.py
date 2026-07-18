@@ -5,7 +5,16 @@ from sqlalchemy.exc import IntegrityError
 from brand_api.db import new_id
 from brand_api.models import Draft, Job
 
-CONTRACT_TABLES = {"brands", "drafts", "brand_revisions", "documents", "jobs", "invite_tokens"}
+CONTRACT_TABLES = {
+    "brands",
+    "drafts",
+    "brand_revisions",
+    "documents",
+    "campaigns",
+    "campaign_pieces",
+    "jobs",
+    "invite_tokens",
+}
 
 
 def test_create_all_cria_tabelas_do_contrato(pg_engine):

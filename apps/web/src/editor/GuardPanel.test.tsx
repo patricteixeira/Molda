@@ -4,10 +4,10 @@ import { expect, it, vi } from "vitest"
 import type { GuardCheck } from "../api/types"
 import { GuardPanel } from "./GuardPanel"
 
-const blocked: GuardCheck = {
+const guidance: GuardCheck = {
   id: "text-length",
   slotId: "headline",
-  status: "blocked",
+  status: "warning",
   messagePt: "O texto de «headline» tem 95 caracteres; o máximo deste layout é 90.",
   detail: { chars: 95, maxChars: 90 },
 }
@@ -19,9 +19,11 @@ const pass: GuardCheck = {
   detail: {},
 }
 
-it("mostra apenas checks não-pass, com mensagem e ação clara", async () => {
+it("mostra orientações sem apresentá-las como proibição", async () => {
   const onAction = vi.fn()
-  render(<GuardPanel checks={[pass, blocked]} onAction={onAction} />)
+  render(<GuardPanel checks={[pass, guidance]} onAction={onAction} />)
+  expect(screen.getByRole("heading", { name: "Orientações da marca" })).toBeInTheDocument()
+  expect(screen.getByText(/exportar assim mesmo/i)).toBeInTheDocument()
   const items = screen.getAllByTestId("guard-item")
   expect(items).toHaveLength(1)
   expect(items[0]).toHaveAttribute("data-check-id", "text-length")
@@ -29,7 +31,7 @@ it("mostra apenas checks não-pass, com mensagem e ação clara", async () => {
   const action = screen.getByTestId("guard-action")
   expect(action).toHaveTextContent("Editar texto")
   await userEvent.click(action)
-  expect(onAction).toHaveBeenCalledWith(blocked)
+  expect(onAction).toHaveBeenCalledWith(guidance)
 })
 
 it("sem problemas, não renderiza painel", () => {

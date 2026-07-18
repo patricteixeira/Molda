@@ -1,0 +1,138 @@
+{
+  "$defs": {
+    "DocxBrandOperation": {
+      "additionalProperties": false,
+      "description": "Mudança agregada comunicada antes de qualquer escrita no arquivo.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "document-styles",
+            "paragraph-styles",
+            "page-layout",
+            "table-styles",
+            "header-logo"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "labelPt": {
+          "title": "Labelpt",
+          "type": "string"
+        },
+        "affectedCount": {
+          "minimum": 0,
+          "title": "Affectedcount",
+          "type": "integer"
+        },
+        "targetRole": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Targetrole"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "labelPt",
+        "affectedCount"
+      ],
+      "title": "DocxBrandOperation",
+      "type": "object"
+    },
+    "DocxBrandSource": {
+      "additionalProperties": false,
+      "description": "Identidade e contagens imutáveis do Word analisado.",
+      "properties": {
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "sizeBytes": {
+          "exclusiveMinimum": 0,
+          "title": "Sizebytes",
+          "type": "integer"
+        },
+        "paragraphCount": {
+          "minimum": 0,
+          "title": "Paragraphcount",
+          "type": "integer"
+        },
+        "tableCount": {
+          "minimum": 0,
+          "title": "Tablecount",
+          "type": "integer"
+        },
+        "sectionCount": {
+          "minimum": 1,
+          "title": "Sectioncount",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "filename",
+        "sha256",
+        "sizeBytes",
+        "paragraphCount",
+        "tableCount",
+        "sectionCount"
+      ],
+      "title": "DocxBrandSource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Plano reproduzível vinculado aos bytes e à revisão de marca.",
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/DocxBrandSource"
+    },
+    "brandRevisionId": {
+      "title": "Brandrevisionid",
+      "type": "string"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/DocxBrandOperation"
+      },
+      "title": "Operations",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source",
+    "brandRevisionId",
+    "operations",
+    "warnings"
+  ],
+  "title": "DocxBrandPlan",
+  "type": "object"
+}

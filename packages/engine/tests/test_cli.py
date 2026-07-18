@@ -161,6 +161,8 @@ def test_schemas_exports_all_published_contracts(tmp_path):
         "roundtrip-report.schema.json",
         "fix-plan.schema.json",
         "fix-result.schema.json",
+        "docx-brand-plan.schema.json",
+        "docx-brand-result.schema.json",
         "brand-package.schema.json",
         "package-validation-report.schema.json",
     }
@@ -218,6 +220,8 @@ def test_extract_rejects_missing_package_and_help_lists_commands(tmp_path):
         "roundtrip-lint",
         "roundtrip-plan",
         "roundtrip-fix",
+        "docx-brand-plan",
+        "docx-brand-apply",
         "package-validate",
     ):
         assert command in help_result.stdout
@@ -236,6 +240,10 @@ def test_master_api_is_exported_from_package_root():
         "FixResult",
         "build_fix_plan",
         "apply_pptx_fix_plan",
+        "DocxBrandPlan",
+        "DocxBrandResult",
+        "analyze_docx_brand",
+        "apply_docx_brand_plan",
         "validate_brand_package",
         "BrandPackageManifest",
         "PackageValidationReport",

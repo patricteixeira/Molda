@@ -32,9 +32,12 @@ from brand_api.storage import Storage
 from brand_runtime import (
     BrandIR,
     ContentSpec,
+    DocxBrandPlan,
     FixPlan,
     GuardCheck,
     LayoutSpec,
+    analyze_docx_brand,
+    apply_docx_brand_plan,
     apply_pptx_fix_plan,
     build_fix_plan,
     lint_roundtrip,
@@ -108,7 +111,7 @@ def _safe_relative_path(raw_path: str) -> Path:
 def _materialization_plan(
     manifest: dict[str, str],
     ir: BrandIR,
-    content: ContentSpec,
+    content: ContentSpec | None,
 ) -> dict[Path, str]:
     """Une as raízes de asset e falha em colisões ambíguas."""
     planned: dict[Path, str] = {}
@@ -131,14 +134,15 @@ def _materialization_plan(
         if font.file_sha256 is not None:
             add(Path("fonts", font.file_sha256), font.file_sha256)
 
-    for value in content.values.values():
-        if isinstance(value, ImageValue):
-            if value.sha256 is None:
-                raise ValueError("Uma imagem do documento não possui SHA-256.")
-            add(
-                Path("sha256", value.sha256[:2], value.sha256[2:4], value.sha256),
-                value.sha256,
-            )
+    if content is not None:
+        for value in content.values.values():
+            if isinstance(value, ImageValue):
+                if value.sha256 is None:
+                    raise ValueError("Uma imagem do documento não possui SHA-256.")
+                add(
+                    Path("sha256", value.sha256[:2], value.sha256[2:4], value.sha256),
+                    value.sha256,
+                )
     return planned
 
 
@@ -179,6 +183,33 @@ def build_export_workdir(
             _write_blob_safely(dest, relative, storage.get(sha256))
     except Exception:
         # Se a materialização falhar no meio, não deixa uma árvore parcial para trás.
+        with suppress(OSError, ValueError):
+            _validate_existing_ancestors(dest)
+            if dest.exists() and not _is_link(dest) and dest.resolve(strict=True) == identity:
+                shutil.rmtree(dest)
+        raise
+    return dest
+
+
+def build_brand_workdir(
+    manifest: dict[str, str],
+    ir: BrandIR,
+    storage: Storage,
+    dest: Path,
+) -> Path:
+    """Materializa somente os assets da revisão para operações sobre arquivos externos."""
+    _validate_existing_ancestors(dest)
+    if dest.exists():
+        if _is_link(dest) or not dest.is_dir() or any(dest.iterdir()):
+            raise ValueError("O diretório de trabalho precisa estar vazio e sem links.")
+    else:
+        _ensure_regular_directory(dest)
+
+    identity = dest.resolve(strict=True)
+    try:
+        for relative, sha256 in _materialization_plan(manifest, ir, None).items():
+            _write_blob_safely(dest, relative, storage.get(sha256))
+    except Exception:
         with suppress(OSError, ValueError):
             _validate_existing_ancestors(dest)
             if dest.exists() and not _is_link(dest) and dest.resolve(strict=True) == identity:
@@ -407,6 +438,45 @@ def _load_roundtrip_contract(
             BrandIR.model_validate(revision.ir),
             baseline_sha256,
             edited_sha256,
+            plan,
+        )
+
+
+def _load_docx_brand_contract(
+    session_factory,
+    lease: _JobLease,
+    expected_kind: str,
+) -> tuple[BrandIR, dict[str, str], str, str, DocxBrandPlan | None]:
+    """Carrega revisão, blob e plano de uma aplicação de marca em Word."""
+    with session_factory() as session:
+        job = session.get(Job, lease.job_id)
+        if job is None or not _owns_lease(job, lease.lease_id) or job.kind != expected_kind:
+            raise RuntimeError("O job reivindicado não está disponível para o Word.")
+        params = job.params if isinstance(job.params, dict) else {}
+        revision_id = params.get("brandRevisionId")
+        source_sha256 = params.get("sourceSha256")
+        source_filename = params.get("sourceFilename")
+        if (
+            not isinstance(revision_id, str)
+            or not isinstance(source_sha256, str)
+            or _SHA256_RE.fullmatch(source_sha256) is None
+            or not isinstance(source_filename, str)
+            or not source_filename.casefold().endswith(".docx")
+        ):
+            raise RuntimeError("O job do Word não possui origem e revisão válidas.")
+        revision = session.get(BrandRevision, revision_id)
+        if revision is None:
+            raise RuntimeError("A revisão de marca do Word não foi encontrada.")
+        plan = None
+        if expected_kind == "docx-brand-apply":
+            plan = DocxBrandPlan.model_validate(params.get("plan"))
+            if plan.source.sha256 != source_sha256 or plan.brand_revision_id != revision_id:
+                raise RuntimeError("O plano do Word não corresponde ao blob e à revisão.")
+        return (
+            BrandIR.model_validate(revision.ir),
+            dict(revision.manifest),
+            source_sha256,
+            source_filename,
             plan,
         )
 
@@ -653,6 +723,65 @@ def run_next_job(
                             "fixResult": fix_result.model_dump(mode="json", by_alias=True),
                         },
                     )
+        elif kind in {"docx-brand-analyze", "docx-brand-apply"}:
+            ir, manifest, source_sha256, source_filename, docx_plan = _load_docx_brand_contract(
+                session_factory, lease, kind
+            )
+            workdir = _safe_job_workdir(settings.work_dir, lease)
+            with _LeaseHeartbeat(session_factory, lease, heartbeat_seconds) as heartbeat:
+                build_brand_workdir(manifest, ir, storage, workdir)
+                source_path = workdir / "source.docx"
+                if source_path.exists() or _is_link(source_path):
+                    raise ValueError("O pacote da marca colide com a entrada reservada do Word.")
+                _write_blob_safely(workdir, Path("source.docx"), storage.get(source_sha256))
+                workdir_identity = workdir.resolve(strict=True)
+                if kind == "docx-brand-analyze":
+                    analyzed = analyze_docx_brand(source_path, ir)
+                    analyzed = analyzed.model_copy(
+                        update={
+                            "source": analyzed.source.model_copy(
+                                update={"filename": source_filename}
+                            )
+                        }
+                    )
+                    heartbeat.ensure_owned()
+                    _finish_roundtrip_success(
+                        session_factory,
+                        lease,
+                        {
+                            "kind": kind,
+                            "plan": analyzed.model_dump(mode="json", by_alias=True),
+                        },
+                    )
+                else:
+                    if docx_plan is None:  # pragma: no cover - fechado pelo loader
+                        raise RuntimeError("O job de aplicação perdeu o plano do Word.")
+                    out_path = workdir / "out.docx"
+                    brand_result = apply_docx_brand_plan(
+                        source_path,
+                        out_path,
+                        docx_plan,
+                        ir,
+                        asset_root=workdir,
+                    )
+                    heartbeat.ensure_owned()
+                    sha256 = storage.put(_read_exact_output(out_path, workdir, workdir_identity))
+                    if sha256 != brand_result.branded_sha256:
+                        raise RuntimeError("O blob publicado diverge do Word validado.")
+                    heartbeat.ensure_owned()
+                    filename = f"{Path(source_filename).stem}-com-marca.docx"
+                    _finish_roundtrip_success(
+                        session_factory,
+                        lease,
+                        {
+                            "kind": kind,
+                            "sha256": sha256,
+                            "url": f"/v1/assets/{sha256}",
+                            "format": "docx",
+                            "filename": filename,
+                            "brandResult": brand_result.model_dump(mode="json", by_alias=True),
+                        },
+                    )
         else:
             raise RuntimeError("O tipo persistido do job não é suportado pelo worker.")
     except ExportRejected as exc:
@@ -668,7 +797,13 @@ def run_next_job(
         # Outra tentativa possui o job; este worker só limpa seu workdir isolado.
         pass
     except Exception as exc:
-        operation = "export" if kind == "export" else "round-trip"
+        operation = (
+            "export"
+            if kind == "export"
+            else "aplicação de marca ao Word"
+            if kind in {"docx-brand-analyze", "docx-brand-apply"}
+            else "round-trip"
+        )
         _finish_failure(
             session_factory,
             lease,

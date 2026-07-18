@@ -1,6 +1,8 @@
 import type {
   ApiClient,
   BrandIr,
+  Campaign,
+  DocxBrandJobInfo,
   JobInfo,
   LayoutSpec,
   RoundtripJobInfo,
@@ -370,6 +372,37 @@ export function fakeOnePagerLayout(): LayoutSpec {
   }
 }
 
+export function fakeCampaign(): Campaign {
+  return {
+    id: "campaign_x",
+    brandRevisionId: FAKE_IR.revision.id,
+    name: "Lançamento",
+    fields: {
+      headline: "Uma mensagem",
+      body: "Um corpo compartilhado.",
+      cta: "Saiba mais",
+      date: "24 de julho",
+      imageSha256: null,
+    },
+    createdAt: "2026-07-18T12:00:00Z",
+    updatedAt: "2026-07-18T12:00:00Z",
+    pieces: [
+      {
+        id: "piece_x",
+        documentId: "doc_campaign",
+        layoutId: "statement-post-1x1",
+        bindings: { headline: { kind: "text", source: "all" } },
+        content: {
+          layoutId: "statement-post-1x1",
+          brandRevisionId: FAKE_IR.revision.id,
+          values: { headline: { kind: "text", text: "Uma mensagem" } },
+        },
+        checks: [],
+      },
+    ],
+  }
+}
+
 export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
   const sha256 = "b".repeat(64)
   return {
@@ -394,6 +427,19 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     compileDraft: vi.fn(async () => ({ brandRevisionId: FAKE_IR.revision.id })),
     getBrandRevision: vi.fn(async () => FAKE_IR),
     getKit: vi.fn(async () => [fakeStatementLayout()]),
+    listCampaigns: vi.fn(async () => []),
+    getCampaign: vi.fn(async () => fakeCampaign()),
+    createCampaign: vi.fn(async (input) => ({
+      ...fakeCampaign(),
+      name: input.name,
+      fields: input.fields,
+      brandRevisionId: input.brandRevisionId,
+    })),
+    updateCampaign: vi.fn(async (_campaignId, input) => ({
+      ...fakeCampaign(),
+      name: input.name,
+      fields: input.fields,
+    })),
     uploadAsset: vi.fn(async (file) => ({ sha256, size: file.size })),
     createDocument: vi.fn(async () => ({ documentId: "doc_x", checks: [] })),
     requestExport: vi.fn(async () => ({ jobId: "job_x" })),
@@ -439,6 +485,38 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
           editedSha256: "b".repeat(64),
           operations: [],
           deferredFindingCodes: [],
+        },
+      },
+      checks: [],
+      error: null,
+    })),
+    requestDocxBranding: vi.fn(async () => ({ jobId: "job_docx_analysis" })),
+    requestDocxBrandApply: vi.fn(async () => ({ jobId: "job_docx_apply" })),
+    getDocxBrandJob: vi.fn(async (): Promise<DocxBrandJobInfo> => ({
+      id: "job_docx_analysis",
+      status: "succeeded",
+      result: {
+        kind: "docx-brand-analyze",
+        plan: {
+          schemaVersion: "0.1.0",
+          source: {
+            filename: "proposta.docx",
+            sha256,
+            sizeBytes: 1024,
+            paragraphCount: 8,
+            tableCount: 1,
+            sectionCount: 1,
+          },
+          brandRevisionId: FAKE_IR.revision.id,
+          operations: [
+            {
+              id: "op-001",
+              kind: "paragraph-styles",
+              labelPt: "Aplicar hierarquia da marca a 8 parágrafos",
+              affectedCount: 8,
+            },
+          ],
+          warnings: [],
         },
       },
       checks: [],

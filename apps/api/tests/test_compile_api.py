@@ -12,6 +12,19 @@ def test_compile_cria_revisao(client, imported):
     assert response.json()["brandRevisionId"].startswith("brandrev_")
 
 
+def test_compile_preserva_nome_autoral_unicode_sem_julgamento(client, imported):
+    name = "ilkhjafdlkuaeshliçfoghailsufgluaGFILUG"
+
+    response = client.post(
+        f"/v1/drafts/{imported['draftId']}/compile",
+        json={"answers": _answers(imported), "brandName": name},
+    )
+
+    assert response.status_code == 201, response.text
+    revision = client.get(f"/v1/brand-revisions/{response.json()['brandRevisionId']}").json()
+    assert revision["brand"]["name"] == name
+
+
 def test_compile_idempotente(client, imported):
     payload = {"answers": _answers(imported), "brandName": "ACME"}
     first = client.post(f"/v1/drafts/{imported['draftId']}/compile", json=payload)

@@ -31,28 +31,40 @@ function renderEditor(client: ApiClient, layoutId = "statement-post-1x1") {
 
 const kit = vi.fn(async () => [fakeStatementLayout(), fakeOnePagerLayout()])
 
-it("verdict com blocked mostra o guard e não exporta; ação foca o slot", async () => {
+it("orientação de marca aparece, permite exportar e mantém a ação de ajuste", async () => {
+  const sha = "a".repeat(64)
+  const warning = {
+    id: "text-length",
+    slotId: "headline",
+    status: "warning" as const,
+    messagePt: "O texto de «headline» tem 95 caracteres; o máximo deste layout é 90.",
+    detail: {},
+  }
   const createDocument = vi.fn(async () => ({
     documentId: "doc1",
-    checks: [
-      {
-        id: "text-length",
-        slotId: "headline",
-        status: "blocked" as const,
-        messagePt: "O texto de «headline» tem 95 caracteres; o máximo deste layout é 90.",
-        detail: {},
-      },
-    ],
+    checks: [warning],
   }))
-  const requestExport = vi.fn()
-  renderEditor(fakeClient({ getKit: kit, createDocument, requestExport }))
+  const requestExport = vi.fn(async () => ({ jobId: "job-warning" }))
+  const getJob = vi.fn(async () => ({
+    id: "job-warning",
+    status: "succeeded" as const,
+    result: {
+      sha256: sha,
+      url: `/v1/assets/${sha}`,
+      format: "png" as const,
+      filename: "com-orientacao.png",
+    },
+    checks: [warning],
+    error: null,
+  }))
+  renderEditor(fakeClient({ getKit: kit, createDocument, requestExport, getJob }))
   const input = await screen.findByTestId("slot-input-headline")
   await userEvent.click(input)
   await userEvent.paste("A".repeat(95))
   await userEvent.click(screen.getByTestId("exportar-png"))
   const item = await screen.findByTestId("guard-item")
   expect(item).toHaveAttribute("data-slot-id", "headline")
-  expect(requestExport).not.toHaveBeenCalled()
+  await waitFor(() => expect(requestExport).toHaveBeenCalledWith("doc1", "png"))
   await userEvent.click(screen.getByTestId("guard-action"))
   expect(screen.getByTestId("slot-input-headline")).toHaveFocus()
 })
@@ -292,11 +304,11 @@ it("job falho mostra erro e checks medidos em PT-BR", async () => {
     result: null,
     checks: [
       {
-        id: "text-overflow",
-        slotId: "headline",
+        id: "asset-integrity",
+        slotId: "photo",
         status: "blocked" as const,
-        messagePt: "O texto ultrapassa a área disponível.",
-        detail: { contentPx: 500, boxPx: 432 },
+        messagePt: "O arquivo não corresponde ao conteúdo enviado.",
+        detail: {},
       },
     ],
     error: "O render encontrou pendências — corrija antes de exportar.",
@@ -308,17 +320,17 @@ it("job falho mostra erro e checks medidos em PT-BR", async () => {
   expect(await screen.findByRole("alert")).toHaveTextContent("pendências")
   expect(await screen.findByTestId("guard-item")).toHaveAttribute(
     "data-check-id",
-    "text-overflow",
+    "asset-integrity",
   )
   expect(screen.queryByTestId("export-status")).not.toBeInTheDocument()
 })
 
 it("backstop 409 preserva os checks e a mensagem da API", async () => {
   const blocked = {
-    id: "required-slot",
-    slotId: "headline",
+    id: "asset-integrity",
+    slotId: "photo",
     status: "blocked" as const,
-    messagePt: "Preencha o campo Título.",
+    messagePt: "O arquivo não corresponde ao conteúdo enviado.",
     detail: {},
   }
   const requestExport = vi.fn(async () => {
@@ -329,7 +341,7 @@ it("backstop 409 preserva os checks e a mensagem da API", async () => {
   await userEvent.click(screen.getByTestId("exportar-png"))
 
   expect(await screen.findByRole("alert")).toHaveTextContent("ainda tem pendências")
-  expect(screen.getByTestId("guard-item")).toHaveAttribute("data-check-id", "required-slot")
+  expect(screen.getByTestId("guard-item")).toHaveAttribute("data-check-id", "asset-integrity")
 })
 
 it("layout doc-a4 oferece PDF final e DOCX editável no Google Docs", async () => {

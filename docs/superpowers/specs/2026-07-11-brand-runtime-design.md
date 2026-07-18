@@ -105,7 +105,7 @@ pacote informal da marca                 entrada estruturada (atalho)
 ┌─────────────────────────────────────────────────────────┐
 │ SLOT EDITOR (web) — preencher, trocar, escolher         │
 │ preview = a mesma biblioteca de render do export        │
-│ BRAND GUARD — checks de conteúdo; corrige ou bloqueia   │
+│ BRAND GUARD — orienta criação; bloqueia só integridade  │
 └───────────────────────────┬─────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────┐
@@ -132,7 +132,7 @@ Operações:
 ```text
 Brand IR ──Kit Generator──► Layout Specs (o kit da marca)
 Brand IR + Layout Spec + Content Spec ──Render──► PNG/PDF (M1) | PPTX/DOCX (M2)
-Brand IR + Layout Spec + Content Spec ──Brand Guard──► correções e bloqueios
+Brand IR + Layout Spec + Content Spec ──Brand Guard──► orientações e integridade
 PPTX editado fora ──Parser──► Document Graph ──Linter/Fixer──► nova revisão (M3)
 ```
 
@@ -280,19 +280,19 @@ Determinismo (NFR herdado): mesmas entradas + mesma versão do renderer → mesm
 
 No mundo de slots, a maior parte das violações do linter anterior é **estruturalmente impossível**: fonte, cor, posição de logo, margem e hierarquia não são editáveis fora dos trilhos. O que resta é conteúdo:
 
-- **Overflow de texto** — política herdada e adaptada: tamanho ideal → reduzir dentro da faixa do papel → ajustar espaçamento na faixa permitida → **bloquear com mensagem clara e ação sugerida**. Nunca truncar silenciosamente.
+- **Overflow de texto** — política herdada e adaptada: tamanho ideal → reduzir dentro da faixa do papel → ajustar espaçamento na faixa permitida → **orientar com mensagem clara e ação sugerida, mantendo a exportação disponível**. Nunca truncar silenciosamente.
 - **Contraste texto × imagem** — medir; aplicar scrim/variação aprovada da marca automaticamente, ou pedir outra imagem.
-- **Resolução mínima de imagem** — bloquear abaixo do limiar do perfil.
+- **Resolução mínima de imagem** — orientar abaixo do limiar do perfil; bloquear apenas arquivo ausente, ilegível ou sem integridade.
 - **Área segura** — garantida por construção nos layouts; checada no conteúdo que pode vazar.
 
 Tudo determinístico e auditável, com mensagens em linguagem de gente e ação de
 correção clara. O motor do Plano 1 emite os checks estáticos; o Plano 2 integrou
 overflow e fallback de fonte medidos ao mesmo verdict: overflow/falha de carga
-bloqueia, enquanto uma substituição tipográfica prevista é registrada como
+orientam, enquanto uma substituição tipográfica prevista é registrada como
 `fixed`. Contraste sobre imagem permanece fora deste walking skeleton. Nenhuma
-correção altera conteúdo silenciosamente. Severidades formais
-(`info`/`warning`/`error`/`locked`) só entram no M3, onde há edição livre para
-justificá-las.
+correção altera conteúdo silenciosamente. O Guard usa os estados
+`pass`/`fixed`/`warning`/`blocked`; as severidades de finding do round-trip
+(`info`/`warning`/`error`/`locked`) permanecem um contrato separado do M3.
 
 ### 5.9 Plataforma
 

@@ -147,6 +147,70 @@ it("round-trip envia o PPTX e usa os jobs persistidos para conferir e corrigir",
   expect(fetchFn.mock.calls[2][0]).toBe("/v1/jobs/job-analysis")
 })
 
+it("campanhas usam uma fonte compartilhada e atualização parcial da entidade", async () => {
+  const fetchFn = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse([]))
+    .mockResolvedValueOnce(jsonResponse({ id: "campaign_x" }))
+    .mockResolvedValueOnce(jsonResponse({ id: "campaign_x" }))
+  const client = createApiClient(fetchFn as unknown as typeof fetch)
+  const fields = {
+    headline: "Lançamento",
+    body: "Mensagem",
+    cta: "Conheça",
+    date: "24 de julho",
+    imageSha256: null,
+  }
+
+  await client.listCampaigns("brandrev_x")
+  await client.createCampaign({
+    brandRevisionId: "brandrev_x",
+    name: "Julho",
+    fields,
+    layoutIds: ["announce-post-1x1"],
+  })
+  await client.updateCampaign("campaign_x", { name: "Julho 2", fields })
+
+  expect(fetchFn.mock.calls[0][0]).toBe("/v1/brand-revisions/brandrev_x/campaigns")
+  expect(fetchFn.mock.calls[1][0]).toBe("/v1/campaigns")
+  expect(JSON.parse((fetchFn.mock.calls[1][1] as RequestInit).body as string)).toEqual({
+    brandRevisionId: "brandrev_x",
+    name: "Julho",
+    fields,
+    layoutIds: ["announce-post-1x1"],
+  })
+  expect(fetchFn.mock.calls[2][0]).toBe("/v1/campaigns/campaign_x")
+  expect((fetchFn.mock.calls[2][1] as RequestInit).method).toBe("PATCH")
+})
+
+it("aplicação de marca ao Word separa análise, consentimento e download", async () => {
+  const fetchFn = vi
+    .fn()
+    .mockResolvedValueOnce(jsonResponse({ jobId: "job-analysis" }))
+    .mockResolvedValueOnce(jsonResponse({ jobId: "job-apply" }))
+    .mockResolvedValueOnce(
+      jsonResponse({
+        id: "job-apply",
+        status: "succeeded",
+        result: null,
+        checks: [],
+        error: null,
+      }),
+    )
+  const client = createApiClient(fetchFn as unknown as typeof fetch)
+  const source = new File(["docx"], "proposta.docx")
+
+  await client.requestDocxBranding("brandrev_x", source)
+  await client.requestDocxBrandApply("job-analysis")
+  await client.getDocxBrandJob("job-apply")
+
+  expect(fetchFn.mock.calls[0][0]).toBe("/v1/brand-revisions/brandrev_x/docx-brandings")
+  expect(((fetchFn.mock.calls[0][1] as RequestInit).body as FormData).get("file")).toBe(source)
+  expect(fetchFn.mock.calls[1][0]).toBe("/v1/jobs/job-analysis/docx-brandings")
+  expect((fetchFn.mock.calls[1][1] as RequestInit).method).toBe("POST")
+  expect(fetchFn.mock.calls[2][0]).toBe("/v1/jobs/job-apply")
+})
+
 it("erro HTTP vira ApiError com mensagem PT-BR do corpo", async () => {
   const fetchFn = vi.fn(async () =>
     jsonResponse({ detail: "Faltam respostas obrigatórias: color.primary" }, 422),

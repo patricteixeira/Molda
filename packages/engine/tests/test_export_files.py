@@ -117,17 +117,16 @@ def test_sufixo_desconhecido_recusado(brand_package, render_dist, tmp_path):
         export_document(ir, layout, content, brand_package, render_dist, tmp_path / "x.gif")
 
 
-def test_overflow_medido_bloqueia_sem_publicar_arquivo(brand_package, render_dist, tmp_path):
-    """Arquivo só nasce depois do gate medido."""
+def test_overflow_medido_orienta_e_publica_arquivo(brand_package, render_dist, tmp_path):
+    """Overflow é preservado no verdict, mas a decisão final continua com o usuário."""
     ir, layout, content = _statement(brand_package, "A\n" * 40)
     output = tmp_path / "x.png"
-    with pytest.raises(ExportBlocked) as caught:
-        export_document(ir, layout, content, brand_package, render_dist, output)
+    result = export_document(ir, layout, content, brand_package, render_dist, output)
     assert any(
-        check.id == "text-overflow" and check.status == "blocked"
-        for check in caught.value.verdict.checks
+        check.id == "text-overflow" and check.status == "warning"
+        for check in result.guard_verdict.checks
     )
-    assert not output.exists()
+    assert output.exists()
 
 
 def test_preflight_estatico_preserva_destino_e_nao_abre_chromium(
@@ -138,9 +137,9 @@ def test_preflight_estatico_preserva_destino_e_nao_abre_chromium(
 
     ir, layout, _content = _statement(brand_package)
     content = ContentSpec(
-        layout_id=layout.id,
+        layout_id="layout-alheio",
         brand_revision_id=ir.revision.id,
-        values={},
+        values={"headline": TextValue(text="Conteúdo")},
     )
     output = tmp_path / "post.png"
     output.write_bytes(b"versao-anterior")

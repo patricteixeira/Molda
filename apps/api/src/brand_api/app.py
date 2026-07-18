@@ -13,7 +13,9 @@ from brand_api.fonts import build_font_resolver
 from brand_api.fonts.models import FontResolver
 from brand_api.models import Base, InviteToken
 from brand_api.routes.assets import router as assets_router
+from brand_api.routes.campaigns import router as campaigns_router
 from brand_api.routes.documents import router as documents_router
+from brand_api.routes.docx_branding import router as docx_branding_router
 from brand_api.routes.intake import router as intake_router
 from brand_api.routes.jobs import router as jobs_router
 from brand_api.routes.revisions import router as revisions_router
@@ -82,7 +84,9 @@ def create_app(settings: Settings, *, font_resolver: FontResolver | None = None)
     app.include_router(intake_router)
     app.include_router(revisions_router)
     app.include_router(assets_router)
+    app.include_router(campaigns_router)
     app.include_router(documents_router)
+    app.include_router(docx_branding_router)
     app.include_router(jobs_router)
     app.include_router(roundtrip_router)
 

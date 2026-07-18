@@ -212,7 +212,7 @@ export interface ContentSpec {
 export interface GuardCheck {
   id: string
   slotId?: string | null
-  status: "pass" | "fixed" | "blocked"
+  status: "pass" | "fixed" | "warning" | "blocked"
   messagePt: string
   detail: Record<string, unknown>
 }
@@ -337,6 +337,88 @@ export interface DocumentResult {
   checks: GuardCheck[]
 }
 
+export interface CampaignFields {
+  headline: string
+  body: string
+  cta: string
+  date: string
+  imageSha256?: string | null
+}
+
+export interface CampaignPiece {
+  id: string
+  documentId: string
+  layoutId: string
+  bindings: Record<string, { kind: "text" | "image"; source: string }>
+  content: ContentSpec
+  checks: GuardCheck[]
+}
+
+export interface Campaign {
+  id: string
+  brandRevisionId: string
+  name: string
+  fields: CampaignFields
+  createdAt: string
+  updatedAt: string
+  pieces: CampaignPiece[]
+}
+
+export interface DocxBrandOperation {
+  id: string
+  kind:
+    | "document-styles"
+    | "paragraph-styles"
+    | "page-layout"
+    | "table-styles"
+    | "header-logo"
+  labelPt: string
+  affectedCount: number
+  targetRole?: string | null
+}
+
+export interface DocxBrandPlan {
+  schemaVersion: "0.1.0"
+  source: {
+    filename: string
+    sha256: string
+    sizeBytes: number
+    paragraphCount: number
+    tableCount: number
+    sectionCount: number
+  }
+  brandRevisionId: string
+  operations: DocxBrandOperation[]
+  warnings: string[]
+}
+
+export interface DocxBrandAnalysisResult {
+  kind: "docx-brand-analyze"
+  plan: DocxBrandPlan
+}
+
+export interface DocxBrandApplyResult extends JobResult {
+  kind: "docx-brand-apply"
+  format: "docx"
+  brandResult: {
+    schemaVersion: "0.1.0"
+    sourceSha256: string
+    brandedSha256: string
+    outputFilename: string
+    appliedOperationIds: string[]
+    contentPreserved: boolean
+    contentSha256: string
+  }
+}
+
+export interface DocxBrandJobInfo {
+  id: string
+  status: "queued" | "running" | "succeeded" | "failed"
+  result?: DocxBrandAnalysisResult | DocxBrandApplyResult | null
+  checks: GuardCheck[]
+  error?: string | null
+}
+
 export interface AssetUpload {
   sha256: string
   size: number
@@ -356,12 +438,27 @@ export interface ApiClient {
   ): Promise<{ brandRevisionId: string }>
   getBrandRevision(revisionId: string): Promise<BrandIr>
   getKit(revisionId: string): Promise<LayoutSpec[]>
+  listCampaigns(revisionId: string): Promise<Campaign[]>
+  getCampaign(campaignId: string): Promise<Campaign>
+  createCampaign(input: {
+    brandRevisionId: string
+    name: string
+    fields: CampaignFields
+    layoutIds: string[]
+  }): Promise<Campaign>
+  updateCampaign(
+    campaignId: string,
+    input: { name: string; fields: CampaignFields },
+  ): Promise<Campaign>
   createDocument(content: ContentSpec): Promise<DocumentResult>
   requestExport(documentId: string, format: ExportFormat): Promise<{ jobId: string }>
   getJob(jobId: string): Promise<JobInfo>
   requestRoundtrip(exportJobId: string, file: File): Promise<{ jobId: string }>
   requestRoundtripFix(roundtripJobId: string): Promise<{ jobId: string }>
   getRoundtripJob(jobId: string): Promise<RoundtripJobInfo>
+  requestDocxBranding(revisionId: string, file: File): Promise<{ jobId: string }>
+  requestDocxBrandApply(analysisJobId: string): Promise<{ jobId: string }>
+  getDocxBrandJob(jobId: string): Promise<DocxBrandJobInfo>
   uploadAsset(file: File): Promise<AssetUpload>
   draftAssetUrl(draftId: string, path: string): string
   revisionAssetsBaseUrl(revisionId: string): string

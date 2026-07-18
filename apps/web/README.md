@@ -1,7 +1,8 @@
 # App web do brand-runtime
 
-Wizard de instalação e editor por slots do walking skeleton. O chrome usa
-tipografia do sistema; as fontes da marca ficam contidas nas provas renderizadas.
+Wizard de instalação, kit, editor por slots, Modo Campanha e aplicação de marca
+em Word. O chrome usa tipografia local do produto; as fontes da marca ficam
+contidas nas provas renderizadas.
 
 ```powershell
 cd apps/web
@@ -15,6 +16,20 @@ npm run build
 O Vite encaminha `/v1` para a API local e injeta o convite `dev-token` apenas
 no ambiente de desenvolvimento. Em produção, essa responsabilidade pertence ao
 proxy nginx da stack Docker.
+
+## Fluxos principais
+
+Alertas criativos aparecem como **Orientações da marca** e nunca desabilitam a
+exportação. A pessoa pode voltar ao campo sugerido ou baixar a peça como está.
+
+- `/marcas/{revisionId}/campanhas`: cria e reabre campanhas, edita a mensagem
+  central, mostra todas as prévias vinculadas e exporta cada documento.
+- `/marcas/{revisionId}/word`: separa upload, plano e aplicação em três etapas;
+  o download só aparece depois da prova de preservação do worker.
+
+Ambos os fluxos usam labels visíveis, feedback assíncrono anunciado, alvo mínimo
+para toque, foco visível e uma ação primária por etapa. Opções avançadas ficam
+fora do caminho inicial.
 
 ## E2E
 

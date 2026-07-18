@@ -112,6 +112,24 @@ O plano contém somente propriedades visuais corrigíveis e o fixer sempre salva
 uma cópia, confere os hashes do plano, valida o OOXML e executa o linter outra
 vez. Alterações de texto nunca são revertidas automaticamente.
 
+### M5 — aplicar marca a um DOCX existente
+
+O fluxo de branding não parte de placeholders. Ele analisa um Word arbitrário,
+produz um plano vinculado ao SHA-256 e só cria a cópia depois de uma segunda
+ação explícita:
+
+```bash
+brandrt docx-brand-plan proposta.docx ir.json --out docx-brand-plan.json
+brandrt docx-brand-apply proposta.docx ir.json docx-brand-plan.json \
+  --assets-dir PACKAGE_DIR --out proposta-com-marca.docx \
+  --result-out docx-brand-result.json
+```
+
+A aplicação cria estilos editáveis, preserva listas e ênfases, uniformiza página
+e tabelas, adiciona o logo quando o cabeçalho não possui imagem e valida o novo
+OOXML. O comando falha se os bytes mudarem depois do plano, se o destino for a
+origem, se o texto visível divergir ou se alguma mídia original desaparecer.
+
 ### M4 — adapters por Brand Package
 
 Adapters comunitários rodam fora do core e entregam a convenção de intake com
@@ -162,14 +180,15 @@ linhas com `^`:
 ```
 
 O comando `guard` imprime o artefato `{"checks": [...]}` em JSON, inclusive
-quando há bloqueios. Códigos de saída: `0` quando não existe `blocked` (`pass`
-e `fixed` são não bloqueantes), `2` para entrada/JSON/I/O inválido e `3` para um
+quando há bloqueios técnicos. Códigos de saída: `0` quando não existe `blocked`
+(`pass`, `fixed` e `warning` são não bloqueantes), `2` para entrada/JSON/I/O inválido e `3` para um
 verdict válido com ao menos um `blocked`. Erros aparecem em PT-BR no `stderr`.
 
 Todos os artefatos são UTF-8 sem BOM, camelCase, indentados com dois espaços e
 newline final. Escritas usam substituição atômica. `schemas` publica os contratos
 de Brand IR, Layout Spec, Content Spec, Guard Verdict, Document Graph, relatório
-de round-trip, Fix Plan, Fix Result, Brand Package e recibo de validação.
+de round-trip, Fix Plan, Fix Result, plano/resultado de marca em DOCX, Brand
+Package e recibo de validação.
 
 ## API Python
 
@@ -177,6 +196,8 @@ As operações do plano-mestre também são reexportadas na raiz do pacote:
 
 ```python
 from brand_runtime import (
+    analyze_docx_brand,
+    apply_docx_brand_plan,
     build_draft,
     build_fix_plan,
     compile_ir,

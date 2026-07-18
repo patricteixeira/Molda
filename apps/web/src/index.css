@@ -8,6 +8,707 @@
   src: url("@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2") format("woff2-variations");
 }
 
+@layer layout {
+  .campaign-page,
+  .docx-brand-page {
+    width: min(100% - 2rem, 92rem);
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: clamp(3rem, 7vw, 7rem) 0;
+  }
+
+  .kit-heading {
+    grid-row: 1 / span 2;
+  }
+
+  .kit-workflows,
+  .kit-grid {
+    grid-column: 2;
+  }
+
+  .campaign-heading,
+  .docx-brand-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 8fr) minmax(10rem, 4fr);
+    gap: var(--space-8);
+    align-items: end;
+    border-bottom: 1px solid var(--ui-rule-strong);
+    padding-bottom: var(--space-10);
+  }
+
+  .campaign-heading > div,
+  .docx-brand-heading > div {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .campaign-heading h1,
+  .docx-brand-heading h1 {
+    max-width: 12ch;
+  }
+
+  .campaign-heading p:last-child,
+  .docx-brand-heading p:last-child {
+    max-width: 66ch;
+    color: var(--ui-muted);
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
+  }
+
+  .campaign-heading > .text-action,
+  .docx-brand-heading > .text-action {
+    justify-self: end;
+  }
+
+  .campaign-workspace {
+    display: grid;
+    grid-template-columns: minmax(15rem, 3fr) minmax(0, 9fr);
+    gap: var(--space-8);
+    align-items: start;
+    margin-top: var(--space-10);
+  }
+
+  .campaign-library {
+    position: sticky;
+    top: var(--space-6);
+  }
+
+  .campaign-results {
+    display: grid;
+    gap: var(--space-8);
+    margin-top: var(--space-16);
+  }
+
+  .campaign-piece-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+  }
+
+  .docx-brand-flow {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+    align-items: stretch;
+    margin-top: var(--space-10);
+  }
+}
+
+@layer components {
+  .kit-workflows {
+    display: grid;
+    gap: var(--space-4);
+    border-bottom: 1px solid var(--ui-rule-strong);
+    padding-bottom: var(--space-8);
+  }
+
+  .kit-workflows-heading {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .kit-workflows-heading h2 {
+    max-width: 18ch;
+    font-size: clamp(1.75rem, 3vw, 3rem);
+  }
+
+  .kit-workflow-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+
+  .kit-workflow-card {
+    display: grid;
+    min-width: 0;
+    min-height: 15rem;
+    grid-template-rows: auto 1fr auto;
+    gap: var(--space-5);
+    border: 1px solid var(--ui-rule-strong);
+    border-radius: var(--radius);
+    padding: var(--space-5);
+    background: var(--ui-surface-raised);
+    box-shadow: 0 1rem 2.5rem var(--ui-shadow);
+    color: var(--ui-ink);
+    text-decoration: none;
+    transition:
+      border-color var(--motion-fast) var(--ease-out),
+      transform var(--motion-fast) var(--ease-out),
+      box-shadow var(--motion-fast) var(--ease-out);
+  }
+
+  .kit-workflow-card-primary {
+    border-color: var(--ui-accent);
+    background: var(--ui-accent);
+    color: var(--ui-on-accent);
+  }
+
+  .kit-workflow-index,
+  .kit-workflow-action {
+    font-family: "JetBrains Mono Variable", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .kit-workflow-card > span:nth-child(2) {
+    display: grid;
+    align-content: center;
+    gap: var(--space-2);
+  }
+
+  .kit-workflow-card strong {
+    font-size: clamp(1.35rem, 2vw, 2rem);
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+
+  .kit-workflow-card small {
+    max-width: 34ch;
+    color: color-mix(in srgb, currentColor 76%, transparent);
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .kit-workflow-card:not(.kit-workflow-card-primary):hover,
+  .kit-workflow-card:not(.kit-workflow-card-primary):focus-visible {
+    border-color: var(--ui-accent);
+    box-shadow: 0 1.25rem 3rem var(--ui-shadow);
+    transform: translateY(-0.2rem);
+  }
+
+  .kit-workflow-card-primary:hover,
+  .kit-workflow-card-primary:focus-visible {
+    box-shadow: 0 1.25rem 3rem color-mix(in srgb, var(--ui-accent) 25%, transparent);
+    transform: translateY(-0.2rem);
+  }
+
+  .campaign-library,
+  .campaign-form-panel,
+  .docx-upload-card,
+  .docx-plan-card,
+  .docx-download-card {
+    border: 1px solid var(--ui-rule);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--ui-surface-raised) 95%, transparent);
+    box-shadow: 0 1rem 3rem var(--ui-shadow);
+  }
+
+  .campaign-library {
+    overflow: hidden;
+  }
+
+  .campaign-library-heading {
+    display: grid;
+    gap: var(--space-4);
+    border-bottom: 1px solid var(--ui-rule);
+    padding: var(--space-5);
+  }
+
+  .campaign-library-heading h2,
+  .campaign-form-heading h2,
+  .campaign-results-heading h2,
+  .docx-brand-flow h2 {
+    font-size: clamp(1.6rem, 2.5vw, 2.5rem);
+    line-height: 1;
+  }
+
+  .campaign-library ul {
+    display: grid;
+    max-height: 28rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .campaign-library li + li {
+    border-top: 1px solid var(--ui-rule);
+  }
+
+  .campaign-library li > button {
+    display: grid;
+    width: 100%;
+    min-height: 4.5rem;
+    gap: var(--space-1);
+    justify-items: start;
+    border: 0;
+    border-radius: 0;
+    padding: var(--space-4) var(--space-5);
+    background: transparent;
+    color: var(--ui-ink);
+    text-align: left;
+  }
+
+  .campaign-library li > button[data-active] {
+    background: var(--ui-accent-soft);
+    color: var(--ui-accent);
+  }
+
+  .campaign-library li > button:hover,
+  .campaign-library li > button:focus-visible {
+    background: color-mix(in srgb, var(--ui-accent-soft) 72%, transparent);
+  }
+
+  .campaign-library li small {
+    color: var(--ui-muted);
+    font-family: "JetBrains Mono Variable", monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+  }
+
+  .campaign-empty {
+    padding: var(--space-5);
+    color: var(--ui-muted);
+  }
+
+  .campaign-form-panel {
+    min-width: 0;
+    padding: clamp(1.25rem, 3vw, 3rem);
+  }
+
+  .campaign-form-heading {
+    display: grid;
+    gap: var(--space-2);
+    border-bottom: 1px solid var(--ui-rule);
+    padding-bottom: var(--space-6);
+  }
+
+  .campaign-form {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+  }
+
+  .campaign-form label,
+  .campaign-form legend,
+  .docx-file-picker {
+    font-size: 0.78rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .campaign-form input[type="text"],
+  .campaign-form input:not([type]),
+  .campaign-form textarea,
+  .campaign-form > input,
+  .campaign-form-row input {
+    width: 100%;
+    border: 1px solid var(--ui-rule-strong);
+    padding: 0.8rem 0.9rem;
+    background: var(--ui-surface);
+    color: var(--ui-ink);
+  }
+
+  .campaign-form textarea {
+    min-height: 9rem;
+    resize: vertical;
+  }
+
+  .campaign-form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+  }
+
+  .campaign-form-row > span {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .campaign-image-field,
+  .campaign-formats {
+    display: grid;
+    gap: var(--space-3);
+    border: 1px solid var(--ui-rule);
+    border-radius: var(--radius);
+    margin-top: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .campaign-image-field input[type="file"] {
+    min-height: 3rem;
+    padding: 0.55rem;
+    background: var(--ui-surface);
+  }
+
+  .campaign-clear-image {
+    justify-self: start;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--ui-danger);
+  }
+
+  .campaign-formats > p,
+  .field-guidance {
+    color: var(--ui-muted);
+    font-size: 0.85rem;
+  }
+
+  .campaign-formats > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  .campaign-formats label {
+    display: grid;
+    min-height: 4rem;
+    grid-template-columns: 2rem 1fr;
+    gap: var(--space-2);
+    align-items: center;
+    border: 1px solid var(--ui-rule);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2) var(--space-3);
+    background: var(--ui-surface);
+    cursor: pointer;
+    text-transform: none;
+  }
+
+  .campaign-formats input {
+    width: 1.25rem;
+    min-height: 1.25rem;
+    accent-color: var(--ui-accent);
+  }
+
+  .campaign-formats label > span {
+    display: grid;
+    min-width: 0;
+  }
+
+  .campaign-formats small {
+    color: var(--ui-muted);
+    font-family: "JetBrains Mono Variable", monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+  }
+
+  .campaign-formats:disabled {
+    opacity: 0.72;
+  }
+
+  .campaign-form > .primary-action {
+    justify-self: start;
+    margin-top: var(--space-4);
+  }
+
+  .campaign-error,
+  .docx-brand-error {
+    border-left: 0.25rem solid var(--ui-danger);
+    padding: var(--space-3) var(--space-4);
+    background: var(--ui-danger-soft);
+    color: var(--ui-danger);
+  }
+
+  .campaign-status {
+    border-left: 0.25rem solid var(--ui-success);
+    padding: var(--space-3) var(--space-4);
+    background: var(--ui-success-soft);
+    color: var(--ui-success);
+  }
+
+  .campaign-results-heading {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .campaign-results-heading > p:last-child {
+    color: var(--ui-muted);
+  }
+
+  .campaign-piece {
+    display: grid;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--ui-rule);
+    border-radius: var(--radius-lg);
+    background: var(--ui-surface-raised);
+    box-shadow: 0 1rem 3rem var(--ui-shadow);
+  }
+
+  .campaign-piece-preview {
+    display: grid;
+    min-height: 25rem;
+    place-items: center;
+    overflow: hidden;
+    padding: var(--space-5);
+    background: var(--ui-stage);
+  }
+
+  .campaign-piece-copy {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5);
+  }
+
+  .campaign-piece-ready,
+  .campaign-piece-warning {
+    color: var(--ui-muted);
+    font-size: 0.9rem;
+  }
+
+  .campaign-piece-warning {
+    display: grid;
+    gap: var(--space-1);
+    border-left: 0.2rem solid var(--ui-warning);
+    padding-left: var(--space-3);
+  }
+
+  .campaign-piece-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+
+  .campaign-export-control {
+    display: grid;
+    gap: var(--space-1);
+  }
+
+  .campaign-export-control > span {
+    max-width: 28ch;
+    color: var(--ui-danger);
+    font-size: 0.78rem;
+  }
+
+  .campaign-download {
+    display: inline-flex;
+    min-height: 2.875rem;
+    align-items: center;
+    border: 1px solid var(--ui-success);
+    border-radius: var(--radius-sm);
+    padding: 0.7rem 1rem;
+    background: var(--ui-success-soft);
+    color: var(--ui-success);
+    font-weight: 650;
+    text-decoration: none;
+  }
+
+  .docx-upload-card,
+  .docx-plan-card,
+  .docx-download-card {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-4);
+    padding: clamp(1.25rem, 2.5vw, 2rem);
+  }
+
+  .docx-plan-card {
+    border-color: var(--ui-accent);
+  }
+
+  .docx-step-number {
+    color: var(--ui-accent);
+    font-family: "JetBrains Mono Variable", monospace;
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .docx-brand-flow section > div {
+    display: grid;
+    align-content: start;
+    gap: var(--space-4);
+  }
+
+  .docx-brand-flow section > div > p:not(.product-kicker) {
+    color: var(--ui-muted);
+  }
+
+  .docx-file-picker {
+    position: relative;
+    display: grid;
+    min-height: 8rem;
+    place-items: center;
+    border: 1px dashed var(--ui-rule-strong);
+    border-radius: var(--radius);
+    padding: var(--space-4);
+    background: var(--ui-surface);
+    color: var(--ui-accent);
+    cursor: pointer;
+    text-align: center;
+  }
+
+  .docx-file-picker input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  .docx-file-picker:focus-within {
+    outline: 3px solid color-mix(in srgb, var(--ui-accent) 38%, transparent);
+    outline-offset: 2px;
+  }
+
+  .docx-plan-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-block: 1px solid var(--ui-rule);
+    padding-block: var(--space-3);
+  }
+
+  .docx-plan-summary span {
+    display: grid;
+    color: var(--ui-muted);
+    font-size: 0.72rem;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .docx-plan-summary strong {
+    color: var(--ui-ink);
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .docx-operation-list {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .docx-operation-list li {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: var(--space-2);
+    align-items: start;
+    border-bottom: 1px solid var(--ui-rule);
+    padding-block: var(--space-3);
+  }
+
+  .docx-operation-list li > span {
+    color: var(--ui-accent);
+    font-family: "JetBrains Mono Variable", monospace;
+    font-size: 0.72rem;
+  }
+
+  .docx-brand-flow .docx-operation-list p {
+    color: var(--ui-ink);
+    font-size: 0.9rem;
+  }
+
+  .docx-warning-list {
+    display: grid;
+    gap: var(--space-2);
+    padding-left: 1.25rem;
+    color: var(--ui-danger);
+    font-size: 0.85rem;
+  }
+
+  .docx-brand-flow section > div > .docx-safe-note {
+    color: var(--ui-success);
+    font-size: 0.88rem;
+  }
+
+  .docx-download-ready {
+    display: grid;
+    gap: var(--space-4);
+    border-left: 0.25rem solid var(--ui-success);
+    padding-left: var(--space-4);
+  }
+
+  .docx-download-ready .primary-link {
+    justify-self: start;
+  }
+
+  .docx-brand-error {
+    max-width: 56rem;
+    margin-top: var(--space-6);
+  }
+}
+
+@layer responsive {
+  @media (max-width: 64rem) {
+    .campaign-page,
+    .docx-brand-page {
+      width: min(100% - 2rem, 54rem);
+      padding-block: var(--space-16);
+    }
+
+    .kit-heading {
+      grid-row: auto;
+    }
+
+    .kit-workflows,
+    .kit-grid {
+      grid-column: 1;
+    }
+
+    .campaign-workspace,
+    .docx-brand-flow {
+      grid-template-columns: 1fr;
+    }
+
+    .campaign-library {
+      position: relative;
+      top: auto;
+    }
+
+    .campaign-library ul {
+      max-height: 14rem;
+    }
+
+    .docx-upload-card,
+    .docx-plan-card,
+    .docx-download-card {
+      min-height: 18rem;
+    }
+  }
+
+  @media (max-width: 44rem) {
+    .campaign-page,
+    .docx-brand-page {
+      width: min(100% - 2rem, 42rem);
+      padding-block: var(--space-12);
+    }
+
+    .campaign-heading,
+    .docx-brand-heading {
+      grid-template-columns: 1fr;
+    }
+
+    .campaign-heading h1,
+    .docx-brand-heading h1 {
+      font-size: clamp(3rem, 15vw, 5rem);
+      line-height: 0.95;
+    }
+
+    .campaign-heading > .text-action,
+    .docx-brand-heading > .text-action {
+      justify-self: start;
+    }
+
+    .kit-workflow-grid,
+    .campaign-piece-grid,
+    .campaign-form-row,
+    .campaign-formats > div {
+      grid-template-columns: 1fr;
+    }
+
+    .kit-workflow-card {
+      min-height: 13rem;
+    }
+
+    .campaign-piece-preview {
+      min-height: 21rem;
+    }
+
+    .campaign-form > .primary-action,
+    .docx-brand-flow .primary-action,
+    .docx-download-ready .primary-link {
+      width: 100%;
+      justify-content: center;
+      text-align: center;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kit-workflow-card {
+      transition: none;
+    }
+  }
+}
+
 @layer components {
   .app-shell-editor {
     --editor-bg: #171a20;
@@ -877,6 +1578,8 @@
     --ui-accent-soft: #dfe6ff;
     --ui-danger: #a5322a;
     --ui-danger-soft: #f9e7e4;
+    --ui-warning: #8a4d00;
+    --ui-warning-soft: #fff1d6;
     --ui-success: #176448;
     --ui-success-soft: #dcf2e8;
     --ui-stage: #121820;
@@ -916,6 +1619,8 @@
       --ui-accent-soft: #222f5a;
       --ui-danger: #ff9b92;
       --ui-danger-soft: #3b2223;
+      --ui-warning: #f5bd66;
+      --ui-warning-soft: #3b2b16;
       --ui-success: #76d6aa;
       --ui-success-soft: #18382c;
       --ui-stage: #080c11;
@@ -2229,6 +2934,15 @@
   .guard-item p {
     color: var(--ui-danger);
     overflow-wrap: anywhere;
+  }
+
+  .guard-item[data-status="warning"] {
+    border-color: color-mix(in srgb, var(--ui-warning) 42%, var(--ui-rule));
+    background: var(--ui-warning-soft);
+  }
+
+  .guard-item[data-status="warning"] p {
+    color: var(--ui-warning);
   }
 
   .export-status,

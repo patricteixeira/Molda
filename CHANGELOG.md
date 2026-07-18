@@ -6,7 +6,25 @@ release pública.
 
 ## [Não lançado]
 
+### Alterado
+
+- O Guard agora orienta sem policiar: recomendações criativas usam `warning` e
+  não impedem exportação; `blocked` fica reservado a segurança, integridade e
+  contratos tecnicamente impossíveis de renderizar.
+- A compilação combina proporções quando uma cor confirmada ocupa mais de um
+  papel de composição, preserva evidências e publica a marca normalmente.
+- Falhas internas de compilação deixam de culpar genericamente as respostas ou
+  o nome da marca.
+
 ### Adicionado
+
+- Modo Campanha com fonte compartilhada de título, mensagem, data, CTA e
+  imagem; campanhas, peças e documentos persistidos; propagação transacional,
+  Guard por formato, biblioteca web, prévias e export final/editável.
+- Aplicação não destrutiva de identidade em DOCX existente, com plano prévio
+  vinculado ao SHA-256, estilos editáveis `Molda Título`/`Molda Texto`, margens,
+  tabelas e logo, fila em duas etapas, preservação verificada de texto/mídias,
+  CLI e schemas públicos.
 
 - Spec fundadora do produto (persona leigo-first, Brand IR, kit por slots,
   guard por construção) e plano-mestre do M1 com contratos entre subsistemas.

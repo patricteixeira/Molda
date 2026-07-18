@@ -55,10 +55,10 @@ def test_fake_exporter_escreve_formato_deterministico(client, compiled, tmp_path
 
 def test_export_rejected_preserva_checks():
     check = GuardCheck(
-        id="text-overflow",
-        slot_id="headline",
+        id="asset-integrity",
+        slot_id="photo",
         status="blocked",
-        message_pt="O texto ultrapassa a área disponível.",
+        message_pt="O arquivo não corresponde ao conteúdo enviado.",
     )
 
     error = ExportRejected([check])
@@ -112,10 +112,10 @@ def test_playwright_exporter_converte_bloqueio_sem_perder_checks(
 ):
     ir, layout, content = _contracts(client, compiled)
     check = GuardCheck(
-        id="text-overflow",
-        slot_id="headline",
+        id="asset-integrity",
+        slot_id="photo",
         status="blocked",
-        message_pt="O texto ultrapassa a área disponível.",
+        message_pt="O arquivo não corresponde ao conteúdo enviado.",
     )
     fake_module = ModuleType("brand_runtime.export")
 

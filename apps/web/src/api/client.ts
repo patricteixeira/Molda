@@ -1,12 +1,14 @@
 import type {
   ApiClient,
   BrandIr,
+  Campaign,
   ContentSpec,
   JobInfo,
   GuardCheck,
   ImportResult,
   LayoutSpec,
   FontResolutionResult,
+  DocxBrandJobInfo,
   RoundtripJobInfo,
 } from "./types"
 import { buildPackageZip } from "./zipPackage"
@@ -101,6 +103,26 @@ export function createApiClient(fetchFn: typeof fetch = fetch): ApiClient {
     getKit(revisionId) {
       return json<LayoutSpec[]>(`/v1/brand-revisions/${encodeURIComponent(revisionId)}/kit`)
     },
+    listCampaigns(revisionId) {
+      return json<Campaign[]>(
+        `/v1/brand-revisions/${encodeURIComponent(revisionId)}/campaigns`,
+      )
+    },
+    getCampaign(campaignId) {
+      return json<Campaign>(`/v1/campaigns/${encodeURIComponent(campaignId)}`)
+    },
+    createCampaign(input) {
+      return json<Campaign>("/v1/campaigns", {
+        method: "POST",
+        body: JSON.stringify(input),
+      })
+    },
+    updateCampaign(campaignId, input) {
+      return json<Campaign>(`/v1/campaigns/${encodeURIComponent(campaignId)}`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      })
+    },
     async uploadAsset(file) {
       const form = new FormData()
       form.set("file", file)
@@ -133,6 +155,22 @@ export function createApiClient(fetchFn: typeof fetch = fetch): ApiClient {
     },
     getRoundtripJob(jobId) {
       return json<RoundtripJobInfo>(`/v1/jobs/${encodeURIComponent(jobId)}`)
+    },
+    async requestDocxBranding(revisionId, file) {
+      const form = new FormData()
+      form.set("file", file)
+      return json(`/v1/brand-revisions/${encodeURIComponent(revisionId)}/docx-brandings`, {
+        method: "POST",
+        body: form,
+      })
+    },
+    requestDocxBrandApply(analysisJobId) {
+      return json(`/v1/jobs/${encodeURIComponent(analysisJobId)}/docx-brandings`, {
+        method: "POST",
+      })
+    },
+    getDocxBrandJob(jobId) {
+      return json<DocxBrandJobInfo>(`/v1/jobs/${encodeURIComponent(jobId)}`)
     },
     draftAssetUrl(draftId, path) {
       return `/v1/drafts/${encodeURIComponent(draftId)}/assets/${encodePath(path)}`

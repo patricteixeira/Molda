@@ -24,6 +24,7 @@
           "enum": [
             "pass",
             "fixed",
+            "warning",
             "blocked"
           ],
           "title": "Status",

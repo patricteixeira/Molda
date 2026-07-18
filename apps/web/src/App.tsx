@@ -1,6 +1,8 @@
 import { lazy, Suspense } from "react"
 import { Link, Route, Routes } from "react-router-dom"
 import { AppChrome } from "./components/AppChrome"
+import { CampaignPage } from "./campaign/CampaignPage"
+import { DocxBrandPage } from "./docx/DocxBrandPage"
 import { EditorPage } from "./editor/EditorPage"
 import { KitPage } from "./kit/KitPage"
 import { WizardPage } from "./wizard/WizardPage"
@@ -20,6 +22,8 @@ export default function App() {
           <Routes>
             <Route path="/" element={<WizardPage />} />
             <Route path="/marcas/:revisionId/kit" element={<KitPage />} />
+            <Route path="/marcas/:revisionId/campanhas" element={<CampaignPage />} />
+            <Route path="/marcas/:revisionId/word" element={<DocxBrandPage />} />
             <Route path="/marcas/:revisionId/editor/:layoutId" element={<EditorPage />} />
             <Route
               path="*"
@@ -27,7 +31,7 @@ export default function App() {
                 <main id="main-content" className="not-found-page" data-motion-enter>
                   <p className="product-kicker">Endereço desconhecido</p>
                   <h1>Página não encontrada</h1>
-                  <p>Este endereço não leva a uma área do brand-runtime.</p>
+                  <p>Este endereço não leva a uma área do Molda.</p>
                   <Link className="primary-link" to="/">
                     Voltar ao início
                   </Link>

@@ -1,6 +1,11 @@
 # API do brand-runtime
 
-API HTTP do walking skeleton para intake, revisões, documentos e exports.
+API HTTP para intake, revisões, documentos, campanhas, aplicação de marca em
+Word e exports.
+
+O Guard usa quatro estados: `pass`, `fixed`, `warning` e `blocked`. `warning`
+preserva a orientação da identidade sem impedir jobs; `blocked` é exclusivo de
+falhas técnicas, de integridade ou segurança que tornariam o artefato inválido.
 
 ## Desenvolvimento
 
@@ -144,6 +149,30 @@ O endpoint de correção não aceita plano nem path no body. O worker usa soment
 `FixPlan` persistido no job anterior, verifica os hashes novamente e publica o
 PPTX corrigido no storage content-addressed. O resultado inclui `sha256`, `url`,
 `filename` e `fixResult` com o relint completo.
+
+## Modo Campanha (M5.1)
+
+Campanhas persistem uma fonte de mensagem e documentos vinculados. `POST
+/v1/campaigns` cria todos os documentos numa única transação. `PATCH
+/v1/campaigns/{id}` atualiza os mesmos documentos, reexecuta o Guard em cada
+layout e confirma tudo num único commit. Os bindings de slots são fechados e
+persistidos; não há truncamento silencioso.
+
+As rotas completas e o contrato de aceite estão em
+[`docs/superpowers/plans/2026-07-18-m5-plan1-campaign-mode.md`](../../docs/superpowers/plans/2026-07-18-m5-plan1-campaign-mode.md).
+
+## Aplicar marca ao Word (M5.2)
+
+`POST /v1/brand-revisions/{id}/docx-brandings` recebe um DOCX, reconhece o tipo
+pelos parts OOXML e cria um job de análise. O resultado contém o plano, não um
+arquivo alterado. A criação da cópia exige uma segunda chamada explícita a
+`POST /v1/jobs/{analysis_id}/docx-brandings`.
+
+O worker vincula plano, blob e revisão por SHA-256, valida OOXML antes e depois,
+preserva o original e só publica quando texto e mídias de origem continuam no
+pacote. O resultado é outro DOCX editável com `brandResult` e prova de
+preservação. Veja o contrato em
+[`docs/superpowers/plans/2026-07-18-m5-plan2-docx-branding.md`](../../docs/superpowers/plans/2026-07-18-m5-plan2-docx-branding.md).
 
 ## Resolução automática de fontes abertas
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import shutil
 from io import BytesIO
 from pathlib import Path
@@ -53,6 +54,7 @@ from brand_runtime.ir.models import Diagnostic, Evidence
 from brand_runtime.kit.generator import KitGenerationError
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
+logger = logging.getLogger(__name__)
 
 
 class InvalidBrandMedia(Exception):
@@ -503,7 +505,22 @@ def compile_draft(draft_id: str, body: CompileBody, request: Request) -> dict[st
             )
         try:
             draft = BrandDraft.model_validate(row.draft)
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="O rascunho salvo não pode mais ser publicado. Importe os materiais novamente.",
+            ) from exc
+        try:
             answers = Answers.model_validate(body.answers)
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    "As escolhas salvas não puderam ser lidas. "
+                    "Volte uma etapa e confirme a última resposta novamente."
+                ),
+            ) from exc
+        try:
             ir = compile_ir(draft, answers, body.brand_name)
         except CompileError as exc:
             raise HTTPException(
@@ -511,9 +528,13 @@ def compile_draft(draft_id: str, body: CompileBody, request: Request) -> dict[st
                 detail=str(exc),
             ) from exc
         except (ValidationError, ValueError) as exc:
+            logger.exception("Falha interna ao compilar o rascunho %s", draft_id)
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail="As respostas informadas são inválidas.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    "O Molda encontrou uma inconsistência interna ao publicar. "
+                    "Suas escolhas continuam salvas; tente novamente."
+                ),
             ) from exc
 
         brand = _upsert_brand(session, body.brand_name)

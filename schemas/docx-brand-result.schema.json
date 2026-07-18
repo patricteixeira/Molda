@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "description": "Evidência de aplicação, preservação textual e publicação do novo DOCX.",
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "sourceSha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sourcesha256",
+      "type": "string"
+    },
+    "brandedSha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Brandedsha256",
+      "type": "string"
+    },
+    "outputFilename": {
+      "title": "Outputfilename",
+      "type": "string"
+    },
+    "appliedOperationIds": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Appliedoperationids",
+      "type": "array"
+    },
+    "contentPreserved": {
+      "title": "Contentpreserved",
+      "type": "boolean"
+    },
+    "contentSha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Contentsha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "sourceSha256",
+    "brandedSha256",
+    "outputFilename",
+    "appliedOperationIds",
+    "contentPreserved",
+    "contentSha256"
+  ],
+  "title": "DocxBrandResult",
+  "type": "object"
+}
