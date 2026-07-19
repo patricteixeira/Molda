@@ -54,11 +54,11 @@ it("acumula seleções sucessivas sem duplicar o mesmo arquivo", async () => {
   await user.upload(input, logo)
   await user.upload(input, manual)
 
-  expect(screen.getByText("materiais reunidos", { exact: false }).closest("p")).toHaveTextContent(
-    "2 materiais reunidos",
+  expect(screen.getByText("arquivos escolhidos", { exact: false }).closest("p")).toHaveTextContent(
+    "2 arquivos escolhidos",
   )
   expect(screen.getByRole("status")).toHaveTextContent(
-    "Um arquivo com a mesma identificação já estava no pacote",
+    "Este arquivo já estava na seleção",
   )
   await user.click(screen.getByTestId("wizard-enviar"))
   expect(importBrandPackage).toHaveBeenCalledWith([manual, logo])
@@ -78,8 +78,8 @@ it("permite remover um material antes do envio", async () => {
   await user.click(screen.getByRole("button", { name: "Remover logo.svg" }))
 
   expect(screen.queryByText("logo.svg")).not.toBeInTheDocument()
-  expect(screen.getByText("material reunido", { exact: false }).closest("p")).toHaveTextContent(
-    "1 material reunido",
+  expect(screen.getByText("arquivo escolhido", { exact: false }).closest("p")).toHaveTextContent(
+    "1 arquivo escolhido",
   )
 })
 
@@ -136,7 +136,7 @@ it("não avança com pergunta obrigatória vazia e mostra os diagnósticos", asy
       {
         id: "logo.primary",
         kind: "confirm-logo",
-        promptPt: "Este é o logo oficial da marca?",
+        promptPt: "Este é o logo principal da marca?",
         candidates: [],
         required: true,
       },
@@ -161,7 +161,7 @@ it("não avança com pergunta obrigatória vazia e mostra os diagnósticos", asy
   await user.click(screen.getByTestId("wizard-enviar"))
 
   const alert = await screen.findByRole("alert")
-  expect(alert).toHaveTextContent("O pacote ainda está incompleto.")
+  expect(alert).toHaveTextContent("Ainda faltam alguns arquivos.")
   expect(alert).toHaveTextContent("Nenhum logo foi encontrado")
   expect(alert).toHaveTextContent("Adicione um logo em SVG ou PNG.")
   expect(alert).toHaveTextContent("referencias/anotacao.txt")
@@ -193,7 +193,7 @@ it("permite acrescentar materiais e reenviar depois de um pacote incompleto", as
   const logo = new File(["svg"], "logo.svg")
   await user.upload(input, manual)
   await user.click(screen.getByTestId("wizard-enviar"))
-  expect(await screen.findByRole("alert")).toHaveTextContent("cores identificáveis")
+  expect(await screen.findByRole("alert")).toHaveTextContent("mostre as cores da marca")
 
   await user.upload(input, logo)
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()

@@ -15,18 +15,18 @@ describe("BrandEvidence", () => {
       "true",
     )
 
-    await user.click(screen.getByRole("button", { name: /Símbolos/ }))
-    expect(screen.getByRole("button", { name: /Símbolos/ })).toHaveAttribute(
+    await user.click(screen.getByRole("button", { name: /Logo/ }))
+    expect(screen.getByRole("button", { name: /Logo/ })).toHaveAttribute(
       "aria-expanded",
       "true",
     )
 
     expect(
-      screen.getByText("Os materiais existentes são tratados como fonte de verdade."),
+      screen.getByText("Primeiro, lemos os arquivos que você enviou."),
     ).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Próxima" }))
     expect(
-      screen.getByText("Ambiguidades viram escolhas explícitas antes da publicação."),
+      screen.getByText("Quando algo não está claro, você escolhe."),
     ).toBeInTheDocument()
   })
 })

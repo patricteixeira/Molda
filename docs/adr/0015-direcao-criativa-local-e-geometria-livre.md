@@ -44,17 +44,15 @@ de escala, espaço negativo, densidade, sangria e uma superfície procedural. Ao
 ser aplicada, pode deslocar e redimensionar logo e texto, mudar a hierarquia e
 adicionar uma textura coerente com os sinais confirmados da marca.
 
-O vocabulário de superfície é fechado e portátil:
+O vocabulário de superfície é fechado e portátil. Ele nasceu com grão de
+papel, ritmo linear, grade técnica, campo de pontos e anéis concêntricos e foi
+ampliado pelo
+[ADR 0016](0016-catalogo-aberto-de-texturas-procedurais.md) para vinte opções
+com paridade de preview, Guard e exportação.
 
-- grão de papel;
-- ritmo linear;
-- grade técnica;
-- campo de pontos;
-- anéis concêntricos.
-
-Essas são primitivas, não estilos de marca. Cor, escala, peso, ângulo,
+Essas opções são primitivas, não estilos de marca. Cor, escala, peso, ângulo,
 opacidade e relação com as camadas são derivados da direção específica. A
-pessoa pode ajustar ou remover tudo.
+pessoa pode escolher qualquer textura, ajustar ou remover tudo.
 
 ### Sangria e liberdade autoral
 

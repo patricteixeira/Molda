@@ -76,7 +76,7 @@ it("explica quando o kit não tem layouts e permite tentar novamente", async () 
   renderKit(fakeClient({ getKit: vi.fn(async () => []) }))
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Este kit ainda não tem layouts disponíveis.",
+    "Este kit ainda não tem modelos disponíveis.",
   )
   expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument()
 })

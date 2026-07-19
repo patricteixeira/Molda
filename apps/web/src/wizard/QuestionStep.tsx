@@ -29,6 +29,26 @@ function validSelection(question: DraftQuestion, value: unknown): boolean {
   return typeof essence === "string" && essence.trim().length > 0
 }
 
+function instructionForQuestion(question: DraftQuestion): string {
+  if (question.kind === "review-identity") {
+    return "Confira os textos abaixo. Mude o que estiver errado e complete o que estiver faltando."
+  }
+  if (question.kind === "pick-color") {
+    return "Escolha a cor que a marca mais usa para esse caso."
+  }
+  if (question.kind === "pick-font") {
+    return "Compare com os arquivos da marca. Se a fonte certa não aparecer, digite o nome dela."
+  }
+  return "Escolha o logo que a marca mais usa."
+}
+
+function confirmationLabel(question: DraftQuestion): string {
+  if (question.kind === "review-identity") return "Salvar e continuar"
+  if (question.kind === "pick-color") return "Escolher esta cor"
+  if (question.kind === "pick-font") return "Escolher esta fonte"
+  return "Escolher este logo"
+}
+
 export function QuestionStep(props: Props) {
   const { draftId, question, index, total, answers, onConfirm, onSkip, onBack, onRestart } = props
   const [selection, setSelection] = useState<{ questionId: string; value: unknown } | null>(null)
@@ -40,7 +60,11 @@ export function QuestionStep(props: Props) {
     selection?.questionId === question.id
       ? selection.value
       : storedAnswer ?? automaticallySuggestedFont(question)
-  useEffect(() => headingRef.current?.focus(), [question.id])
+  useEffect(() => {
+    const heading = headingRef.current
+    heading?.closest(".wizard-bench")?.scrollIntoView?.({ block: "start" })
+    heading?.focus({ preventScroll: true })
+  }, [question.id])
   const missingDetectedOptions = question.candidates.length === 0 && question.kind !== "pick-font"
   const optionProps = {
     candidates: question.candidates,
@@ -50,40 +74,46 @@ export function QuestionStep(props: Props) {
 
   return (
     <section className="question-step" data-testid="wizard-question">
-      <p className="wizard-progress" data-testid="wizard-progress">
-        Pergunta {index + 1} de {total}
-      </p>
-      <h2 ref={headingRef} tabIndex={-1}>
-        {question.promptPt}
-      </h2>
-      {missingDetectedOptions ? (
-        <div className="empty-question" role="alert">
-          <p>O pacote não trouxe uma opção válida para esta etapa.</p>
-          <p>Volte aos materiais, acrescente os arquivos que faltam e envie o pacote novamente.</p>
-        </div>
-      ) : (
-        <>
-          {question.kind === "pick-color" && (
-            <ColorOptions
-              key={question.id}
-              recommendedCount={question.recommendedCount}
-              {...optionProps}
-            />
-          )}
-          {question.kind === "pick-font" && (
-            <FontOptions
-              key={question.id}
-              draftId={draftId}
-              questionId={question.id as "font.heading" | "font.body"}
-              {...optionProps}
-            />
-          )}
-          {question.kind === "confirm-logo" && <LogoOptions draftId={draftId} {...optionProps} />}
-          {question.kind === "review-identity" && (
-            <IdentityOptions key={question.id} {...optionProps} />
-          )}
-        </>
-      )}
+      <header className="question-heading">
+        <p className="wizard-progress" data-testid="wizard-progress">
+          Passo {index + 1} de {total}
+        </p>
+        <h2 ref={headingRef} tabIndex={-1}>
+          {question.promptPt}
+        </h2>
+        <p className="question-instruction">{instructionForQuestion(question)}</p>
+      </header>
+
+      <div className="question-options">
+        {missingDetectedOptions ? (
+          <div className="empty-question" role="alert">
+            <p>Não encontramos uma opção nos arquivos enviados.</p>
+            <p>Volte aos arquivos, acrescente o que está faltando e envie novamente.</p>
+          </div>
+        ) : (
+          <>
+            {question.kind === "pick-color" && (
+              <ColorOptions
+                key={question.id}
+                recommendedCount={question.recommendedCount}
+                {...optionProps}
+              />
+            )}
+            {question.kind === "pick-font" && (
+              <FontOptions
+                key={question.id}
+                draftId={draftId}
+                questionId={question.id as "font.heading" | "font.body"}
+                {...optionProps}
+              />
+            )}
+            {question.kind === "confirm-logo" && <LogoOptions draftId={draftId} {...optionProps} />}
+            {question.kind === "review-identity" && (
+              <IdentityOptions key={question.id} {...optionProps} />
+            )}
+          </>
+        )}
+      </div>
       <div className="action-row">
         <button
           data-testid="wizard-trocar-materiais"
@@ -91,7 +121,7 @@ export function QuestionStep(props: Props) {
           type="button"
           onClick={onRestart}
         >
-          {missingDetectedOptions ? "Voltar aos materiais" : "Trocar materiais"}
+          {missingDetectedOptions ? "Voltar aos arquivos" : "Trocar arquivos"}
         </button>
         {index > 0 && (
           <button data-testid="wizard-voltar" className="secondary-action" type="button" onClick={onBack}>
@@ -117,7 +147,7 @@ export function QuestionStep(props: Props) {
           disabled={!validSelection(question, selected) || missingDetectedOptions}
           onClick={() => onConfirm(selected)}
         >
-          Confirmar
+          {confirmationLabel(question)}
         </button>
       </div>
     </section>

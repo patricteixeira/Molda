@@ -2,9 +2,31 @@ import { useEffect, useReducer } from "react"
 import { useNavigate } from "react-router-dom"
 import { BrandEvidence } from "./BrandEvidence"
 import { PublishStep } from "./PublishStep"
+import { QuestionReviewRail } from "./QuestionReviewRail"
 import { QuestionStep } from "./QuestionStep"
 import { UploadStep } from "./UploadStep"
 import { initialWizardState, wizardReducer } from "./state"
+
+const heroByStep = {
+  upload: {
+    kicker: "Instalação de marca",
+    title: "Traga o que já existe.",
+    description: "A marca começa daqui.",
+    benchLabel: "ARQUIVOS",
+  },
+  question: {
+    kicker: "Confira sua marca",
+    title: "Confira o que entendemos.",
+    description: "Se algo estiver errado, é só mudar.",
+    benchLabel: "CONFERÊNCIA",
+  },
+  publish: {
+    kicker: "Para terminar",
+    title: "Como sua marca se chama?",
+    description: "Esse nome identifica os arquivos e modelos da marca.",
+    benchLabel: "NOME DA MARCA",
+  },
+} as const
 
 export function WizardPage() {
   const [state, dispatch] = useReducer(wizardReducer, initialWizardState)
@@ -16,18 +38,18 @@ export function WizardPage() {
     }
   }, [navigate, state])
 
+  const visibleStep = state.step === "done" ? "publish" : state.step
+  const hero = heroByStep[visibleStep]
+
   return (
-    <main id="main-content" className="wizard-page">
-      <header className="wizard-hero-copy" data-motion-enter>
-        <p className="product-kicker">Ambiente de marca</p>
-        <h1>Instalar marca</h1>
-        <p>
-          Converta manuais, logos e fontes em um sistema de criação que orienta cada decisão da
-          identidade.
-        </p>
+    <main id="main-content" className="wizard-page" data-wizard-step={visibleStep}>
+      <header className="wizard-hero-copy">
+        <p className="product-kicker">{hero.kicker}</p>
+        <h1>{hero.title}</h1>
+        <p>{hero.description}</p>
       </header>
-      <div className="wizard-bench">
-        <div className="wizard-stage" data-motion-enter>
+      <div className="wizard-bench" data-stage-label={hero.benchLabel}>
+        <div className="wizard-stage">
           <div hidden={state.step !== "upload"}>
             <UploadStep
               onDraft={(result) =>
@@ -69,7 +91,15 @@ export function WizardPage() {
             />
           )}
         </div>
-        <BrandEvidence />
+        {state.step === "question" ? (
+          <QuestionReviewRail
+            questions={state.questions}
+            currentIndex={state.index}
+            answers={state.answers}
+          />
+        ) : (
+          <BrandEvidence />
+        )}
       </div>
     </main>
   )

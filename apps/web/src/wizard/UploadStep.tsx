@@ -12,9 +12,9 @@ interface IntakeIssues {
 function actionForQuestion(question: DraftQuestion): string {
   if (question.kind === "confirm-logo") return "Adicione um logo em SVG ou PNG."
   if (question.kind === "pick-font") {
-    return "Adicione arquivos TTF/OTF ou um manual que identifique as fontes."
+    return "Adicione os arquivos de fonte ou um manual que informe os nomes das fontes."
   }
-  return "Adicione um PDF, tokens ou logo com cores identificáveis."
+  return "Adicione um manual, um arquivo de cores ou um logo que mostre as cores da marca."
 }
 
 function uniqueDiagnostics(diagnostics: Diagnostic[]): Diagnostic[] {
@@ -69,8 +69,8 @@ export function UploadStep({ onDraft }: { onDraft(result: ImportResult): void })
     setSelectionNotice(
       repeated > 0
         ? repeated === 1
-          ? "Um arquivo com a mesma identificação já estava no pacote e não foi acrescentado novamente."
-          : `${repeated} arquivos com a mesma identificação já estavam no pacote e não foram acrescentados novamente.`
+          ? "Este arquivo já estava na seleção e não foi adicionado novamente."
+          : `${repeated} arquivos já estavam na seleção e não foram adicionados novamente.`
         : null,
     )
     setFiles((current) => [...current, ...additions])
@@ -121,7 +121,7 @@ export function UploadStep({ onDraft }: { onDraft(result: ImportResult): void })
       setError(
         typeof cause === "object" && cause !== null && "messagePt" in cause
           ? String(cause.messagePt)
-          : "Não foi possível enviar o pacote da marca.",
+          : "Não foi possível ler os arquivos da marca.",
       )
     } finally {
       if (generation.current === current) setBusy(false)
@@ -131,28 +131,20 @@ export function UploadStep({ onDraft }: { onDraft(result: ImportResult): void })
   return (
     <form className="upload-step" onSubmit={submit}>
       <p className="intro-copy">
-        Reúna o manual, as assinaturas e as fontes. Novas seleções se somam ao mesmo
-        pacote sem apagar os materiais anteriores.
+        Envie o manual, o logo, as fontes e outros arquivos da marca. Você pode adicionar mais
+        arquivos depois.
       </p>
-      <div className="format-marquee" aria-label="Formatos aceitos: PDF, SVG, PNG, TTF, OTF e JSON">
-        <div className="format-marquee-track" aria-hidden="true">
-          {[0, 1].map((group) => (
-            <span key={group}>
-              <b>PDF</b><b>SVG</b><b>PNG</b><b>TTF</b><b>OTF</b><b>JSON</b>
-            </span>
-          ))}
-        </div>
-      </div>
+      <p className="accepted-formats">PDF, SVG, PNG, TTF, OTF e JSON</p>
       <label
         className="file-receiver"
         htmlFor="wizard-files"
         onDragOver={(event) => event.preventDefault()}
         onDrop={onDrop}
       >
-        <span>Escolher ou soltar materiais da marca</span>
+        <span>Solte os arquivos da marca aqui.</span>
         <span className="file-receiver-action" aria-hidden="true">
-          <strong>Selecionar arquivos</strong>
-          <small>ou arraste para este campo</small>
+          <strong>Escolher arquivos</strong>
+          <small>ou arraste de qualquer pasta</small>
         </span>
         <input
           className="visually-hidden"
@@ -173,7 +165,7 @@ export function UploadStep({ onDraft }: { onDraft(result: ImportResult): void })
         <section className="package-summary" aria-labelledby="package-summary-title">
           <div className="package-summary-heading">
             <p id="package-summary-title" aria-live="polite">
-              <strong>{files.length}</strong> {files.length === 1 ? "material reunido" : "materiais reunidos"}
+              <strong>{files.length}</strong> {files.length === 1 ? "arquivo escolhido" : "arquivos escolhidos"}
               <span aria-hidden="true">, </span>
               {pdfCount} PDF, {logoCount} {logoCount === 1 ? "logo" : "logos"}, {fontCount}{" "}
               {fontCount === 1 ? "fonte" : "fontes"}
@@ -218,8 +210,8 @@ export function UploadStep({ onDraft }: { onDraft(result: ImportResult): void })
           )}
           {fontCount === 0 && (
             <p className="package-note">
-              Sem arquivos TTF ou OTF, o sistema pode identificar as famílias citadas no manual,
-              mas a prévia usará uma fonte substituta até que os arquivos sejam adicionados.
+              Se você não enviar os arquivos de fonte, o Molda tenta usar os nomes escritos no
+              manual. A aparência pode ficar diferente até que as fontes sejam adicionadas.
             </p>
           )}
         </section>
@@ -227,7 +219,7 @@ export function UploadStep({ onDraft }: { onDraft(result: ImportResult): void })
       {selectionNotice && <p role="status">{selectionNotice}</p>}
       {intakeIssues && (
         <section className="intake-issues" role="alert" aria-labelledby="intake-issues-title">
-          <h2 id="intake-issues-title">O pacote ainda está incompleto.</h2>
+          <h2 id="intake-issues-title">Ainda faltam alguns arquivos.</h2>
           {intakeIssues.diagnostics.length > 0 && (
             <ul>
               {intakeIssues.diagnostics.map((diagnostic) => (
@@ -245,12 +237,12 @@ export function UploadStep({ onDraft }: { onDraft(result: ImportResult): void })
               Arquivos ignorados: <span>{intakeIssues.ignoredEntries.join(", ")}</span>
             </p>
           )}
-          <p>Acrescente os materiais ausentes e envie o pacote novamente.</p>
+          <p>Adicione os arquivos que faltam e tente novamente.</p>
         </section>
       )}
       {error && <p role="alert">{error}</p>}
       <button data-testid="wizard-enviar" type="submit" disabled={files.length === 0 || busy}>
-        {busy ? "Enviando pacote…" : "Enviar pacote da marca"}
+        {busy ? "Lendo arquivos…" : "Usar estes arquivos"}
       </button>
     </form>
   )

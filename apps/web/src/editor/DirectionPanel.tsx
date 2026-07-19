@@ -1,4 +1,6 @@
 import type { BrandIr, SurfaceStyle } from "../api/types"
+import { SurfaceBrowser } from "./SurfaceBrowser"
+import { SURFACE_CATALOG } from "./surfaceCatalog"
 
 interface Props {
   brandIr: BrandIr
@@ -16,13 +18,9 @@ const compositionNames = {
   layered: "Profundidade em camadas",
 } as const
 
-const surfaceNames = {
-  "paper-grain": "Matéria de papel",
-  "linear-rhythm": "Ritmo linear",
-  "technical-grid": "Grade técnica",
-  "point-field": "Campo de pontos",
-  "concentric-rings": "Anéis concêntricos",
-} as const
+function surfaceName(kind: SurfaceStyle["kind"]): string {
+  return SURFACE_CATALOG.find((item) => item.kind === kind)?.name ?? "Textura"
+}
 
 export function DirectionPanel({
   brandIr,
@@ -38,48 +36,41 @@ export function DirectionPanel({
 
   return (
     <section className="direction-panel" aria-labelledby="direction-panel-title">
-      <p className="panel-kicker">Leitura da identidade</p>
+      <p className="panel-kicker">Sugestão para esta marca</p>
       <h3 id="direction-panel-title">
-        {direction ? compositionNames[direction.composition] : "Direção ainda sem evidência"}
+        {direction ? compositionNames[direction.composition] : "Ainda não há uma sugestão"}
       </h3>
       {direction ? (
         <>
           <p className="direction-summary">
             {direction.surface === "none"
-              ? "A identidade pede que a estrutura carregue a expressão, sem textura acrescentada."
-              : surfaceNames[direction.surface] + " com escala, ritmo e sangria derivados da marca."}
+              ? "Pelos arquivos e respostas, esta marca funciona melhor sem uma textura acrescentada."
+              : surfaceName(direction.surface) + " sugerida a partir dos arquivos e respostas da marca."}
           </p>
           <ul className="direction-rationale">
             {direction.rationalePt.slice(0, 3).map((reason) => <li key={reason}>{reason}</li>)}
           </ul>
           <button type="button" disabled={disabled} onClick={onApplyDirection}>
-            Aplicar esta direção
+            Aplicar esta sugestão
           </button>
         </>
       ) : (
         <p className="direction-summary">
-          A identidade foi preservada, mas ainda não declara qualidades suficientes para uma
-          sugestão específica. O Molda não completará essa lacuna com um preset genérico.
+          Ainda faltam informações para sugerir uma aparência própria. O Molda não vai preencher
+          essa falta com um modelo genérico.
         </p>
       )}
 
+      <SurfaceBrowser
+        brandIr={brandIr}
+        surface={surface}
+        disabled={disabled}
+        onSurfaceChange={onSurfaceChange}
+      />
+
       {surface ? (
         <details className="surface-controls">
-          <summary>Editar superfície aplicada</summary>
-          <label>
-            <span>Textura</span>
-            <select
-              value={surface.kind}
-              disabled={disabled}
-              onChange={(event) =>
-                update({ kind: event.currentTarget.value as SurfaceStyle["kind"] })
-              }
-            >
-              {Object.entries(surfaceNames).map(([kind, name]) => (
-                <option key={kind} value={kind}>{name}</option>
-              ))}
-            </select>
-          </label>
+          <summary>Ajustar {surfaceName(surface.kind)}</summary>
           <label>
             <span>Cor</span>
             <select
@@ -88,13 +79,13 @@ export function DirectionPanel({
               onChange={(event) => update({ colorToken: event.currentTarget.value })}
             >
               {Object.entries(brandIr.colors).map(([token, color]) => (
-                <option key={token} value={token}>{token} · {color.value}</option>
+                <option key={token} value={token}>{color.value}</option>
               ))}
             </select>
           </label>
           <div className="inspector-grid inspector-grid-two">
             <label>
-              <span>Opacidade</span>
+              <span>Transparência</span>
               <input
                 type="number"
                 min="0"
@@ -106,7 +97,7 @@ export function DirectionPanel({
               />
             </label>
             <label>
-              <span>Escala</span>
+              <span>Tamanho</span>
               <input
                 type="number"
                 min="4"
@@ -117,7 +108,7 @@ export function DirectionPanel({
               />
             </label>
             <label>
-              <span>Peso</span>
+              <span>Espessura</span>
               <input
                 type="number"
                 min="0.1"
@@ -129,7 +120,7 @@ export function DirectionPanel({
               />
             </label>
             <label>
-              <span>Ângulo</span>
+              <span>Rotação</span>
               <input
                 type="number"
                 min="-180"
@@ -146,7 +137,7 @@ export function DirectionPanel({
             disabled={disabled}
             onClick={() => onSurfaceChange(null)}
           >
-            Remover superfície
+            Remover textura
           </button>
         </details>
       ) : null}

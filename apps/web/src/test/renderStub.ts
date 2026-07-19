@@ -15,6 +15,12 @@ export interface GuardReport {
   }>
 }
 
+export function surfacePaint() {
+  return {
+    backgroundImage: "repeating-linear-gradient(45deg, #111 0 1px, transparent 1px 12px)",
+  }
+}
+
 type MountRecord = { el: HTMLElement; payloads: RenderPayload[] }
 
 interface RenderTestGlobal {

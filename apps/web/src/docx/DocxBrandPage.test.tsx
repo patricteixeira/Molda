@@ -85,10 +85,10 @@ it("mostra o plano antes de aplicar e libera a cópia editável", async () => {
     type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   })
   await userEvent.upload(await screen.findByLabelText(/Selecionar arquivo .docx/), file)
-  await userEvent.click(screen.getByRole("button", { name: "Analisar antes de aplicar" }))
+  await userEvent.click(screen.getByRole("button", { name: "Ver o que será mudado" }))
 
   expect(await screen.findByText("Aplicar hierarquia da marca a 12 parágrafos")).toBeInTheDocument()
-  expect(screen.getByText("Nenhum alerta estrutural encontrado.")).toBeInTheDocument()
+  expect(screen.getByText("O documento está pronto para receber a marca.")).toBeInTheDocument()
   expect(requestDocxBrandApply).not.toHaveBeenCalled()
 
   await userEvent.click(screen.getByRole("button", { name: "Aplicar e criar cópia" }))

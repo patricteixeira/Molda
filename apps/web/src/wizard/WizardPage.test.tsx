@@ -18,7 +18,7 @@ const questions: DraftQuestion[] = [
   {
     id: "logo.primary",
     kind: "confirm-logo",
-    promptPt: "Este é o logo oficial da marca?",
+    promptPt: "Este é o logo principal da marca?",
     candidates: [{ value: "assets/logos/logo.svg", score: 1, evidence: [] }],
     required: true,
   },
@@ -52,11 +52,11 @@ it("roteiro completo: upload → uma pergunta por vez → publicar → kit", asy
   await user.click(screen.getByTestId("wizard-enviar"))
 
   expect(await screen.findByText("Qual destas é a cor principal da marca?")).toBeInTheDocument()
-  expect(screen.queryByText("Este é o logo oficial da marca?")).not.toBeInTheDocument()
+  expect(screen.queryByText("Este é o logo principal da marca?")).not.toBeInTheDocument()
   await user.click(screen.getAllByTestId("candidate-option")[0])
   await user.click(screen.getByTestId("wizard-confirmar"))
 
-  expect(await screen.findByText("Este é o logo oficial da marca?")).toBeInTheDocument()
+  expect(await screen.findByText("Este é o logo principal da marca?")).toBeInTheDocument()
   await user.click(screen.getAllByTestId("candidate-option")[0])
   await user.click(screen.getByTestId("wizard-confirmar"))
 
@@ -91,9 +91,9 @@ it("mantém o upload visível quando uma pergunta obrigatória não tem candidat
   await user.upload(screen.getByTestId("wizard-file-input"), new File(["pdf"], "manual.pdf"))
   await user.click(screen.getByTestId("wizard-enviar"))
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("O pacote ainda está incompleto.")
-  expect(screen.getByText("Escolher ou soltar materiais da marca")).toBeInTheDocument()
-  expect(screen.queryByText("Este é o logo oficial da marca?")).not.toBeInTheDocument()
+  expect(await screen.findByRole("alert")).toHaveTextContent("Ainda faltam alguns arquivos.")
+  expect(screen.getByText("Solte os arquivos da marca aqui.")).toBeInTheDocument()
+  expect(screen.queryByText("Este é o logo principal da marca?")).not.toBeInTheDocument()
 })
 
 it("volta aos materiais preservando os arquivos já reunidos", async () => {
@@ -115,7 +115,7 @@ it("volta aos materiais preservando os arquivos já reunidos", async () => {
   await user.click(screen.getByTestId("wizard-trocar-materiais"))
 
   expect(screen.getByText("manual.pdf")).toBeVisible()
-  expect(screen.getByText("material reunido", { exact: false }).closest("p")).toHaveTextContent(
-    "1 material reunido",
+  expect(screen.getByText("arquivo escolhido", { exact: false }).closest("p")).toHaveTextContent(
+    "1 arquivo escolhido",
   )
 })

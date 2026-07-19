@@ -10,7 +10,6 @@ import type {
   DocxBrandPlan,
 } from "../api/types"
 import { brandThemeStyle } from "../brandTheme"
-import { BrandAperture } from "../components/BrandAperture"
 
 async function waitForDocxJob(
   getJob: (jobId: string) => Promise<DocxBrandJobInfo>,
@@ -138,14 +137,13 @@ export function DocxBrandPage(): JSX.Element {
       className="docx-brand-page brand-reactive-page"
       style={brandThemeStyle(brand)}
     >
-      <BrandAperture />
       <header className="docx-brand-heading" data-motion-enter>
         <div>
-          <p className="product-kicker">Word existente, identidade preservada</p>
+          <p className="product-kicker">Seu documento com a cara da marca</p>
           <h1>Aplicar marca ao Word</h1>
           <p>
             Envie um arquivo do Word (.docx). O Molda mostra tudo o que pretende mudar,
-            preserva o conteúdo e devolve uma nova cópia editável com a identidade de
+            mantém o conteúdo e devolve uma nova cópia editável com as cores e fontes de
             {` ${brand.brand.name}`}.
           </p>
         </div>
@@ -164,7 +162,7 @@ export function DocxBrandPage(): JSX.Element {
           <div>
             <p className="docx-stage-label">Documento original</p>
             <h2 id="docx-upload-title">Escolha o documento</h2>
-            <p>O arquivo enviado é guardado por hash e nunca é sobrescrito.</p>
+            <p>O arquivo original não é alterado. O Molda cria uma nova cópia.</p>
             <label className="docx-file-picker" htmlFor="docx-brand-file">
               <span>{file ? file.name : "Selecionar arquivo .docx"}</span>
               <input
@@ -188,7 +186,7 @@ export function DocxBrandPage(): JSX.Element {
               disabled={phase === "analyzing" || phase === "applying"}
               onClick={() => void analyze()}
             >
-              {phase === "analyzing" ? "Analisando o documento…" : "Analisar antes de aplicar"}
+              {phase === "analyzing" ? "Conferindo o documento…" : "Ver o que será mudado"}
             </button>
           </div>
         </section>
@@ -200,8 +198,8 @@ export function DocxBrandPage(): JSX.Element {
           data-complete={download !== null || undefined}
         >
           <div>
-            <p className="docx-stage-label">Plano transparente</p>
-            <h2 id="docx-plan-title">Confira o plano</h2>
+            <p className="docx-stage-label">Antes de criar a cópia</p>
+            <h2 id="docx-plan-title">Confira as mudanças</h2>
             {!plan ? (
               <p className="docx-plan-empty">
                 Depois da análise, as mudanças aparecem aqui antes de qualquer novo arquivo ser
@@ -238,7 +236,7 @@ export function DocxBrandPage(): JSX.Element {
                     ))}
                   </ul>
                 ) : (
-                  <p className="docx-safe-note">Nenhum alerta estrutural encontrado.</p>
+                  <p className="docx-safe-note">O documento está pronto para receber a marca.</p>
                 )}
                 <button
                   type="button"
@@ -264,7 +262,7 @@ export function DocxBrandPage(): JSX.Element {
             {download ? (
               <div className="docx-download-ready" role="status" aria-live="polite">
                 <p>
-                  Conteúdo preservado. O novo arquivo passou pela validação estrutural do Molda.
+                  Conteúdo mantido. A nova cópia está pronta para continuar no Word.
                 </p>
                 <a href={download.url} download={download.filename} className="primary-link">
                   Baixar {download.filename}

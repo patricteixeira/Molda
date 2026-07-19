@@ -3,22 +3,22 @@ import { useState } from "react"
 const evidence = [
   {
     name: "Manual",
-    description: "O PDF dá contexto para hierarquia, usos e decisões da identidade.",
+    description: "O manual ajuda a entender as regras e o jeito da marca.",
   },
   {
-    name: "Símbolos",
-    description: "SVG e PNG preservam as versões originais da assinatura visual.",
+    name: "Logo",
+    description: "Os arquivos mostram quais versões do logo podem ser usadas.",
   },
   {
-    name: "Tipografia",
-    description: "TTF e OTF mantêm a prévia fiel ao desenho aprovado da marca.",
+    name: "Fontes",
+    description: "Os arquivos de fonte fazem os textos aparecerem do jeito certo.",
   },
 ]
 
 const notes = [
-  "Os materiais existentes são tratados como fonte de verdade.",
-  "Ambiguidades viram escolhas explícitas antes da publicação.",
-  "O kit reduz o trabalho improvisado sem limitar a autoria.",
+  "Primeiro, lemos os arquivos que você enviou.",
+  "Quando algo não está claro, você escolhe.",
+  "Depois, suas escolhas aparecem nos modelos da marca.",
 ]
 
 export function BrandEvidence() {
@@ -30,17 +30,19 @@ export function BrandEvidence() {
   }
 
   return (
-    <aside className="brand-evidence" aria-label="Como o sistema interpreta a marca">
+    <aside className="brand-evidence" aria-label="Como usamos os arquivos da marca">
       <figure className="evidence-photo" data-motion-enter>
         <img
           src="/brand-archive.webp"
-          alt="Manual de identidade, amostras de cor e materiais gráficos sobre uma mesa de estúdio"
+          alt="Manual, amostras de cor e arquivos da marca sobre uma mesa"
           width="1024"
           height="1536"
+          loading="lazy"
+          decoding="async"
         />
       </figure>
 
-      <div className="evidence-accordion" role="group" aria-label="Materiais interpretados">
+      <div className="evidence-accordion" role="group" aria-label="Arquivos usados">
         {evidence.map((item, index) => {
           const active = index === activeEvidence
           return (
@@ -60,7 +62,7 @@ export function BrandEvidence() {
         })}
       </div>
 
-      <section className="evidence-carousel" aria-label="Princípios do processo">
+      <section className="evidence-carousel" aria-label="Como funciona">
         <p aria-live="polite">{notes[activeNote]}</p>
         <div className="evidence-carousel-controls">
           <button type="button" className="text-action" onClick={() => moveNote(-1)}>

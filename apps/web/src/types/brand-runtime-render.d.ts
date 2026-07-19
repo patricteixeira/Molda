@@ -27,4 +27,15 @@ declare module "@brand-runtime/render" {
     options?: { signal?: AbortSignal },
   ): Promise<GuardReport>
   export function parsePayload(raw: unknown): Payload
+  export function surfacePaint(
+    kind: string,
+    color: string,
+    scale: number,
+    weight: number,
+    angle: number,
+  ): {
+    backgroundImage: string
+    backgroundPosition?: string
+    backgroundSize?: string
+  }
 }

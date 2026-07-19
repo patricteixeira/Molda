@@ -14,9 +14,13 @@ release pública.
 - O wizard passa a revisar essência, personalidade, voz e limites de expressão
   antes de publicar a marca. A direção resultante muda estrutura, escala,
   densidade e espaço vazio, em vez de apenas recolorir um template universal.
-- A interface adota a direção Abertura de Marca: chassi industrial neutro,
-  matéria cromática projetada do Brand IR, kit assimétrico, continuidade visual
-  nas campanhas, fluxo Word progressivo e canvas prioritário no editor mobile.
+- A interface substitui Abertura de Marca por Mesa de Provas: chrome
+  monocromático, hierarquia editorial sem accent, instalador como superfície de
+  recebimento, editor como mesa gráfica, Kit como catálogo de provas, Campanha
+  como linha conectada e Word como sequência documental.
+- O editor passa a respeitar a altura real de notebooks, mantém canvas e seleção
+  dentro da área interativa e separa links de download dos demais formatos de
+  exportação, preservando arraste e ações consecutivas no E2E.
 - O Guard agora orienta sem policiar: recomendações criativas usam `warning` e
   não impedem exportação; `blocked` fica reservado a segurança, integridade e
   contratos tecnicamente impossíveis de renderizar.
@@ -27,6 +31,12 @@ release pública.
   papel de composição, preserva evidências e publica a marca normalmente.
 - Falhas internas de compilação deixam de culpar genericamente as respostas ou
   o nome da marca.
+- A conferência da marca deixa de parecer um questionário técnico: cada decisão
+  usa palavras comuns, explica o efeito da escolha, mostra o que ainda falta e
+  separa informações encontradas nos arquivos de sugestões iniciais do Molda.
+- Instalador, editor, Kit, Campanha e Word trocam termos internos por ações
+  diretas para pessoas leigas; no celular, a seleção de arquivos aparece perto
+  da primeira dobra e não depende de animação para ficar legível.
 
 ### Adicionado
 
@@ -34,9 +44,10 @@ release pública.
   determinística e explicável, extração inteiramente local e degradação honesta
   quando o material não fornece sinal suficiente — sem API key ou custo por
   requisição no core open source.
-- Superfícies procedurais editáveis (`paper-grain`, `linear-rhythm`,
-  `technical-grid`, `point-field` e `concentric-rings`) no Content Spec,
-  preview/export web e PPTX nativo, sempre parametrizadas pela direção da marca.
+- Catálogo aberto com 20 texturas procedurais em cinco famílias. O editor
+  recomenda quatro pela identidade confirmada, mantém todas disponíveis e
+  preserva cor, transparência, tamanho, espessura e rotação no preview, Guard,
+  exportação web e PPTX nativo.
 - Modo Campanha com fonte compartilhada de título, mensagem, data, CTA e
   imagem; campanhas, peças e documentos persistidos; propagação transacional,
   Guard por formato, biblioteca web, prévias e export final/editável.

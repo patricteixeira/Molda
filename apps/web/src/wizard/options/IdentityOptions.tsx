@@ -43,54 +43,57 @@ export function IdentityOptions({ candidates, selected, onSelect }: Props) {
     onSelect(next)
   }
   const evidence = candidates[0]?.evidence ?? []
+  const hasEvidence = evidence.length > 0
 
   return (
     <div className="identity-review">
       <p className="identity-review-intro">
-        Esta leitura orienta escala, ritmo, vazio, textura e estrutura. Revise livremente: o
-        manual é a origem, mas a palavra final é sua.
+        Suas respostas ajudam o Molda a escolher espaços, tamanhos, imagens e estilos que
+        combinam com a marca.
       </p>
 
-      <label>
-        <span>Essência e propósito</span>
+      <label className="identity-field identity-field-essence">
+        <span>Por que a marca existe</span>
         <textarea
           required
           value={value.essence}
-          placeholder="Por que esta marca existe e que transformação ela busca?"
+          placeholder="Conte de forma simples o que a marca faz e por que isso importa."
           onChange={(event) => patch("essence", event.currentTarget.value)}
         />
       </label>
-      <label>
-        <span>Personalidade e valores</span>
+      <label className="identity-field">
+        <span>Como a marca deve parecer</span>
         <textarea
           value={value.personality}
-          placeholder="Como ela se comporta? Que qualidades precisam aparecer?"
+          placeholder="Por exemplo: próxima, séria, ousada ou tranquila."
           onChange={(event) => patch("personality", event.currentTarget.value)}
         />
       </label>
-      <label>
-        <span>Tom e linguagem</span>
+      <label className="identity-field">
+        <span>Como a marca fala</span>
         <textarea
           value={value.voice}
-          placeholder="Como a marca fala e que sensação sua voz transmite?"
+          placeholder="Descreva o jeito de falar com as pessoas."
           onChange={(event) => patch("voice", event.currentTarget.value)}
         />
       </label>
-      <label>
-        <span>O que a marca evita</span>
+      <label className="identity-field identity-field-avoid">
+        <span>O que não combina com a marca</span>
         <textarea
           value={value.avoid}
-          placeholder="Que clichês, posturas ou sensações não pertencem a ela?"
+          placeholder="Liste estilos, palavras ou atitudes que não devem aparecer."
           onChange={(event) => patch("avoid", event.currentTarget.value)}
         />
       </label>
 
-      <p className="identity-review-source">
-        {evidence.length > 0
-          ? evidence.length + " trecho" + (evidence.length === 1 ? "" : "s") +
-            " do manual sustentam esta leitura."
-          : "O manual não trouxe uma declaração textual clara. Preencha com a visão real da marca."}
-      </p>
+      {hasEvidence && (
+        <p className="identity-review-source">
+          {evidence.length + " trecho" + (evidence.length === 1 ? "" : "s") +
+            (evidence.length === 1
+              ? " do manual foi usado para montar estes textos."
+              : " do manual foram usados para montar estes textos.")}
+        </p>
+      )}
     </div>
   )
 }

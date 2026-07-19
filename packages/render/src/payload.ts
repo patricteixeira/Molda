@@ -11,6 +11,7 @@ import type {
   Slot,
   SlotValue,
 } from "./types";
+import { SURFACE_KINDS } from "./types";
 
 const PROFILES: Record<Profile, Canvas> = {
   "post-1x1": { widthPx: 1080, heightPx: 1080, safeAreaPx: 48 },
@@ -30,6 +31,7 @@ const MAX_Z_INDEX = 20;
 const MAX_STROKE_WIDTH_PX = 20;
 const MAX_LAYER_SPACING_PX = 256;
 const MAX_EDITOR_AREA_PX = 32_768;
+const SURFACE_KIND_SET = new Set<string>(SURFACE_KINDS);
 const MIN_LETTER_SPACING_EM = -0.1;
 const MAX_LETTER_SPACING_EM = 0.5;
 const MIN_EDITOR_LETTER_SPACING_EM = -0.25;
@@ -1113,13 +1115,7 @@ function validateContent(raw: unknown, layout: LayoutSpec, ir: BrandIr): Content
       ["kind", "colorToken", "opacity", "scalePx", "weightPx", "angleDeg"],
       "contentSpec.surface",
     );
-    if (
-      surface.kind !== "paper-grain" &&
-      surface.kind !== "linear-rhythm" &&
-      surface.kind !== "technical-grid" &&
-      surface.kind !== "point-field" &&
-      surface.kind !== "concentric-rings"
-    ) {
+    if (typeof surface.kind !== "string" || !SURFACE_KIND_SET.has(surface.kind)) {
       invalid("contentSpec.surface.kind é inválido.");
     }
     knownKey(surface.colorToken, "contentSpec.surface.colorToken", ir.colors, "cor");

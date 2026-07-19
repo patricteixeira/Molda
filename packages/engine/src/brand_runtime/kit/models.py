@@ -263,15 +263,54 @@ class ImageValue(CamelModel):
     sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")] | None = None
 
 
+SURFACE_KINDS = (
+    "paper-grain",
+    "paper-fibers",
+    "flecked-paper",
+    "dry-brush",
+    "linear-rhythm",
+    "scanlines",
+    "diagonal-hatch",
+    "crosshatch",
+    "woven",
+    "technical-grid",
+    "micro-grid",
+    "isometric-grid",
+    "point-field",
+    "halftone",
+    "checkerboard",
+    "concentric-rings",
+    "topographic",
+    "sunburst",
+    "waves",
+    "terrazzo",
+)
+
+
 class SurfaceStyle(CamelModel):
     """Textura procedural de uma peça, editável e recortada pelo canvas."""
 
     kind: Literal[
         "paper-grain",
+        "paper-fibers",
+        "flecked-paper",
+        "dry-brush",
         "linear-rhythm",
+        "scanlines",
+        "diagonal-hatch",
+        "crosshatch",
+        "woven",
         "technical-grid",
+        "micro-grid",
+        "isometric-grid",
         "point-field",
+        "halftone",
+        "checkerboard",
         "concentric-rings",
+        "topographic",
+        "sunburst",
+        "waves",
+        "terrazzo",
     ]
     color_token: NonBlankString
     opacity: Opacity = 0.12

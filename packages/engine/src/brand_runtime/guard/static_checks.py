@@ -745,10 +745,25 @@ def _accent_usage_checks(
         base_coverage = surface.weight_px / surface.scale_px
         coverage = {
             "paper-grain": min(0.08, base_coverage * 1.8),
+            "paper-fibers": min(0.18, base_coverage * 3),
+            "flecked-paper": min(0.16, base_coverage * 2.4),
+            "dry-brush": min(0.45, base_coverage * 4),
             "linear-rhythm": base_coverage,
+            "scanlines": min(1.0, base_coverage * 2.8),
+            "diagonal-hatch": base_coverage,
+            "crosshatch": min(1.0, base_coverage * 2),
+            "woven": min(1.0, base_coverage * 4),
             "technical-grid": min(1.0, base_coverage * 2),
+            "micro-grid": min(1.0, base_coverage * 5),
+            "isometric-grid": min(1.0, base_coverage * 3),
             "point-field": min(1.0, 3.1416 * base_coverage * base_coverage),
+            "halftone": min(1.0, 5.0 * base_coverage * base_coverage),
+            "checkerboard": 0.5,
             "concentric-rings": base_coverage,
+            "topographic": min(1.0, base_coverage * 2),
+            "sunburst": min(1.0, base_coverage * 1.8),
+            "waves": min(1.0, base_coverage * 2),
+            "terrazzo": min(0.2, base_coverage * 3),
         }[surface.kind]
         surface_ratio = coverage * surface.opacity
         surface_used = True

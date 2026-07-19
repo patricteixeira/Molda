@@ -286,7 +286,7 @@ export function Preview({
             data-selection-layer={selectedLayerId}
             role="button"
             tabIndex={0}
-            aria-label={`Camada ${selectedLabel ?? selectedLayerId} selecionada. Arraste para mover ou use as setas do teclado.`}
+            aria-label={`Item ${selectedLabel ?? selectedLayerId} selecionado. Arraste para mover ou use as setas do teclado.`}
             aria-keyshortcuts="ArrowUp ArrowDown ArrowLeft ArrowRight"
             onKeyDown={nudgeSelection}
             style={{

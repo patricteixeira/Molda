@@ -39,7 +39,7 @@ it("cores abrem com a curadoria e permitem revelar a paleta inteira", async () =
   )
 
   expect(screen.getAllByTestId("candidate-option")).toHaveLength(2)
-  const toggle = screen.getByRole("button", { name: "Ver paleta completa (4)" })
+  const toggle = screen.getByRole("button", { name: "Ver todas as cores (4)" })
   expect(toggle).toHaveAttribute("aria-expanded", "false")
 
   await userEvent.click(toggle)
@@ -48,7 +48,7 @@ it("cores abrem com a curadoria e permitem revelar a paleta inteira", async () =
   expect(revealed).toHaveLength(4)
   expect(revealed[2]).toHaveFocus()
   expect(
-    screen.getByRole("button", { name: "Mostrar apenas as recomendadas" }),
+    screen.getByRole("button", { name: "Mostrar apenas as sugestões" }),
   ).toHaveAttribute("aria-expanded", "true")
 })
 
@@ -64,13 +64,13 @@ it("mantém visível uma cor escolhida fora das recomendações ao recolher a pa
   )
 
   expect(screen.getAllByTestId("candidate-option")).toHaveLength(4)
-  await userEvent.click(screen.getByRole("button", { name: "Mostrar apenas as recomendadas" }))
+  await userEvent.click(screen.getByRole("button", { name: "Mostrar apenas as sugestões" }))
 
   const visibleValues = screen
     .getAllByTestId("candidate-option")
     .map((option) => option.getAttribute("data-value"))
   expect(visibleValues).toEqual(["#1A4D8F", "#F4A300", "#FFFFFF"])
-  expect(screen.getByText("Recomendadas e sua escolha")).toBeInTheDocument()
+  expect(screen.getByText("Sugestões e sua escolha")).toBeInTheDocument()
 })
 
 it("fontes sem arquivo não fingem uma prévia exata", () => {
@@ -91,7 +91,7 @@ it("fontes sem arquivo não fingem uma prévia exata", () => {
   expect(sample.style.fontFamily).toBe("sans-serif")
   expect(sample).toHaveStyle({ fontWeight: "700" })
   expect(
-    screen.getByText("Família identificada no manual · amostra em fonte de sistema"),
+    screen.getByText("Fonte encontrada no manual · amostra aproximada"),
   ).toBeInTheDocument()
 })
 
@@ -110,7 +110,9 @@ it("não promete prévia exata quando o arquivo incluído não pode ser carregad
     </ApiProvider>,
   )
 
-  expect(await screen.findByText("Arquivo incluído · prévia local indisponível")).toBeInTheDocument()
+  expect(
+    await screen.findByText("Arquivo recebido, mas não conseguimos mostrar a fonte agora"),
+  ).toBeInTheDocument()
 })
 
 it("distingue fontes da mesma variante quando somente uma possui arquivo", async () => {
@@ -172,7 +174,7 @@ it("explica quando uma fonte Google incorporada está indisponível na prévia",
     </ApiProvider>,
   )
 
-  expect(await screen.findByText("Fonte incorporada · prévia local indisponível")).toBeInTheDocument()
+  expect(await screen.findByText("Fonte adicionada, mas não conseguimos mostrá-la agora")).toBeInTheDocument()
 })
 
 it("só aplica e anuncia a fonte local depois que o arquivo carrega", async () => {
@@ -217,7 +219,7 @@ it("só aplica e anuncia a fonte local depois que o arquivo carrega", async () =
       </ApiProvider>,
     ))
 
-    expect(await screen.findByText("Prévia exata incorporada · Google Fonts")).toBeInTheDocument()
+    expect(await screen.findByText("Fonte pronta para usar · Google Fonts")).toBeInTheDocument()
     expect(screen.getByTestId("font-sample").style.fontFamily).toContain("br-preview-0")
     expect(fontSet.add).toHaveBeenCalledOnce()
   } finally {
@@ -252,11 +254,11 @@ it("permite digitar uma família e seleciona o resultado resolvido", async () =>
   )
 
   await userEvent.type(screen.getByLabelText("Ou digite o nome da fonte"), "  General   Sans  ")
-  await userEvent.click(screen.getByRole("button", { name: "Usar esta fonte" }))
+  await userEvent.click(screen.getByRole("button", { name: "Usar o nome digitado" }))
 
   expect(resolveDraftFont).toHaveBeenCalledWith("d1", "font.body", "General Sans")
   expect(onSelect).toHaveBeenCalledWith({ family: "General Sans", weight: 400, style: "normal" })
-  expect(screen.getByRole("status")).toHaveTextContent("O nome foi registrado")
+  expect(screen.getByRole("status")).toHaveTextContent("O nome foi salvo")
 })
 
 it("aceita somente a URL CSS oficial e estritamente formada do Fontshare", () => {
@@ -339,12 +341,12 @@ it("só chama a prévia Fontshare de oficial depois da permissão e carregamento
     )
     expect(screen.getByTestId("font-sample").style.fontFamily).toBe("sans-serif")
     expect(
-      screen.getByText("Fonte identificada · prévia oficial disponível no Fontshare"),
+      screen.getByText("A fonte pode ser mostrada pelo site Fontshare"),
     ).toBeInTheDocument()
 
     await userEvent.click(
       screen.getByRole("checkbox", {
-        name: "Permitir prévias oficiais do Fontshare nesta etapa",
+        name: "Mostrar esta fonte como ela realmente é usando o site Fontshare",
       }),
     )
     const stylesheet = await waitFor(() => {
@@ -357,7 +359,7 @@ it("só chama a prévia Fontshare de oficial depois da permissão e carregamento
     expect(stylesheet.referrerPolicy).toBe("no-referrer")
     fireEvent.load(stylesheet)
 
-    expect(await screen.findByText("Prévia oficial carregada · Fontshare")).toBeInTheDocument()
+    expect(await screen.findByText("Fonte pronta para mostrar · Fontshare")).toBeInTheDocument()
     expect(screen.getByTestId("font-sample").style.fontFamily).toContain("General Sans")
     expect(fontSet.load).toHaveBeenCalledWith(
       '400 16px "General Sans"',
@@ -366,12 +368,12 @@ it("só chama a prévia Fontshare de oficial depois da permissão e carregamento
 
     await userEvent.click(
       screen.getByRole("checkbox", {
-        name: "Permitir prévias oficiais do Fontshare nesta etapa",
+        name: "Mostrar esta fonte como ela realmente é usando o site Fontshare",
       }),
     )
     expect(screen.getByTestId("font-sample").style.fontFamily).toBe("sans-serif")
     expect(
-      screen.getByText("Fonte identificada · prévia oficial disponível no Fontshare"),
+      screen.getByText("A fonte pode ser mostrada pelo site Fontshare"),
     ).toBeInTheDocument()
   } finally {
     if (original) Object.defineProperty(document, "fonts", original)
@@ -416,7 +418,7 @@ it("não declara uma prévia Fontshare exata quando nenhuma face foi carregada",
     )
     await userEvent.click(
       screen.getByRole("checkbox", {
-        name: "Permitir prévias oficiais do Fontshare nesta etapa",
+        name: "Mostrar esta fonte como ela realmente é usando o site Fontshare",
       }),
     )
     const stylesheet = await waitFor(() => {
@@ -429,7 +431,7 @@ it("não declara uma prévia Fontshare exata quando nenhuma face foi carregada",
     fireEvent.load(stylesheet)
 
     expect(
-      await screen.findByText("Fonte identificada · origem Fontshare indisponível"),
+      await screen.findByText("Não foi possível mostrar a fonte do Fontshare agora"),
     ).toBeInTheDocument()
     expect(screen.getByTestId("font-sample").style.fontFamily).toBe("sans-serif")
   } finally {
@@ -449,6 +451,6 @@ it("logo é renderizado de verdade a partir do draft", () => {
       />
     </ApiProvider>,
   )
-  const image = screen.getByRole("img", { name: "Logo proposto" })
+  const image = screen.getByRole("img", { name: "Opção de logo" })
   expect(image).toHaveAttribute("src", "/v1/drafts/d1/assets/assets/logos/logo.svg")
 })

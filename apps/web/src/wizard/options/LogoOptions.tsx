@@ -11,7 +11,7 @@ interface Props {
 export function LogoOptions({ draftId, candidates, selected, onSelect }: Props) {
   const api = useApi()
   return (
-    <div className="logo-options" role="group" aria-label="Logos propostos">
+    <div className="logo-options" role="group" aria-label="Logos encontrados">
       {candidates.map((candidate) => {
         const path = String(candidate.value)
         return (
@@ -26,9 +26,11 @@ export function LogoOptions({ draftId, candidates, selected, onSelect }: Props) 
           >
             <img
               src={api.draftAssetUrl(draftId, path)}
-              alt="Logo proposto"
+              alt="Opção de logo"
               width="480"
               height="240"
+              loading="lazy"
+              decoding="async"
             />
           </button>
         )

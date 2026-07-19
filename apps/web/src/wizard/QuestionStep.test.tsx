@@ -43,7 +43,7 @@ it("mostra o prompt do servidor, o progresso e confirma a seleção", async () =
   expect(
     screen.getByRole("heading", { name: "Qual destas é a cor principal da marca?" }),
   ).toBeInTheDocument()
-  expect(screen.getByTestId("wizard-progress")).toHaveTextContent("Pergunta 1 de 7")
+  expect(screen.getByTestId("wizard-progress")).toHaveTextContent("Passo 1 de 7")
   const confirm = screen.getByTestId("wizard-confirmar")
   expect(confirm).toBeDisabled()
   await userEvent.click(screen.getAllByTestId("candidate-option")[0])
@@ -63,7 +63,7 @@ it("faz a pessoa revisar a visão da marca antes de usá-la como direção", asy
     question: {
       id: "identity.expression",
       kind: "review-identity",
-      promptPt: "O que nesta identidade deve orientar todas as criações?",
+      promptPt: "Como é a sua marca?",
       candidates: [
         {
           value: extracted,
@@ -82,10 +82,10 @@ it("faz a pessoa revisar a visão da marca antes de usá-la como direção", asy
     },
   })
 
-  expect(await screen.findByLabelText("Essência e propósito")).toHaveValue(extracted.essence)
-  expect(screen.getByText(/1 trecho do manual sustenta/i)).toBeInTheDocument()
-  await userEvent.clear(screen.getByLabelText("Personalidade e valores"))
-  await userEvent.type(screen.getByLabelText("Personalidade e valores"), "Tátil e experimental.")
+  expect(await screen.findByLabelText("Por que a marca existe")).toHaveValue(extracted.essence)
+  expect(screen.getByText(/1 trecho do manual foi usado/i)).toBeInTheDocument()
+  await userEvent.clear(screen.getByLabelText("Como a marca deve parecer"))
+  await userEvent.type(screen.getByLabelText("Como a marca deve parecer"), "Tátil e experimental.")
   await userEvent.click(screen.getByTestId("wizard-confirmar"))
 
   expect(props.onConfirm).toHaveBeenCalledWith({
@@ -97,9 +97,9 @@ it("faz a pessoa revisar a visão da marca antes de usá-la como direção", asy
 it("pergunta sem candidatos oferece retorno aos materiais", async () => {
   const props = renderStep({ question: { ...question, candidates: [] } })
 
-  expect(screen.getByRole("alert")).toHaveTextContent("não trouxe uma opção válida")
+  expect(screen.getByRole("alert")).toHaveTextContent("Não encontramos uma opção")
   expect(screen.getByTestId("wizard-confirmar")).toBeDisabled()
-  await userEvent.click(screen.getByRole("button", { name: "Voltar aos materiais" }))
+  await userEvent.click(screen.getByRole("button", { name: "Voltar aos arquivos" }))
   expect(props.onRestart).toHaveBeenCalledOnce()
 })
 
@@ -108,7 +108,7 @@ it("fonte sem candidatos continua editável pelo nome", async () => {
     question: {
       id: "font.body",
       kind: "pick-font",
-      promptPt: "Qual fonte é usada em textos corridos?",
+      promptPt: "Qual fonte aparece nos textos?",
       candidates: [],
       required: true,
     },
@@ -116,7 +116,7 @@ it("fonte sem candidatos continua editável pelo nome", async () => {
 
   expect(screen.queryByRole("alert")).not.toBeInTheDocument()
   await userEvent.type(screen.getByLabelText("Ou digite o nome da fonte"), "General Sans")
-  await userEvent.click(screen.getByRole("button", { name: "Usar esta fonte" }))
+  await userEvent.click(screen.getByRole("button", { name: "Usar o nome digitado" }))
   const confirm = screen.getByTestId("wizard-confirmar")
   expect(confirm).toBeEnabled()
   await userEvent.click(confirm)
@@ -131,7 +131,7 @@ it("pular só existe em pergunta opcional; a primeira permite trocar os materiai
   renderStep()
   expect(screen.queryByTestId("wizard-pular")).not.toBeInTheDocument()
   expect(screen.queryByTestId("wizard-voltar")).not.toBeInTheDocument()
-  expect(screen.getByTestId("wizard-trocar-materiais")).toHaveTextContent("Trocar materiais")
+  expect(screen.getByTestId("wizard-trocar-materiais")).toHaveTextContent("Trocar arquivos")
 })
 
 it("pergunta opcional oferece 'A marca não tem'", async () => {
@@ -169,7 +169,7 @@ it("preseleciona fonte aberta resolvida mas ainda exige confirmação", async ()
     question: {
       id: "font.heading",
       kind: "pick-font",
-      promptPt: "Qual fonte é usada em títulos?",
+      promptPt: "Qual fonte aparece nos títulos?",
       candidates: [{ value, score: 1, evidence: [] }],
       required: true,
     },
@@ -202,7 +202,7 @@ it("preseleciona a primeira fonte declarada sem trocar pela próxima materializa
     question: {
       id: "font.heading",
       kind: "pick-font",
-      promptPt: "Qual fonte é usada em títulos?",
+      promptPt: "Qual fonte aparece nos títulos?",
       candidates: [
         { value: declared, score: 1, evidence: [] },
         { value: resolved, score: 0.8, evidence: [] },
@@ -229,14 +229,14 @@ it("reinicia o estado transitório ao avançar para outro papel", async () => {
   const heading: DraftQuestion = {
     id: "font.heading",
     kind: "pick-font",
-    promptPt: "Qual fonte é usada em títulos?",
+    promptPt: "Qual fonte aparece nos títulos?",
     candidates: [],
     required: true,
   }
   const body: DraftQuestion = {
     ...heading,
     id: "font.body",
-    promptPt: "Qual fonte é usada em textos corridos?",
+    promptPt: "Qual fonte aparece nos textos?",
   }
   const { rerender } = render(
     <ApiProvider client={fakeClient()}>

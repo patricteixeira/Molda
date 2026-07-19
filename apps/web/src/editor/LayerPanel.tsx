@@ -68,11 +68,11 @@ export function LayerPanel({
   }
 
   return (
-    <aside className="layer-panel" aria-label="Camadas da composição">
+    <aside className="layer-panel" aria-label="Itens da peça">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Composição</p>
-          <h2>Camadas</h2>
+          <p className="panel-kicker">O que aparece</p>
+          <h2>Itens da peça</h2>
         </div>
         <span className="layer-count">{elements.length}</span>
       </div>
@@ -81,19 +81,19 @@ export function LayerPanel({
 
       {structure.length > 0 ? (
         <details className="layer-structure">
-          <summary>Estrutura técnica <span>{structure.length}</span></summary>
+          <summary>Outros itens <span>{structure.length}</span></summary>
           <ol className="layer-list">{structure.map(renderLayer)}</ol>
         </details>
       ) : null}
 
       <div className="layer-panel-footer">
-        <div className="layer-order" role="group" aria-label="Ordem da camada selecionada">
+        <div className="layer-order" role="group" aria-label="Ordem do item selecionado">
           <span>Ordem</span>
           <button
             type="button"
             disabled={!selected || selectedZ >= 20}
             onClick={() => selected && onPatch(selected.id, { zIndex: Math.min(20, selectedZ + 1) })}
-            aria-label="Trazer camada para frente"
+            aria-label="Trazer item para frente"
           >
             +
           </button>
@@ -101,13 +101,13 @@ export function LayerPanel({
             type="button"
             disabled={!selected || selectedZ <= 0}
             onClick={() => selected && onPatch(selected.id, { zIndex: Math.max(0, selectedZ - 1) })}
-            aria-label="Enviar camada para trás"
+            aria-label="Enviar item para trás"
           >
             -
           </button>
         </div>
         <button type="button" className="layer-reset-all" onClick={onResetAll}>
-          Restaurar composição
+          Desfazer todos os ajustes
         </button>
       </div>
     </aside>

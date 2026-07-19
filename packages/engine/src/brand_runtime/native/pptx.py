@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+from math import cos, pi, sin
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -253,6 +254,25 @@ def _surface_png(ir: BrandIR, layout: LayoutSpec, content: ContentSpec, output: 
     scale = max(4, round(surface.scale_px))
     weight = max(1, round(surface.weight_px))
 
+    def line_field(angle: float, spacing: int = scale, line_weight: int = weight) -> Image.Image:
+        diagonal = max(8, int((width * width + height * height) ** 0.5) * 2)
+        field = Image.new("RGBA", (diagonal, diagonal), (0, 0, 0, 0))
+        field_draw = ImageDraw.Draw(field)
+        for y in range(-diagonal, diagonal * 2, max(4, spacing)):
+            field_draw.line((0, y, diagonal, y), fill=rgba, width=max(1, line_weight))
+        rotated = field.rotate(angle, resample=Image.Resampling.BICUBIC)
+        left = max(0, (diagonal - width) // 2)
+        top = max(0, (diagonal - height) // 2)
+        return rotated.crop((left, top, left + width, top + height))
+
+    def add_lines(*angles: float, spacing: int = scale, line_weight: int = weight) -> None:
+        nonlocal overlay
+        for angle in angles:
+            overlay = Image.alpha_composite(
+                overlay,
+                line_field(angle, spacing=spacing, line_weight=line_weight),
+            )
+
     if surface.kind == "technical-grid":
         for x in range(0, width + 1, scale):
             draw.line((x, 0, x, height), fill=rgba, width=weight)
@@ -287,16 +307,136 @@ def _surface_png(ir: BrandIR, layout: LayoutSpec, content: ContentSpec, output: 
                 py = (y + (column * 13 + row * 5) % step) % height
                 if (row * 3 + column * 5) % 4 == 0:
                     draw.ellipse((px - radius, py - radius, px + radius, py + radius), fill=rgba)
+    elif surface.kind == "paper-fibers":
+        add_lines(surface.angle_deg + 7, spacing=scale, line_weight=weight)
+        add_lines(surface.angle_deg + 83, spacing=max(4, round(scale * 1.7)))
+        add_lines(surface.angle_deg - 31, spacing=max(4, round(scale * 2.3)))
+    elif surface.kind == "flecked-paper":
+        radius = max(1, weight)
+        step = max(8, scale)
+        for row, y in enumerate(range(0, height + step, step)):
+            for column, x in enumerate(range(0, width + step, step)):
+                if (row * 7 + column * 11) % 5 > 1:
+                    continue
+                dx = (column * 19 + row * 3) % step
+                dy = (row * 23 + column * 5) % step
+                span = radius * (2 + (row + column) % 3)
+                draw.ellipse(
+                    (x + dx - span, y + dy - radius, x + dx + span, y + dy + radius), fill=rgba
+                )
+    elif surface.kind == "dry-brush":
+        add_lines(surface.angle_deg, spacing=scale, line_weight=max(weight * 3, 2))
+        add_lines(surface.angle_deg + 2, spacing=max(4, round(scale * 1.35)), line_weight=weight)
+    elif surface.kind == "linear-rhythm":
+        add_lines(surface.angle_deg)
+    elif surface.kind == "scanlines":
+        add_lines(0, spacing=max(4, round(scale * 0.35)))
+    elif surface.kind == "diagonal-hatch":
+        add_lines(surface.angle_deg or 45)
+    elif surface.kind == "crosshatch":
+        angle = surface.angle_deg or 45
+        add_lines(angle, angle + 90)
+    elif surface.kind == "woven":
+        add_lines(0, 90, line_weight=max(1, round(weight * 1.6)))
+        add_lines(0, 90, spacing=max(4, scale // 2), line_weight=max(1, weight // 2))
+    elif surface.kind == "micro-grid":
+        minor = max(4, scale // 4)
+        for x in range(0, width + 1, minor):
+            draw.line((x, 0, x, height), fill=rgba, width=weight)
+        for y in range(0, height + 1, minor):
+            draw.line((0, y, width, y), fill=rgba, width=weight)
+        for x in range(0, width + 1, scale):
+            draw.line((x, 0, x, height), fill=rgba, width=max(weight + 1, round(weight * 1.8)))
+        for y in range(0, height + 1, scale):
+            draw.line((0, y, width, y), fill=rgba, width=max(weight + 1, round(weight * 1.8)))
+    elif surface.kind == "isometric-grid":
+        add_lines(30, 90, 150)
+    elif surface.kind == "halftone":
+        radius_large = max(1, round(weight * 1.8))
+        radius_small = max(1, weight)
+        for row, y in enumerate(range(0, height + scale, scale)):
+            offset = scale // 2 if row % 2 else 0
+            radius = radius_small if row % 2 else radius_large
+            for x in range(-scale, width + scale, scale):
+                cx = x + offset
+                draw.ellipse((cx - radius, y - radius, cx + radius, y + radius), fill=rgba)
+    elif surface.kind == "checkerboard":
+        cell = max(2, scale // 2)
+        for row, y in enumerate(range(0, height + cell, cell)):
+            for column, x in enumerate(range(0, width + cell, cell)):
+                if (row + column) % 2 == 0:
+                    draw.rectangle((x, y, x + cell, y + cell), fill=rgba)
+    elif surface.kind == "topographic":
+        centers = (
+            (round(width * 0.18), round(height * 0.38)),
+            (round(width * 0.82), round(height * 0.67)),
+        )
+        maximum = int((width * width + height * height) ** 0.5)
+        for index, center in enumerate(centers):
+            step = max(4, round(scale * (1 + index * 0.35)))
+            for radius in range(step, maximum, step):
+                vertical = round(radius * (0.62 + index * 0.08))
+                draw.ellipse(
+                    (
+                        center[0] - radius,
+                        center[1] - vertical,
+                        center[0] + radius,
+                        center[1] + vertical,
+                    ),
+                    outline=rgba,
+                    width=weight,
+                )
+    elif surface.kind == "sunburst":
+        center = (width // 2, height // 2)
+        radius = int((width * width + height * height) ** 0.5)
+        step_degrees = max(4, min(30, round(scale / 4)))
+        for degrees in range(
+            round(surface.angle_deg), 360 + round(surface.angle_deg), step_degrees
+        ):
+            radians = degrees * pi / 180
+            draw.line(
+                (
+                    center[0],
+                    center[1],
+                    center[0] + cos(radians) * radius,
+                    center[1] + sin(radians) * radius,
+                ),
+                fill=rgba,
+                width=weight,
+            )
+    elif surface.kind == "waves":
+        maximum = int((width * width + height * height) ** 0.5)
+        for center_x in (0, width):
+            for radius in range(scale, maximum, scale):
+                draw.ellipse(
+                    (
+                        center_x - radius,
+                        height // 2 - radius // 2,
+                        center_x + radius,
+                        height // 2 + radius // 2,
+                    ),
+                    outline=rgba,
+                    width=weight,
+                )
+    elif surface.kind == "terrazzo":
+        step = max(12, scale)
+        for row, y in enumerate(range(0, height + step, step)):
+            for column, x in enumerate(range(0, width + step, step)):
+                if (row + column * 2) % 3 != 0:
+                    continue
+                dx = (row * 17 + column * 13) % step
+                dy = (column * 19 + row * 11) % step
+                span = max(2, weight * (2 + (row + column) % 3))
+                draw.polygon(
+                    (
+                        (x + dx, y + dy - span),
+                        (x + dx + span, y + dy + span),
+                        (x + dx - span, y + dy + span // 2),
+                    ),
+                    fill=rgba,
+                )
     else:
-        diagonal = int((width * width + height * height) ** 0.5)
-        field = Image.new("RGBA", (diagonal, diagonal), (0, 0, 0, 0))
-        field_draw = ImageDraw.Draw(field)
-        for y in range(-diagonal, diagonal * 2, scale):
-            field_draw.line((0, y, diagonal, y), fill=rgba, width=weight)
-        rotated = field.rotate(surface.angle_deg, resample=Image.Resampling.BICUBIC)
-        left = max(0, (diagonal - width) // 2)
-        top = max(0, (diagonal - height) // 2)
-        overlay = rotated.crop((left, top, left + width, top + height))
+        raise PptxRenderError(f"Textura procedural desconhecida: {surface.kind}.")
 
     overlay.save(output, format="PNG", optimize=True)
     return output

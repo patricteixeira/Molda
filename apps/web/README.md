@@ -30,6 +30,11 @@ propor estrutura, contraste de escala, espaço vazio e superfície procedural.
 Se o sinal semântico for fraco, não apresenta um preset universal disfarçado de
 sugestão personalizada.
 
+O painel de texturas mostra quatro sugestões explicadas quando existe direção
+confirmada e mantém as 20 opções acessíveis por família. Escolher fora da
+recomendação não gera bloqueio. Todos os padrões são locais, procedurais e
+preservados nas exportações compatíveis.
+
 - `/marcas/{revisionId}/campanhas`: cria e reabre campanhas, edita a mensagem
   central, mostra todas as prévias vinculadas e exporta cada documento.
 - `/marcas/{revisionId}/word`: separa upload, plano e aplicação em três etapas;
@@ -41,10 +46,16 @@ fora do caminho inicial.
 
 ## Direção visual
 
-O chassi usa neutros industriais e deixa a revisão ativa projetar sua própria
-matéria cromática na interface. O contraste do sinal da marca é calculado sem
-alterar os tokens de origem. A especificação completa está em
-[`docs/design/2026-07-18-abertura-de-marca.md`](../../docs/design/2026-07-18-abertura-de-marca.md).
+O chrome do Molda é monocromático e editorial. Ele não herda cores da revisão
+ativa: a matéria da marca aparece apenas nas provas, amostras, canvas e arquivos
+exportados. Newsreader cria a voz editorial; Archivo organiza navegação,
+formulários e controles; a fonte monoespaçada fica restrita a medidas e valores.
+Superfícies são retas e grupos usam alinhamento e regras, sem cards decorativos.
+
+A especificação vigente está em
+[`docs/design/2026-07-19-mesa-de-provas.md`](../../docs/design/2026-07-19-mesa-de-provas.md).
+A matriz de breakpoints, interações e gates inspecionados está em
+[`docs/design/2026-07-19-validacao-visual.md`](../../docs/design/2026-07-19-validacao-visual.md).
 
 ## E2E
 

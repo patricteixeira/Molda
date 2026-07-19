@@ -14,6 +14,8 @@ from brand_runtime.kit.models import (
     MotifLayer,
     ShapeLayer,
     Slot,
+    SURFACE_KINDS,
+    SurfaceStyle,
     TextValue,
 )
 
@@ -89,6 +91,12 @@ def test_content_spec_round_trip():
     data = json.loads(cs.model_dump_json(by_alias=True))
     assert data["layoutId"] == "statement-post-1x1"
     assert ContentSpec.model_validate(data) == cs
+
+
+@pytest.mark.parametrize("kind", SURFACE_KINDS)
+def test_surface_catalog_is_typed_and_portable(kind):
+    surface = SurfaceStyle(kind=kind, color_token="color.primary")
+    assert surface.kind == kind
 
 
 def test_layer_override_accepts_negative_position_and_oversized_dimensions():

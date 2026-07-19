@@ -28,32 +28,21 @@ export function AppChrome({ children }: PropsWithChildren) {
     <div className="app-shell">
       <header className="app-nav">
         <Link className="wordmark" to="/" aria-label="Molda, início">
-          <span className="wordmark-mark" aria-hidden="true">
-            <span>m</span>
-            <span>d</span>
-          </span>
-          <span>Molda</span>
+          Molda
         </Link>
         <nav className="app-nav-links" aria-label="Navegação principal">
           <Link to={contextHref} aria-current={pathname === "/" ? "page" : undefined}>
             {contextLabel}
           </Link>
           {pathname !== "/" && <span className="app-route-current" aria-current="page">{currentArea}</span>}
-          <span className="app-runtime-status">
-            <span aria-hidden="true" />
-            Runtime local
-          </span>
         </nav>
       </header>
       {children}
       <footer className="app-footer">
-        <p>
-          <span>Marca não é arquivo.</span>
-          <span>É decisão em execução.</span>
-        </p>
+        <p>Molda trabalha com os arquivos que você controla.</p>
         <div className="app-footer-meta">
-          <p>Open source / AGPL-3.0</p>
-          <p>Self-hosted / dados sob seu controle</p>
+          <p>Código aberto, AGPL-3.0</p>
+          <p>Pode rodar no seu próprio servidor. Seus arquivos continuam sob seu controle.</p>
         </div>
       </footer>
     </div>

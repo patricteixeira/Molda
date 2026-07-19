@@ -5,7 +5,6 @@ import { ApiError } from "../api/client"
 import { useApi } from "../api/context"
 import type { BrandIr, LayoutSpec } from "../api/types"
 import { brandThemeStyle } from "../brandTheme"
-import { BrandAperture } from "../components/BrandAperture"
 import { Preview } from "../render/Preview"
 import { placeholderContent } from "./placeholder"
 
@@ -81,7 +80,7 @@ export function KitPage(): JSX.Element {
     return (
       <main id="main-content" className="kit-page">
         <h1>Kit da marca</h1>
-        <p role="alert">Este kit ainda não tem layouts disponíveis.</p>
+        <p role="alert">Este kit ainda não tem modelos disponíveis.</p>
         <button
           type="button"
           className="secondary-action"
@@ -94,7 +93,7 @@ export function KitPage(): JSX.Element {
   }
 
   const assetsBaseUrl = api.revisionAssetsBaseUrl(revisionId)
-  const headingFont = kit.brandIr.fonts["font.heading"]?.family ?? "Tipografia da marca"
+  const headingFont = kit.brandIr.fonts["font.heading"]?.family ?? "Fonte da marca"
 
   return (
     <main
@@ -102,24 +101,22 @@ export function KitPage(): JSX.Element {
       className="kit-page brand-reactive-page"
       style={brandThemeStyle(kit.brandIr)}
     >
-      <BrandAperture />
       <div className="kit-layout">
         <header className="kit-heading" data-motion-enter>
           <p className="kit-brand-name">{kit.brandIr.brand.name}</p>
           <h1>Kit da marca</h1>
           <p className="kit-intro">
-            Todos os formatos partem dos mesmos materiais e decisões. Escolha uma peça e crie com
-            liberdade.
+            Todos os modelos usam as mesmas cores, fontes e regras. Escolha uma peça e comece.
           </p>
-          <p className="kit-count">{kit.layouts.length} formatos disponíveis</p>
-          <div className="brand-material-summary" aria-label="Matéria visual ativa">
+          <p className="kit-count">{kit.layouts.length} modelos disponíveis</p>
+          <div className="brand-material-summary" aria-label="Fonte usada nos títulos">
             <span className="brand-material-swatches" aria-hidden="true">
               <i />
               <i />
               <i />
             </span>
             <span>
-              <small>Tipografia ativa</small>
+              <small>Fonte dos títulos</small>
               <strong>{headingFont}</strong>
             </span>
           </div>
@@ -159,7 +156,7 @@ export function KitPage(): JSX.Element {
         <div
           className="kit-grid"
           data-layout-count={kit.layouts.length}
-          aria-label="Layouts disponíveis"
+          aria-label="Modelos disponíveis"
         >
           {kit.layouts.map((layout) => (
             <Link

@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { parsePayload } from "../src/payload";
+import { SURFACE_KINDS } from "../src/types";
 import { fixturePayload } from "./fixtures";
 
 function compositionPayload() {
@@ -438,6 +439,32 @@ it("aceita uma superfície procedural fechada e rejeita tokens ou escalas invál
   const badScale = compositionPayload();
   badScale.contentSpec.surface = { ...payload.contentSpec.surface!, scalePx: 900 };
   expect(() => parsePayload(badScale)).toThrowError(/surface.scalePx.*4 e 512/i);
+});
+
+it("aceita todas as texturas do catálogo e rejeita nomes inventados", () => {
+  for (const kind of SURFACE_KINDS) {
+    const payload = compositionPayload();
+    payload.contentSpec.surface = {
+      kind,
+      colorToken: "color.primary",
+      opacity: 0.12,
+      scalePx: 48,
+      weightPx: 1,
+      angleDeg: 0,
+    };
+    expect(parsePayload(payload)).toBe(payload);
+  }
+
+  const unknown = compositionPayload();
+  unknown.contentSpec.surface = {
+    kind: "texture-from-user" as never,
+    colorToken: "color.primary",
+    opacity: 0.12,
+    scalePx: 48,
+    weightPx: 1,
+    angleDeg: 0,
+  };
+  expect(() => parsePayload(unknown)).toThrowError(/surface.kind.*inválido/i);
 });
 
 it("aceita sangria autoral e rejeita overrides desconhecidos, patológicos e incompatíveis", () => {

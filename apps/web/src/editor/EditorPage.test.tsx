@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, it, vi } from "vitest"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
@@ -66,8 +66,8 @@ it("digitar num slot atualiza o preview ao vivo", async () => {
 it("mantém o canvas antes dos painéis na ordem de leitura", async () => {
   renderEditor(kitClient())
 
-  const canvas = await screen.findByRole("region", { name: "Canvas da peça" })
-  const layers = screen.getByRole("complementary", { name: "Camadas da composição" })
+  const canvas = await screen.findByRole("region", { name: "Área da peça" })
+  const layers = screen.getByRole("complementary", { name: "Itens da peça" })
 
   expect(canvas.compareDocumentPosition(layers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
@@ -109,7 +109,7 @@ it("permite restaurar a composição inicial da peça", async () => {
   renderEditor(kitClient())
 
   expect(await screen.findByTestId("slot-input-headline")).toHaveValue("Apagar este rascunho")
-  await userEvent.click(screen.getByRole("button", { name: "Restaurar composição" }))
+  await userEvent.click(screen.getByRole("button", { name: "Desfazer todos os ajustes" }))
 
   expect(screen.getByTestId("slot-input-headline")).toHaveValue("Sua mensagem aqui")
   await waitFor(() =>
@@ -336,7 +336,7 @@ it("layout inexistente mostra o alerta normativo", async () => {
   renderEditor(kitClient(), "layout-ausente")
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Layout não encontrado neste kit.",
+    "Modelo não encontrado neste kit.",
   )
 })
 
@@ -363,7 +363,7 @@ it("slot de logo não vira campo de formulário", async () => {
 it("expõe os controles gráficos completos pedidos para a camada de texto", async () => {
   renderEditor(kitClient())
   await screen.findByTestId("slot-input-headline")
-  expect(screen.getByLabelText("Família")).toBeInTheDocument()
+  expect(screen.getByLabelText("Fonte")).toBeInTheDocument()
   expect(screen.getByLabelText("Peso")).toBeInTheDocument()
   expect(screen.getByLabelText("Tamanho")).toBeInTheDocument()
   expect(screen.getByLabelText("Opacidade")).toBeInTheDocument()
@@ -406,7 +406,7 @@ it("explica e aplica uma estrutura derivada da identidade, não um preset cromá
 
   expect(await screen.findByText("Escala sem contenção")).toBeInTheDocument()
   expect(screen.getByText(/sinais confirmados: “dinâmica”, “radical”/i)).toBeInTheDocument()
-  await userEvent.click(screen.getByRole("button", { name: "Aplicar esta direção" }))
+  await userEvent.click(screen.getByRole("button", { name: "Aplicar esta sugestão" }))
 
   await waitFor(() => {
     const content = lastPayload().contentSpec
@@ -417,7 +417,42 @@ it("explica e aplica uma estrutura derivada da identidade, não um preset cromá
     expect(content.overrides?.logo?.area?.[0]).toBeLessThan(0)
     expect(content.overrides?.logo?.area?.[2]).toBeGreaterThan(1080)
   })
-  expect(screen.getByText("Editar superfície aplicada")).toBeInTheDocument()
+  expect(screen.getByText("Ajustar Grade técnica")).toBeInTheDocument()
+})
+
+it("recomenda texturas pela marca e mantém o catálogo completo disponível", async () => {
+  const brandIr: BrandIr = {
+    ...FAKE_IR,
+    creativeDirection: {
+      energy: { value: 0.75, confidence: 0.75, evidenceTerms: ["dinamica"] },
+      geometry: { value: 1, confidence: 0.75, evidenceTerms: ["geometrica"] },
+      density: { value: 0.25, confidence: 0.5, evidenceTerms: ["camadas"] },
+      formality: { value: 0.7, confidence: 0.5, evidenceTerms: ["rigorosa"] },
+      materiality: { value: 0.8, confidence: 0.5, evidenceTerms: ["digital"] },
+      contrast: { value: 0.8, confidence: 0.5, evidenceTerms: ["impacto"] },
+      composition: "modular",
+      surface: "technical-grid",
+      scaleContrast: 0.8,
+      negativeSpace: 0.4,
+      bleed: 0.5,
+      surfaceDensity: 0.55,
+      rationalePt: ["A marca se declara precisa."],
+    },
+  }
+  renderEditor(kitClient({ getBrandRevision: vi.fn(async () => brandIr) }))
+
+  expect(await screen.findByRole("heading", { name: "Para esta marca" })).toBeInTheDocument()
+  expect(screen.getByLabelText("Texturas sugeridas para esta marca").children).toHaveLength(4)
+  await userEvent.click(screen.getByRole("button", { name: "Ver todas as 20 texturas" }))
+
+  const catalog = screen.getByLabelText("Todas as texturas")
+  expect(within(catalog).getAllByTestId("surface-option")).toHaveLength(20)
+  await userEvent.click(within(catalog).getByRole("button", { name: /Trama têxtil/ }))
+  await waitFor(() => expect(lastPayload().contentSpec.surface?.kind).toBe("woven"))
+
+  await userEvent.click(screen.getByRole("button", { name: "Pontos e impressão" }))
+  expect(screen.getByText("2 texturas")).toBeInTheDocument()
+  expect(within(catalog).getAllByTestId("surface-option")).toHaveLength(2)
 })
 
 it("edita tipografia, posição, opacidade e escala da logo no arquivo final", async () => {
@@ -464,7 +499,7 @@ it("arrasta com o ponteiro a camada de texto que já está selecionada", async (
 
   const selection = screen.getByTestId("canvas-selection")
   expect(selection).toHaveAccessibleName(
-    "Camada Frase principal selecionada. Arraste para mover ou use as setas do teclado.",
+    "Item Frase principal selecionado. Arraste para mover ou use as setas do teclado.",
   )
 
   fireEvent(selection, new MouseEvent("pointerdown", {

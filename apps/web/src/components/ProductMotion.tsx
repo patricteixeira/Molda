@@ -37,23 +37,6 @@ export function ProductMotion() {
         )
       }
 
-      const aperture = root.querySelector<HTMLElement>(".brand-aperture")
-      if (aperture) {
-        const apertureOpacity = Number.parseFloat(window.getComputedStyle(aperture).opacity)
-        gsap.fromTo(
-          aperture,
-          { opacity: 0, x: 72, scaleX: 0.68 },
-          {
-            opacity: Number.isFinite(apertureOpacity) ? apertureOpacity : 0.82,
-            x: 0,
-            scaleX: 1,
-            duration: 1.15,
-            ease: "power4.out",
-            clearProps: "opacity,transform",
-          },
-        )
-      }
-
       const continuity = root.querySelectorAll<HTMLElement>(
         ".campaign-continuity > span, .docx-brand-flow > section",
       )

@@ -4,7 +4,10 @@ import { BrowserRouter } from "react-router-dom"
 import App from "./App"
 import { createApiClient } from "./api/client"
 import { ApiProvider } from "./api/context"
+import "@fontsource-variable/archivo"
+import "@fontsource-variable/newsreader"
 import "./index.css"
+import "./manifesto.css"
 
 const root = document.getElementById("root")
 if (root === null) throw new Error("Raiz da aplicação não encontrada.")

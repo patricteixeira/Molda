@@ -251,13 +251,30 @@ export interface ContentSpec {
   surface?: SurfaceStyle | null
 }
 
+export type SurfaceKind =
+  | "paper-grain"
+  | "paper-fibers"
+  | "flecked-paper"
+  | "dry-brush"
+  | "linear-rhythm"
+  | "scanlines"
+  | "diagonal-hatch"
+  | "crosshatch"
+  | "woven"
+  | "technical-grid"
+  | "micro-grid"
+  | "isometric-grid"
+  | "point-field"
+  | "halftone"
+  | "checkerboard"
+  | "concentric-rings"
+  | "topographic"
+  | "sunburst"
+  | "waves"
+  | "terrazzo"
+
 export interface SurfaceStyle {
-  kind:
-    | "paper-grain"
-    | "linear-rhythm"
-    | "technical-grid"
-    | "point-field"
-    | "concentric-rings"
+  kind: SurfaceKind
   colorToken: string
   opacity: number
   scalePx: number

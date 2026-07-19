@@ -164,7 +164,7 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
   if (!data) {
     return (
       <main id="main-content" className="editor-page editor-state-page">
-        <p className="loading-note" role="status">Preparando a mesa gráfica…</p>
+        <p className="loading-note" role="status">Preparando o editor…</p>
       </main>
     )
   }
@@ -172,7 +172,7 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
   if (!layout || !contentSpec || !previewContentSpec || !revisionId) {
     return (
       <main id="main-content" className="editor-page editor-state-page">
-        <p role="alert">Layout não encontrado neste kit.</p>
+        <p role="alert">Modelo não encontrado neste kit.</p>
       </main>
     )
   }
@@ -279,10 +279,10 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
       </header>
 
       <div className="editor-workbench">
-        <section className="editor-preview" aria-label="Canvas da peça">
+        <section className="editor-preview" aria-label="Área da peça">
           <div className="canvas-ruler canvas-ruler-horizontal" aria-hidden="true" />
           <div className="canvas-ruler canvas-ruler-vertical" aria-hidden="true" />
-          <p className="canvas-instruction">Selecione, arraste ou redimensione uma camada</p>
+          <p className="canvas-instruction">Escolha um item. Depois, arraste ou mude o tamanho.</p>
           <Preview
             brandIr={data.brandIr}
             layoutSpec={layout}
@@ -324,9 +324,9 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
 
       <section id="export-panel" className="editor-guard-export" data-testid="editor-guard-export">
         <div className="export-panel-heading">
-          <p className="panel-kicker">Saída fiel</p>
-          <h2>Validar e exportar</h2>
-          <p>Os ajustes do canvas são aplicados ao arquivo final.</p>
+          <p className="panel-kicker">Arquivo final</p>
+          <h2>Conferir e baixar</h2>
+          <p>Tudo o que você ajustou aparece no arquivo baixado.</p>
         </div>
         <ExportControls
           disabled={uploading}

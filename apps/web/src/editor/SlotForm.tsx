@@ -126,7 +126,7 @@ export function SlotForm({
           onSurfaceChange={onSurfaceChange}
           onApplyDirection={onApplyDirection}
         />
-        <p className="inspector-empty">Selecione uma camada no canvas ou na lista.</p>
+        <p className="inspector-empty">Escolha um item na peça ou na lista.</p>
       </aside>
     )
   }
@@ -229,10 +229,10 @@ export function SlotForm({
         </section>
 
         <section className="inspector-section">
-          <h3>Tipografia</h3>
+          <h3>Fonte e texto</h3>
           <div className="inspector-grid inspector-grid-two">
             <label>
-              <span>Família</span>
+              <span>Fonte</span>
               <select
                 value={fontToken}
                 disabled={disabled}
@@ -283,7 +283,7 @@ export function SlotForm({
               </select>
             </label>
             <label>
-              <span>Entrelinha</span>
+              <span>Espaço entre linhas</span>
               <input
                 type="number"
                 min="0.5"
@@ -298,7 +298,7 @@ export function SlotForm({
               />
             </label>
             <label>
-              <span>Tracking</span>
+              <span>Espaço entre letras</span>
               <input
                 type="number"
                 min="-0.25"
@@ -323,9 +323,9 @@ export function SlotForm({
                   onPatch(slot.id, { colorToken: event.currentTarget.value || null })
                 }
               >
-                <option value="">Padrão do layout</option>
+                <option value="">Cor definida pela marca</option>
                 {Object.entries(brandIr.colors).map(([token, item]) => (
-                  <option key={token} value={token}>{token} · {item.value}</option>
+                  <option key={token} value={token}>{item.value}</option>
                 ))}
               </select>
             </label>
@@ -376,10 +376,12 @@ export function SlotForm({
       />
       <div className="panel-heading inspector-heading">
         <div>
-          <p className="panel-kicker">Propriedades</p>
+          <p className="panel-kicker">Ajustes</p>
           <h2>{elementLabel(element)}</h2>
         </div>
-        <span className="element-kind">{element.kind}</span>
+        <span className="element-kind">
+          {{ text: "Texto", image: "Imagem", logo: "Logo", asset: "Marca", motif: "Grafismo", shape: "Forma" }[element.kind] ?? "Item"}
+        </span>
       </div>
 
       {element.kind === "text" ? renderTextControls(element) : null}
@@ -414,16 +416,16 @@ export function SlotForm({
                   onPatch(element.id, { colorToken: event.currentTarget.value || null })
                 }
               >
-                <option value="">Padrão do layout</option>
+                <option value="">Cor definida pela marca</option>
                 {Object.entries(brandIr.colors).map(([token, item]) => (
-                  <option key={token} value={token}>{token} · {item.value}</option>
+                  <option key={token} value={token}>{item.value}</option>
                 ))}
               </select>
             </label>
           ) : null}
           {canFit ? (
             <label>
-              <span>Encaixe</span>
+              <span>Como preencher o espaço</span>
               <select
                 value={override.fit ?? ("fit" in element ? element.fit : "contain") ?? "contain"}
                 disabled={disabled}
@@ -431,8 +433,8 @@ export function SlotForm({
                   onPatch(element.id, { fit: event.currentTarget.value as "contain" | "cover" })
                 }
               >
-                <option value="contain">Conter</option>
-                <option value="cover">Cobrir</option>
+                <option value="contain">Mostrar a imagem inteira</option>
+                <option value="cover">Preencher e cortar as bordas</option>
               </select>
             </label>
           ) : null}
@@ -471,9 +473,10 @@ export function SlotForm({
       ) : null}
 
       <section className="inspector-section">
-        <h3>Posição e dimensões</h3>
+        <h3>Posição e tamanho</h3>
         <p className="field-guidance">
-          Valores negativos criam sangria; largura e altura podem ultrapassar o canvas.
+          Use números negativos para levar o item para fora da peça. A largura e a altura podem
+          passar das bordas.
         </p>
         <div className="inspector-grid inspector-grid-four">
           {(["X", "Y", "L", "A"] as const).map((label, index) => (
@@ -493,7 +496,7 @@ export function SlotForm({
       </section>
 
       <section className="inspector-section">
-        <h3>Camada</h3>
+        <h3>Item</h3>
         <label className="range-field">
           <span>Opacidade</span>
           <input
@@ -539,7 +542,7 @@ export function SlotForm({
         disabled={disabled || !overrides[element.id]}
         onClick={() => onReset(element.id)}
       >
-        Restaurar esta camada
+        Desfazer ajustes deste item
       </button>
     </form>
   )

@@ -92,14 +92,14 @@ def _files_with_suffixes(directory: Path, suffixes: set[str]) -> list[Path]:
 
 # Prompts exatos da regra 9 — strings visíveis ao usuário, PT-BR.
 _PROMPTS = {
-    "identity.expression": "O que nesta identidade deve orientar todas as criações?",
+    "identity.expression": "Como é a sua marca?",
     "color.primary": "Qual destas é a cor principal da marca?",
-    "color.background": "Qual é a cor de fundo mais comum nos materiais?",
-    "color.text": "Qual cor é usada para textos longos?",
-    "color.secondary": "A marca tem uma cor de destaque secundária?",
-    "font.heading": "Qual fonte é usada em títulos?",
-    "font.body": "Qual fonte é usada em textos corridos?",
-    "logo.primary": "Este é o logo oficial da marca?",
+    "color.background": "Qual cor aparece mais nos fundos?",
+    "color.text": "Qual cor aparece nos textos?",
+    "color.secondary": "A marca usa outra cor de destaque?",
+    "font.heading": "Qual fonte aparece nos títulos?",
+    "font.body": "Qual fonte aparece nos textos?",
+    "logo.primary": "Este é o logo principal da marca?",
 }
 
 

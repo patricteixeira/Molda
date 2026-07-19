@@ -33,12 +33,13 @@ from brand_runtime.kit.models import (
     LayerOverride,
     LayoutSpec,
     Slot,
+    SURFACE_KINDS,
     SurfaceStyle,
     TextValue,
 )
 from brand_runtime.native.docx import render_docx
 from brand_runtime.native.ooxml import canonical_ooxml_manifest, validate_ooxml
-from brand_runtime.native.pptx import inspect_semantic_shapes, render_pptx
+from brand_runtime.native.pptx import _surface_png, inspect_semantic_shapes, render_pptx
 from brand_runtime.roundtrip.fix import RoundtripFixError, apply_pptx_fix_plan, build_fix_plan
 from brand_runtime.roundtrip.lint import lint_roundtrip
 from brand_runtime.roundtrip.pptx import parse_pptx_document_graph
@@ -349,6 +350,30 @@ def test_pptx_applies_editor_geometry_typography_and_opacity_overrides(
     assert surface.shape_type == 13
     assert surface.width == presentation.slide_width
     assert not [item for item in validate_ooxml(output) if item.blocking]
+
+
+@pytest.mark.parametrize("kind", SURFACE_KINDS)
+def test_pptx_surface_catalog_is_visible_and_deterministic(
+    tmp_path,
+    native_brand,
+    slide_contracts,
+    kind,
+):
+    layout, content = slide_contracts
+    content.surface = SurfaceStyle(
+        kind=kind,
+        color_token="color.secondary",
+        opacity=0.18,
+        scale_px=42,
+        weight_px=2,
+        angle_deg=17,
+    )
+    first = _surface_png(native_brand, layout, content, tmp_path / f"{kind}-1.png")
+    second = _surface_png(native_brand, layout, content, tmp_path / f"{kind}-2.png")
+
+    with Image.open(first) as rendered:
+        assert rendered.getbbox() is not None
+    assert first.read_bytes() == second.read_bytes()
 
 
 def test_pptx_round_trip_recovers_role_and_changed_formatting(

@@ -1,5 +1,9 @@
 # Abertura de Marca
 
+> **Direção substituída em 2026-07-19.** A proposta preservava a marca ativa,
+> mas mantinha a anatomia de landing page e o vocabulário visual de devtool.
+> A direção vigente é [Mesa de Provas](./2026-07-19-mesa-de-provas.md).
+
 Direção visual do Molda para uma ferramenta criativa de alto nível.
 
 ## Tese

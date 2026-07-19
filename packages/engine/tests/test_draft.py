@@ -201,7 +201,7 @@ def test_font_missing_diagnostic_uses_family_weight_and_style(tmp_path):
 def test_logo_question_and_prompt(brand_package):
     draft = build_draft(brand_package)
     q = next(q for q in draft.questions if q.id == "logo.primary")
-    assert q.prompt_pt == "Este é o logo oficial da marca?"
+    assert q.prompt_pt == "Este é o logo principal da marca?"
     assert q.candidates[0].value.endswith("logo.svg")
 
 

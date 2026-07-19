@@ -1,5 +1,6 @@
 import { beforeEach, expect, it } from "vitest";
 import { renderDocument } from "../src/render";
+import { SURFACE_KINDS } from "../src/types";
 import { fixturePayload } from "./fixtures";
 
 function editorialPayload() {
@@ -443,4 +444,22 @@ it("renderiza a superfície procedural atrás das camadas e recortada pelo canva
   expect(surface.style.backgroundImage).toContain("48px");
   expect(surface.style.zIndex).toBe("0");
   expect(container.style.overflow).toBe("hidden");
+});
+
+it("renderiza todo o catálogo portátil de superfícies", () => {
+  for (const kind of SURFACE_KINDS) {
+    const payload = fixturePayload();
+    payload.contentSpec.surface = {
+      kind,
+      colorToken: "color.primary",
+      opacity: 0.12,
+      scalePx: 48,
+      weightPx: 1.5,
+      angleDeg: 18,
+    };
+    renderDocument(container, payload);
+    const surface = container.querySelector<HTMLElement>(`[data-surface-kind="${kind}"]`);
+    expect(surface?.style.backgroundImage, kind).toBeTruthy();
+    container.replaceChildren();
+  }
 });

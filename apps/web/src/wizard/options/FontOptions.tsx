@@ -113,39 +113,39 @@ function sourceLabel(
   externalStatus: FontLoadStatus,
 ): string {
   if (font.resource?.provider === "google-fonts" && font.path) {
-    if (localStatus === "ready") return "Prévia exata incorporada · Google Fonts"
-    if (localStatus === "failed") return "Fonte incorporada · prévia local indisponível"
-    return "Carregando a fonte incorporada · Google Fonts"
+    if (localStatus === "ready") return "Fonte pronta para usar · Google Fonts"
+    if (localStatus === "failed") return "Fonte adicionada, mas não conseguimos mostrá-la agora"
+    return "Carregando a fonte · Google Fonts"
   }
   if (font.path) {
-    if (localStatus === "ready") return "Prévia exata · arquivo da fonte incluído"
-    if (localStatus === "failed") return "Arquivo incluído · prévia local indisponível"
+    if (localStatus === "ready") return "Fonte pronta para usar · arquivo enviado"
+    if (localStatus === "failed") return "Arquivo recebido, mas não conseguimos mostrar a fonte agora"
     return "Carregando o arquivo da fonte"
   }
   if (isFontshare(font)) {
-    if (externalStatus === "ready") return "Prévia oficial carregada · Fontshare"
-    if (externalStatus === "loading") return "Carregando a prévia oficial · Fontshare"
-    if (externalStatus === "failed") return "Fonte identificada · origem Fontshare indisponível"
-    return "Fonte identificada · prévia oficial disponível no Fontshare"
+    if (externalStatus === "ready") return "Fonte pronta para mostrar · Fontshare"
+    if (externalStatus === "loading") return "Carregando a fonte · Fontshare"
+    if (externalStatus === "failed") return "Não foi possível mostrar a fonte do Fontshare agora"
+    return "A fonte pode ser mostrada pelo site Fontshare"
   }
   if (candidate.evidence.some((item) => item.sourceType === "manual-entry")) {
-    return "Nome informado manualmente · arquivo original ainda não disponível"
+    return "Nome informado por você · o arquivo da fonte ainda não foi enviado"
   }
-  return "Família identificada no manual · amostra em fonte de sistema"
+  return "Fonte encontrada no manual · amostra aproximada"
 }
 
 function resolutionMessage(status: FontResolutionStatus): string {
-  if (status === "local-ready") return "Fonte encontrada e incorporada à marca."
+  if (status === "local-ready") return "Fonte encontrada e adicionada à marca."
   if (status === "vendor-hosted") {
-    return "Fonte encontrada no Fontshare. Ative a prévia oficial abaixo para vê-la exatamente."
+    return "Fonte encontrada no Fontshare. Marque a opção abaixo para vê-la como ela realmente é."
   }
   if (status === "failed") {
-    return "O nome foi registrado, mas o provedor de fontes não respondeu. Você ainda pode confirmar esta escolha."
+    return "O nome foi salvo, mas o site da fonte não respondeu. Você ainda pode continuar com esta escolha."
   }
   if (status === "capacity-reached") {
-    return "O nome foi registrado. Este rascunho atingiu o limite de quatro fontes incorporadas."
+    return "O nome foi salvo. Esta marca já tem quatro arquivos de fonte adicionados."
   }
-  return "O nome foi registrado. Não encontramos uma fonte licenciada para carregar automaticamente."
+  return "O nome foi salvo. Não encontramos um arquivo que pudesse ser carregado automaticamente."
 }
 
 export function FontOptions({ draftId, questionId, candidates, selected, onSelect }: Props) {
@@ -372,7 +372,7 @@ export function FontOptions({ draftId, questionId, candidates, selected, onSelec
             onChange={(event) => setFamily(event.target.value)}
           />
           <button type="submit" disabled={!family.trim() || resolving}>
-            {resolving ? "Verificando…" : "Usar esta fonte"}
+            {resolving ? "Procurando a fonte…" : "Usar o nome digitado"}
           </button>
         </div>
         {resolutionNote && <p className="option-note" role="status">{resolutionNote}</p>}
@@ -392,12 +392,12 @@ export function FontOptions({ draftId, questionId, candidates, selected, onSelec
                 if (!enabled) setExternalStatuses({})
               }}
             />
-            Permitir prévias oficiais do Fontshare nesta etapa
+            Mostrar esta fonte como ela realmente é usando o site Fontshare
           </label>
           <p id={consentDescriptionId}>
-            O navegador se conecta diretamente ao provedor, que recebe dados técnicos da
-            conexão, como IP e navegador; nenhum arquivo é armazenado pelo sistema. A fonte
-            serve somente à prévia e não é incorporada aos PNGs ou PDFs exportados. Consulte a{" "}
+            Para mostrar a fonte, seu navegador se conecta ao Fontshare. O site recebe dados
+            básicos da conexão, como IP e navegador. Nenhum arquivo da marca é enviado. A fonte
+            aparece somente nesta tela e não entra nos arquivos exportados. Consulte a{" "}
             <a href={FONTSHARE_LICENSE_URL} target="_blank" rel="noreferrer">
               licença ITF FFL 1.0
             </a>.
@@ -406,7 +406,7 @@ export function FontOptions({ draftId, questionId, candidates, selected, onSelec
       )}
 
       {displayCandidates.length > 0 && (
-        <div className="font-options" role="group" aria-label="Fontes propostas">
+        <div className="font-options" role="group" aria-label="Fontes encontradas">
           {displayCandidates.map((candidate, index) => {
             const font = candidate.value as FontCandidate
             const familyName = font.family || `Fonte ${index + 1}`
@@ -445,7 +445,7 @@ export function FontOptions({ draftId, questionId, candidates, selected, onSelec
                   }}
                 >
                   Aa Bb Cc
-                  <small>A tipografia da sua marca</small>
+                  <small>A fonte da sua marca</small>
                 </span>
                 <span className="font-name">{familyName}</span>
                 <span className="font-source" role="status" aria-live="polite">

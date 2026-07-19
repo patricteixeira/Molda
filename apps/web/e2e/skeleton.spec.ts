@@ -35,21 +35,21 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   await intake.setInputFiles(path.join(PKG, "assets", "logos", "logo.svg"))
   await intake.setInputFiles(path.join(PKG, "manual.pdf"))
   await intake.setInputFiles(path.join(PKG, "fonts", "fixture-sans-bold.ttf"))
-  await expect(page.getByText("materiais reunidos", { exact: false })).toContainText(
-    "3 materiais reunidos",
+  await expect(page.getByText("arquivos escolhidos", { exact: false })).toContainText(
+    "3 arquivos escolhidos",
   )
   await page.getByTestId("wizard-enviar").click()
 
   await expect(page.getByTestId("wizard-question")).toContainText(
-    "O que nesta identidade deve orientar todas as criações?",
+    "Como é a sua marca?",
   )
   await page
-    .getByLabel("Essência e propósito")
+    .getByLabel("Por que a marca existe")
     .fill("Uma marca ousada e dinâmica que transforma sistemas em autonomia.")
   await page
-    .getByLabel("Personalidade e valores")
+    .getByLabel("Como a marca deve parecer")
     .fill("Geométrica, precisa, técnica e confiável.")
-  await page.getByLabel("Tom e linguagem").fill("Direta, clara e acessível.")
+  await page.getByLabel("Como a marca fala").fill("Direta, clara e acessível.")
   await page.getByTestId("wizard-confirmar").click()
 
   await expect(page.getByTestId("wizard-question")).toContainText(
@@ -75,9 +75,17 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
 
   await page.locator('[data-testid="kit-card"][data-layout-id="quote-post-1x1"]').click()
   await expect(page.getByRole("heading", { name: "Escala sem contenção" })).toBeVisible()
-  await page.getByRole("button", { name: "Aplicar esta direção" }).click()
-  await expect(page.getByText("Editar superfície aplicada")).toBeVisible()
-  await expect(page.locator('[data-surface-kind="technical-grid"]')).toBeVisible()
+  await page.getByRole("button", { name: "Aplicar esta sugestão" }).click()
+  await expect(page.getByText("Ajustar Grade técnica")).toBeVisible()
+  await expect(page.locator('.preview-canvas [data-surface-kind="technical-grid"]')).toBeVisible()
+  await page.getByRole("button", { name: "Ver todas as 20 texturas" }).click()
+  await page
+    .getByTestId("surface-option")
+    .filter({ hasText: "Curvas de nível" })
+    .last()
+    .click()
+  await expect(page.getByText("Ajustar Curvas de nível")).toBeVisible()
+  await expect(page.locator('.preview-canvas [data-surface-kind="topographic"]')).toBeVisible()
 
   await page.getByRole("button", { name: "Citação", exact: true }).click()
   const quoteSelection = page.getByTestId("canvas-selection")

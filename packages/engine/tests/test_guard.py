@@ -8,7 +8,14 @@ from brand_runtime.guard.static_checks import GuardCheck, GuardVerdict
 from brand_runtime.guard.static_checks import run_static_checks
 from brand_runtime.ir.schema import export_schemas
 from brand_runtime.kit.generator import generate_kit
-from brand_runtime.kit.models import ContentSpec, ImageValue, LayerOverride, TextValue
+from brand_runtime.kit.models import (
+    SURFACE_KINDS,
+    ContentSpec,
+    ImageValue,
+    LayerOverride,
+    SurfaceStyle,
+    TextValue,
+)
 from tests.test_compile import _composition_ir
 from tests.test_generator import _ir
 
@@ -532,6 +539,28 @@ def test_editorial_accent_estimate_combines_locked_layers_text_and_opacity(brand
         if item.id == "accent-ratio"
     )
     assert faded.detail["emphasisRatio"] < check.detail["emphasisRatio"]
+
+
+@pytest.mark.parametrize("kind", SURFACE_KINDS)
+def test_every_surface_has_a_bounded_accent_coverage_estimate(brand_package, kind):
+    ir = _composition_ir(brand_package)
+    layout = _layout(ir, "editorial-light-post-4x5")
+    content = _editorial_content(ir, layout)
+    content.surface = SurfaceStyle(
+        kind=kind,
+        color_token=ir.composition_rules.accent.color_token,
+        opacity=0.12,
+        scale_px=48,
+        weight_px=1.2,
+        angle_deg=0,
+    )
+
+    check = next(
+        item
+        for item in run_static_checks(ir, layout, content, brand_package)
+        if item.id == "accent-ratio"
+    )
+    assert 0 < check.detail["surfaceRatio"] <= 0.12
 
 
 def test_editorial_accent_above_declared_limit_warns(brand_package):

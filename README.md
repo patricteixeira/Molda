@@ -87,6 +87,9 @@ apenas cor e fonte. Sem evidência suficiente, o Molda não inventa um estilo
 genérico. Todo esse fluxo funciona offline e sem API key. A decisão e os limites
 estão no
 [`ADR 0015`](docs/adr/0015-direcao-criativa-local-e-geometria-livre.md).
+O catálogo de vinte texturas recomenda opções pela direção confirmada sem
+esconder nenhuma alternativa. Sua portabilidade e seus limites estão no
+[`ADR 0016`](docs/adr/0016-catalogo-aberto-de-texturas-procedurais.md).
 
 ## Fluxos recorrentes
 
@@ -108,22 +111,27 @@ As decisões e limites estão registrados nas
 ## Interface web
 
 O app organiza a jornada em instalação da marca, kit de composições, editor por
-slots, campanhas e aplicação de marca em Word. A linguagem visual combina
-tipografia editorial, grade assimétrica e um único acento funcional. A interface
-é responsiva, oferece modos claro e escuro conforme a preferência do sistema e
-reduz o movimento quando solicitado pelo navegador.
+slots, campanhas e aplicação de marca em Word. A linguagem **Mesa de Provas**
+usa um chrome monocromático de papel, tinta e grafite; cores da identidade ficam
+restritas às provas, amostras, canvas e arquivos exportados. Hierarquia, regras e
+espaço sustentam a composição sem accent, cards de SaaS ou sinais de devtool. A
+interface é responsiva e reduz o movimento quando solicitado pelo navegador.
 
 No editor, qualquer camada pode ser arrastada, redimensionada e sangrada além
 do canvas. A direção confirmada da marca também pode propor uma estrutura e uma
 superfície procedural específicas; são pontos de partida editáveis, nunca
 travas. O canvas continua representando o corte exato do arquivo exportado.
+Quatro texturas aparecem como sugestões para a marca e o catálogo completo,
+separado em cinco famílias, continua disponível no mesmo painel.
 
 As transições e os comportamentos de rolagem usam GSAP como aprimoramento
 progressivo: conteúdo, navegação e ações continuam disponíveis sem depender da
 animação. As fontes da interface são servidas localmente pelo próprio app.
 A direção, os tokens dinâmicos, os contratos de motion e os critérios de qualidade
 estão documentados em
-[`Abertura de Marca`](docs/design/2026-07-18-abertura-de-marca.md).
+[`Mesa de Provas`](docs/design/2026-07-19-mesa-de-provas.md). A inspeção das
+telas renderizadas e as correções que nasceram dela estão registradas na
+[`validação visual`](docs/design/2026-07-19-validacao-visual.md).
 
 ## Estrutura do repositório
 

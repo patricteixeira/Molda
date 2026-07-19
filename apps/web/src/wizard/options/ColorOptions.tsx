@@ -51,11 +51,11 @@ export function ColorOptions({ candidates, recommendedCount, selected, onSelect 
       <p className="option-group-label">
         {hasMore && !expanded
           ? selectedOutsideRecommendations
-            ? "Recomendadas e sua escolha"
-            : "Recomendadas para este uso"
-          : "Paleta completa disponível"}
+            ? "Sugestões e sua escolha"
+            : "Sugestões encontradas"
+          : "Todas as cores encontradas"}
       </p>
-      <div id={optionsId} className="color-options" role="group" aria-label="Cores propostas">
+      <div id={optionsId} className="color-options" role="group" aria-label="Cores encontradas">
         {visible.map((candidate, index) => {
           const value = String(candidate.value)
           return (
@@ -90,8 +90,8 @@ export function ColorOptions({ candidates, recommendedCount, selected, onSelect 
           }}
         >
           {expanded
-            ? "Mostrar apenas as recomendadas"
-            : `Ver paleta completa (${candidates.length})`}
+            ? "Mostrar apenas as sugestões"
+            : `Ver todas as cores (${candidates.length})`}
         </button>
       )}
     </div>

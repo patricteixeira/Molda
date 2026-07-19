@@ -12,7 +12,6 @@ import type {
   LayoutSpec,
 } from "../api/types"
 import { brandThemeStyle } from "../brandTheme"
-import { BrandAperture } from "../components/BrandAperture"
 import { Preview } from "../render/Preview"
 
 interface CampaignData {
@@ -38,6 +37,16 @@ function representativeLayouts(layouts: LayoutSpec[]): string[] {
     selected.push(layout.id)
   }
   return selected
+}
+
+function profileName(profile: string): string {
+  const names: Record<string, string> = {
+    "post-1x1": "Post quadrado",
+    "post-4x5": "Post vertical",
+    "story-9x16": "Story",
+    "doc-a4": "Documento A4",
+  }
+  return names[profile] ?? "Modelo"
 }
 
 function CampaignExportButton({
@@ -122,7 +131,7 @@ function CampaignPieceCard({
         />
       </div>
       <div className="campaign-piece-copy">
-        <p className="product-kicker">{layout.profile}</p>
+        <p className="product-kicker">{profileName(layout.profile)}</p>
         <h3>{layout.namePt}</h3>
         {guidance.length ? (
           <div className="campaign-piece-warning" role="status">
@@ -237,7 +246,7 @@ export function CampaignPage(): JSX.Element {
       return
     }
     if (!active && selectedLayouts.length === 0) {
-      setError("Escolha ao menos um formato para a campanha.")
+      setError("Escolha ao menos um modelo para a campanha.")
       return
     }
     if (![fields.headline, fields.body, fields.cta, fields.date].some((value) => value.trim())) {
@@ -246,7 +255,7 @@ export function CampaignPage(): JSX.Element {
     }
     setPending(true)
     setError(null)
-    setStatus("Atualizando as peças vinculadas…")
+    setStatus("Atualizando todas as peças…")
     try {
       let nextFields = fields
       if (imageFile) {
@@ -313,7 +322,6 @@ export function CampaignPage(): JSX.Element {
       className="campaign-page brand-reactive-page"
       style={brandThemeStyle(data.brandIr)}
     >
-      <BrandAperture />
       <header className="campaign-heading" data-motion-enter>
         <div>
           <p className="product-kicker">Uma mensagem, muitas peças</p>
@@ -335,7 +343,7 @@ export function CampaignPage(): JSX.Element {
         </span>
         <i aria-hidden="true" />
         <span>
-          <strong>{selectedLayouts.length} formatos</strong>
+          <strong>{selectedLayouts.length} modelos</strong>
           <small>permanecem ligados</small>
         </span>
         <i aria-hidden="true" />
@@ -459,7 +467,7 @@ export function CampaignPage(): JSX.Element {
                 {imageFile
                   ? `Nova imagem: ${imageFile.name}`
                   : fields.imageSha256
-                    ? "A campanha já possui uma imagem vinculada."
+                    ? "A campanha já tem uma imagem."
                     : "PNG ou JPEG. Formatos sem imagem continuam funcionando."}
               </p>
               {fields.imageSha256 || imageFile ? (
@@ -477,11 +485,11 @@ export function CampaignPage(): JSX.Element {
             </div>
 
             <fieldset className="campaign-formats" disabled={active !== null}>
-              <legend>Formatos vinculados</legend>
+              <legend>Modelos usados</legend>
               {active ? (
-                <p>Os formatos permanecem fixos para preservar o histórico desta campanha.</p>
+                <p>Os modelos não mudam depois da criação, para manter o histórico da campanha.</p>
               ) : (
-                <p>Selecionamos um formato de cada tipo. Ajuste se precisar.</p>
+                <p>Selecionamos um modelo de cada tipo. Mude se precisar.</p>
               )}
               <div>
                 {data.layouts.map((layout) => (
@@ -495,7 +503,7 @@ export function CampaignPage(): JSX.Element {
                     />
                     <span>
                       {layout.namePt}
-                      <small>{layout.profile}</small>
+                      <small>{profileName(layout.profile)}</small>
                     </span>
                   </label>
                 ))}
@@ -518,8 +526,8 @@ export function CampaignPage(): JSX.Element {
       {active ? (
         <section className="campaign-results" aria-labelledby="campaign-results-title">
           <div className="campaign-results-heading">
-            <h2 id="campaign-results-title">Peças vinculadas</h2>
-            <p>Cada prévia abaixo nasce da mesma mensagem que você acabou de salvar.</p>
+            <h2 id="campaign-results-title">Peças desta campanha</h2>
+            <p>Todas as peças abaixo usam a mesma mensagem que você acabou de salvar.</p>
           </div>
           <div className="campaign-piece-grid">
             {active.pieces.map((piece) => {
