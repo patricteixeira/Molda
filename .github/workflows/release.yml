@@ -38,7 +38,7 @@ jobs:
       BRANDRT_TOKEN: release-e2e-token
       BRANDRT_DB_PASSWORD: release-e2e-password
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -50,12 +50,12 @@ jobs:
           test "$LICENSE_REVIEWED" = "true" || { echo "A revisão de licenças não foi confirmada."; exit 1; }
           test "$LIMITS_REVIEWED" = "true" || { echo "Os limites conhecidos não foram confirmados."; exit 1; }
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: packages/engine/requirements-lock.txt
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: npm

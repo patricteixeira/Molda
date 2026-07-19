@@ -9,8 +9,8 @@ jobs:
     name: Contrato de release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Validar versão, changelog, licenças e arquivos públicos
@@ -25,8 +25,8 @@ jobs:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: npm
@@ -59,8 +59,8 @@ jobs:
           --health-timeout 5s
           --health-retries 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -93,13 +93,13 @@ jobs:
       run:
         working-directory: packages/engine
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: packages/engine/requirements-lock.txt
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: npm
@@ -138,8 +138,8 @@ jobs:
       run:
         working-directory: packages/adapter-sdk-python
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -170,7 +170,7 @@ jobs:
       BRANDRT_TOKEN: release-ci-token
       BRANDRT_DB_PASSWORD: release-ci-password
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validar e construir a distribuição self-hosted
         run: |
           docker compose config --quiet
