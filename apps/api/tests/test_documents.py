@@ -63,6 +63,40 @@ def test_persiste_overrides_autorais_para_preview_e_export(client, compiled, db)
     assert headline["hidden"] is False and logo["hidden"] is False
 
 
+def test_persiste_fundo_e_binding_de_logo_confirmados(client, compiled, db):
+    payload = _statement(compiled)
+    payload["backgroundColorToken"] = "color.primary"
+    payload["assetBindings"] = {"logo": "logo.primary"}
+
+    response = client.post("/v1/documents", json=payload)
+
+    assert response.status_code == 201, response.text
+    assert not [check for check in response.json()["checks"] if check["status"] == "blocked"]
+    persisted = db.scalar(select(Document).where(Document.id == response.json()["documentId"]))
+    assert persisted is not None
+    assert persisted.content["backgroundColorToken"] == "color.primary"
+    assert persisted.content["assetBindings"] == {"logo": "logo.primary"}
+
+
+def test_guard_bloqueia_fundo_e_asset_bindings_fora_da_marca(client, compiled):
+    payload = _statement(compiled)
+    payload["backgroundColorToken"] = "color.inexistente"
+    payload["assetBindings"] = {
+        "headline": "logo.primary",
+        "logo": "logo.inexistente",
+    }
+
+    response = client.post("/v1/documents", json=payload)
+
+    assert response.status_code == 201, response.text
+    blocked = [check for check in response.json()["checks"] if check["status"] == "blocked"]
+    assert {(check["id"], check.get("slotId")) for check in blocked} >= {
+        ("background-reference", None),
+        ("asset-binding", "headline"),
+        ("asset-binding", "logo"),
+    }
+
+
 def test_persiste_elementos_adicionados_como_parte_editavel_da_peca(client, compiled, db):
     payload = _statement(compiled)
     payload["values"]["user-text-1"] = {

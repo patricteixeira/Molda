@@ -36,6 +36,24 @@ it("lista os layouts com nome PT e thumbnail renderizado pela biblioteca real", 
   expect(screen.getAllByTestId("preview-canvas")[0]).toHaveStyle({ maxWidth: "360px" })
 })
 
+it("coloca famílias versionadas primeiro e identifica sua versão", async () => {
+  const legacy = fakeStatementLayout()
+  const versioned = fakeQuoteLayout()
+  versioned.id = "typographic-ledger-post-4x5"
+  versioned.namePt = "Caderno assimétrico"
+  versioned.templateRef = {
+    packageId: "typographic-editorial",
+    version: "1.0.0",
+    compositionId: versioned.id,
+    sceneSchemaVersion: "2.0.0",
+  }
+  renderKit(fakeClient({ getKit: vi.fn(async () => [legacy, versioned]) }))
+
+  const cards = await screen.findAllByTestId("kit-card")
+  expect(cards[0]).toHaveAttribute("data-layout-id", versioned.id)
+  expect(screen.getByText("Tipográfico editorial · v1.0.0")).toBeInTheDocument()
+})
+
 it("clicar num layout abre o editor daquele layout", async () => {
   renderKit(fakeClient({ getKit: vi.fn(async () => [fakeStatementLayout()]) }))
   await userEvent.click(await screen.findByTestId("kit-card"))

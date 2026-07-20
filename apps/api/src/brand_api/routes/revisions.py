@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from brand_api.auth import require_token
+from brand_api.layout_catalog import public_kit
 from brand_api.media import asset_response, content_type_for, sniff_content_type
 from brand_api.models import BrandRevision
 
@@ -49,8 +50,8 @@ def get_revision(revision_id: str, request: Request) -> dict[str, Any]:
 
 @router.get("/brand-revisions/{revision_id}/kit")
 def get_revision_kit(revision_id: str, request: Request) -> list[dict[str, Any]]:
-    """Devolve os layouts persistidos da revisão sem regenerá-los."""
-    return _revision_or_404(request, revision_id).kit
+    """Combina o snapshot imutável com o catálogo versionado atual."""
+    return public_kit(_revision_or_404(request, revision_id))
 
 
 @router.get("/brand-revisions/{revision_id}/assets/{path:path}")

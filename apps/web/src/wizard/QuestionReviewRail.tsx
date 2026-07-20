@@ -12,6 +12,8 @@ function decisionName(question: DraftQuestion): string {
   if (question.id === "color.secondary") return "Outra cor"
   if (question.id === "color.background") return "Cor dos fundos"
   if (question.id === "color.text") return "Cor dos textos"
+  if (question.id === "logo.onLight") return "Logo em fundo claro"
+  if (question.id === "logo.onDark") return "Logo em fundo escuro"
   if (question.kind === "confirm-logo") return "Logo"
   if (question.id === "font.heading") return "Fonte dos títulos"
   if (question.id === "font.body") return "Fonte dos textos"

@@ -15,15 +15,40 @@ export interface EditorDraftState {
   surface: SurfaceStyle | null
   addedSlots: Slot[]
   addedLayers: ShapeLayer[]
+  backgroundColorToken: string | null
+  assetBindings: Record<string, string>
 }
 
 interface StoredEditorDraft {
-  version: 4
+  version: 5
   values: Record<string, SlotValue>
   overrides: Record<string, LayerOverride>
   surface: SurfaceStyle | null
   addedSlots: Slot[]
   addedLayers: ShapeLayer[]
+  backgroundColorToken: string | null
+  assetBindings: Record<string, string>
+}
+
+const EMPTY_DRAFT: EditorDraftState = {
+  values: {},
+  overrides: {},
+  surface: null,
+  addedSlots: [],
+  addedLayers: [],
+  backgroundColorToken: null,
+  assetBindings: {},
+}
+
+function emptyDraft(): EditorDraftState {
+  return {
+    ...EMPTY_DRAFT,
+    values: {},
+    overrides: {},
+    addedSlots: [],
+    addedLayers: [],
+    assetBindings: {},
+  }
 }
 
 function storageKey(revisionId: string, layoutId: string): string {
@@ -98,24 +123,24 @@ export function loadEditorDraft(revisionId: string, layout: LayoutSpec): EditorD
   try {
     const serialized = window.localStorage.getItem(storageKey(revisionId, layout.id))
     if (!serialized) {
-      return { values: {}, overrides: {}, surface: null, addedSlots: [], addedLayers: [] }
+      return emptyDraft()
     }
 
     const parsed: unknown = JSON.parse(serialized)
     if (
       !isRecord(parsed) ||
-      ![1, 2, 3, 4].includes(Number(parsed.version)) ||
+      ![1, 2, 3, 4, 5].includes(Number(parsed.version)) ||
       !isRecord(parsed.values)
     ) {
-      return { values: {}, overrides: {}, surface: null, addedSlots: [], addedLayers: [] }
+      return emptyDraft()
     }
 
     const addedSlots =
-      parsed.version === 4 && Array.isArray(parsed.addedSlots)
+      (parsed.version === 4 || parsed.version === 5) && Array.isArray(parsed.addedSlots)
         ? parsed.addedSlots.filter(validAddedSlot)
         : []
     const addedLayers =
-      parsed.version === 4 && Array.isArray(parsed.addedLayers)
+      (parsed.version === 4 || parsed.version === 5) && Array.isArray(parsed.addedLayers)
         ? parsed.addedLayers.filter(validAddedLayer)
         : []
     const slots = new Map(
@@ -134,7 +159,7 @@ export function loadEditorDraft(revisionId: string, layout: LayoutSpec): EditorD
     ])
     const overrides: Record<string, LayerOverride> = {}
     if (
-      (parsed.version === 2 || parsed.version === 3 || parsed.version === 4) &&
+      [2, 3, 4, 5].includes(Number(parsed.version)) &&
       isRecord(parsed.overrides)
     ) {
       for (const [elementId, value] of Object.entries(parsed.overrides)) {
@@ -144,13 +169,41 @@ export function loadEditorDraft(revisionId: string, layout: LayoutSpec): EditorD
       }
     }
     const surface =
-      (parsed.version === 3 || parsed.version === 4) &&
+      [3, 4, 5].includes(Number(parsed.version)) &&
       (parsed.surface === null || isRecord(parsed.surface))
         ? (parsed.surface as SurfaceStyle | null)
         : null
-    return { values: restored, overrides, surface, addedSlots, addedLayers }
+    const backgroundColorToken =
+      parsed.version === 5 &&
+      (parsed.backgroundColorToken === null ||
+        (typeof parsed.backgroundColorToken === "string" &&
+          parsed.backgroundColorToken.trim().length > 0))
+        ? parsed.backgroundColorToken
+        : null
+    const logoSlotIds = new Set(
+      [...layout.slots, ...addedSlots]
+        .filter((slot) => slot.kind === "logo")
+        .map((slot) => slot.id),
+    )
+    const assetBindings: Record<string, string> = {}
+    if (parsed.version === 5 && isRecord(parsed.assetBindings)) {
+      for (const [slotId, token] of Object.entries(parsed.assetBindings)) {
+        if (logoSlotIds.has(slotId) && typeof token === "string" && token.startsWith("logo.")) {
+          assetBindings[slotId] = token
+        }
+      }
+    }
+    return {
+      values: restored,
+      overrides,
+      surface,
+      addedSlots,
+      addedLayers,
+      backgroundColorToken,
+      assetBindings,
+    }
   } catch {
-    return { values: {}, overrides: {}, surface: null, addedSlots: [], addedLayers: [] }
+    return emptyDraft()
   }
 }
 
@@ -162,6 +215,8 @@ export function saveEditorDraft(
   surface: SurfaceStyle | null = null,
   addedSlots: Slot[] = [],
   addedLayers: ShapeLayer[] = [],
+  backgroundColorToken: string | null = null,
+  assetBindings: Record<string, string> = {},
 ): boolean {
   try {
     const key = storageKey(revisionId, layoutId)
@@ -170,19 +225,23 @@ export function saveEditorDraft(
       Object.keys(overrides).length === 0 &&
       !surface &&
       addedSlots.length === 0 &&
-      addedLayers.length === 0
+      addedLayers.length === 0 &&
+      backgroundColorToken === null &&
+      Object.keys(assetBindings).length === 0
     ) {
       window.localStorage.removeItem(key)
       return true
     }
 
     const payload: StoredEditorDraft = {
-      version: 4,
+      version: 5,
       values,
       overrides,
       surface,
       addedSlots,
       addedLayers,
+      backgroundColorToken,
+      assetBindings,
     }
     window.localStorage.setItem(key, JSON.stringify(payload))
     return true

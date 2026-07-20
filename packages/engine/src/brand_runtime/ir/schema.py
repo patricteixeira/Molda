@@ -11,6 +11,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from brand_runtime._io import publish_file_set
+from brand_runtime.artifacts.models import ArtifactInstance
 from brand_runtime.ecosystem.package import BrandPackageManifest, PackageValidationReport
 from brand_runtime.guard.static_checks import GuardVerdict
 from brand_runtime.ir.models import BrandIR
@@ -19,11 +20,16 @@ from brand_runtime.roundtrip.fix import FixPlan, FixResult
 from brand_runtime.roundtrip.lint import RoundtripReport
 from brand_runtime.roundtrip.models import DocumentGraph
 from brand_runtime.roundtrip.docx import DocxBrandPlan, DocxBrandResult
+from brand_runtime.style.models import StyleSystemIR
+from brand_runtime.templates.models import TemplatePackage
 
 _SCHEMAS: list[tuple[str, type[BaseModel]]] = [
     ("brand-ir.schema.json", BrandIR),
     ("layout-spec.schema.json", LayoutSpec),
     ("content-spec.schema.json", ContentSpec),
+    ("style-system-ir.schema.json", StyleSystemIR),
+    ("template-package.schema.json", TemplatePackage),
+    ("artifact-instance.schema.json", ArtifactInstance),
     ("guard-verdict.schema.json", GuardVerdict),
     ("document-graph.schema.json", DocumentGraph),
     ("roundtrip-report.schema.json", RoundtripReport),

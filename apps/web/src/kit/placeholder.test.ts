@@ -58,3 +58,20 @@ it("corte editorial remove destaque quando a palavra inteira não cabe", () => {
     text: "É A COERÊNC…",
   })
 })
+
+it("template versionado preserva seu esqueleto sem adicionar assinatura e filete genéricos", () => {
+  const layout = fakeEditorialLayout()
+  layout.id = "typographic-ledger-post-4x5"
+  layout.compositionMode = null
+  layout.templateRef = {
+    packageId: "typographic-editorial",
+    version: "1.0.0",
+    compositionId: layout.id,
+    sceneSchemaVersion: "2.0.0",
+  }
+
+  const content = placeholderContent(layout, "brandrev_x")
+  expect(content.addedSlots).toEqual([])
+  expect(content.addedLayers).toEqual([])
+  expect(content.values.headline).toEqual({ kind: "text", text: "Sua marca em movimento." })
+})

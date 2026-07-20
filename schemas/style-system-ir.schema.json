@@ -1,0 +1,451 @@
+{
+  "$defs": {
+    "ComponentStateStyle": {
+      "additionalProperties": false,
+      "description": "Aparência semântica compartilhada por estados de componentes.",
+      "properties": {
+        "opacity": {
+          "default": 1,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Opacity",
+          "type": "number"
+        },
+        "scale": {
+          "default": 1,
+          "maximum": 1.5,
+          "minimum": 0.5,
+          "title": "Scale",
+          "type": "number"
+        },
+        "strokeToken": {
+          "default": "hairline",
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Stroketoken",
+          "type": "string"
+        }
+      },
+      "title": "ComponentStateStyle",
+      "type": "object"
+    },
+    "GridStyle": {
+      "additionalProperties": false,
+      "description": "Grade responsiva resolvida para um perfil canônico.",
+      "properties": {
+        "profile": {
+          "enum": [
+            "post-1x1",
+            "post-4x5",
+            "story-9x16",
+            "doc-a4"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "columns": {
+          "maximum": 24,
+          "minimum": 1,
+          "title": "Columns",
+          "type": "integer"
+        },
+        "marginPx": {
+          "minimum": 0.0,
+          "title": "Marginpx",
+          "type": "number"
+        },
+        "gutterPx": {
+          "minimum": 0.0,
+          "title": "Gutterpx",
+          "type": "number"
+        }
+      },
+      "required": [
+        "profile",
+        "columns",
+        "marginPx",
+        "gutterPx"
+      ],
+      "title": "GridStyle",
+      "type": "object"
+    },
+    "ImageTreatment": {
+      "additionalProperties": false,
+      "description": "Tratamento de imagem sem filtros ou CSS arbitrários.",
+      "properties": {
+        "fit": {
+          "default": "cover",
+          "enum": [
+            "contain",
+            "cover"
+          ],
+          "title": "Fit",
+          "type": "string"
+        },
+        "cropBias": {
+          "default": "center",
+          "enum": [
+            "center",
+            "top",
+            "bottom",
+            "left",
+            "right"
+          ],
+          "title": "Cropbias",
+          "type": "string"
+        },
+        "radiusToken": {
+          "default": "none",
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Radiustoken",
+          "type": "string"
+        },
+        "contrast": {
+          "default": 1,
+          "maximum": 1.5,
+          "minimum": 0.5,
+          "title": "Contrast",
+          "type": "number"
+        },
+        "saturation": {
+          "default": 1,
+          "maximum": 1.5,
+          "minimum": 0.0,
+          "title": "Saturation",
+          "type": "number"
+        }
+      },
+      "title": "ImageTreatment",
+      "type": "object"
+    },
+    "MotionStyle": {
+      "additionalProperties": false,
+      "description": "Ritmo de interação com alternativa explícita para movimento reduzido.",
+      "properties": {
+        "pace": {
+          "enum": [
+            "calm",
+            "measured",
+            "direct"
+          ],
+          "title": "Pace",
+          "type": "string"
+        },
+        "durationFastMs": {
+          "maximum": 2000,
+          "minimum": 0,
+          "title": "Durationfastms",
+          "type": "integer"
+        },
+        "durationStandardMs": {
+          "maximum": 4000,
+          "minimum": 0,
+          "title": "Durationstandardms",
+          "type": "integer"
+        },
+        "easing": {
+          "enum": [
+            "linear",
+            "ease-out",
+            "ease-in-out"
+          ],
+          "title": "Easing",
+          "type": "string"
+        },
+        "reducedMotion": {
+          "default": "remove",
+          "enum": [
+            "remove",
+            "shorten"
+          ],
+          "title": "Reducedmotion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pace",
+        "durationFastMs",
+        "durationStandardMs",
+        "easing"
+      ],
+      "title": "MotionStyle",
+      "type": "object"
+    },
+    "ShadowStyle": {
+      "additionalProperties": false,
+      "description": "Elevação determinística; opacidade zero representa ausência real.",
+      "properties": {
+        "offsetXPx": {
+          "default": 0,
+          "title": "Offsetxpx",
+          "type": "number"
+        },
+        "offsetYPx": {
+          "default": 0,
+          "title": "Offsetypx",
+          "type": "number"
+        },
+        "blurPx": {
+          "default": 0,
+          "minimum": 0.0,
+          "title": "Blurpx",
+          "type": "number"
+        },
+        "spreadPx": {
+          "default": 0,
+          "title": "Spreadpx",
+          "type": "number"
+        },
+        "colorToken": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Colortoken",
+          "type": "string"
+        },
+        "opacity": {
+          "default": 0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Opacity",
+          "type": "number"
+        }
+      },
+      "required": [
+        "colorToken"
+      ],
+      "title": "ShadowStyle",
+      "type": "object"
+    },
+    "StrokeStyle": {
+      "additionalProperties": false,
+      "description": "Traço semântico fechado por token de cor.",
+      "properties": {
+        "widthPx": {
+          "minimum": 0.0,
+          "title": "Widthpx",
+          "type": "number"
+        },
+        "colorToken": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Colortoken",
+          "type": "string"
+        },
+        "opacity": {
+          "default": 1,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Opacity",
+          "type": "number"
+        }
+      },
+      "required": [
+        "widthPx",
+        "colorToken"
+      ],
+      "title": "StrokeStyle",
+      "type": "object"
+    },
+    "TypeStyle": {
+      "additionalProperties": false,
+      "description": "Papel tipográfico resolvido para uso em componentes e templates.",
+      "properties": {
+        "role": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Role",
+          "type": "string"
+        },
+        "fontToken": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Fonttoken",
+          "type": "string"
+        },
+        "colorToken": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Colortoken",
+          "type": "string"
+        },
+        "minSizePx": {
+          "exclusiveMinimum": 0.0,
+          "title": "Minsizepx",
+          "type": "number"
+        },
+        "maxSizePx": {
+          "exclusiveMinimum": 0.0,
+          "title": "Maxsizepx",
+          "type": "number"
+        },
+        "lineHeight": {
+          "maximum": 3.0,
+          "minimum": 0.5,
+          "title": "Lineheight",
+          "type": "number"
+        },
+        "letterSpacingEm": {
+          "default": 0,
+          "maximum": 1.0,
+          "minimum": -0.25,
+          "title": "Letterspacingem",
+          "type": "number"
+        }
+      },
+      "required": [
+        "role",
+        "fontToken",
+        "colorToken",
+        "minSizePx",
+        "maxSizePx",
+        "lineHeight"
+      ],
+      "title": "TypeStyle",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Decisões de sistema calculadas sem se passarem por fatos do manual.",
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "brandRevisionId": {
+      "minLength": 1,
+      "pattern": ".*\\S.*",
+      "title": "Brandrevisionid",
+      "type": "string"
+    },
+    "derivationStatus": {
+      "const": "derived",
+      "default": "derived",
+      "title": "Derivationstatus",
+      "type": "string"
+    },
+    "spacing": {
+      "patternProperties": {
+        ".*\\S.*": {
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Spacing",
+      "type": "object"
+    },
+    "radii": {
+      "patternProperties": {
+        ".*\\S.*": {
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Radii",
+      "type": "object"
+    },
+    "typography": {
+      "patternProperties": {
+        ".*\\S.*": {
+          "$ref": "#/$defs/TypeStyle"
+        }
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Typography",
+      "type": "object"
+    },
+    "strokes": {
+      "patternProperties": {
+        ".*\\S.*": {
+          "$ref": "#/$defs/StrokeStyle"
+        }
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Strokes",
+      "type": "object"
+    },
+    "shadows": {
+      "patternProperties": {
+        ".*\\S.*": {
+          "$ref": "#/$defs/ShadowStyle"
+        }
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Shadows",
+      "type": "object"
+    },
+    "grids": {
+      "additionalProperties": {
+        "$ref": "#/$defs/GridStyle"
+      },
+      "propertyNames": {
+        "enum": [
+          "post-1x1",
+          "post-4x5",
+          "story-9x16",
+          "doc-a4"
+        ]
+      },
+      "title": "Grids",
+      "type": "object"
+    },
+    "imageTreatment": {
+      "$ref": "#/$defs/ImageTreatment"
+    },
+    "motion": {
+      "$ref": "#/$defs/MotionStyle"
+    },
+    "componentStates": {
+      "patternProperties": {
+        ".*\\S.*": {
+          "$ref": "#/$defs/ComponentStateStyle"
+        }
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Componentstates",
+      "type": "object"
+    },
+    "rationalePt": {
+      "items": {
+        "minLength": 1,
+        "pattern": ".*\\S.*",
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Rationalept",
+      "type": "array"
+    }
+  },
+  "required": [
+    "brandRevisionId",
+    "spacing",
+    "radii",
+    "typography",
+    "strokes",
+    "shadows",
+    "grids",
+    "imageTreatment",
+    "motion",
+    "componentStates",
+    "rationalePt"
+  ],
+  "title": "StyleSystemIR",
+  "type": "object"
+}

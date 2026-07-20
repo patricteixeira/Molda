@@ -341,6 +341,27 @@ it("preseleciona a primeira fonte declarada sem trocar pela próxima materializa
   expect(screen.getAllByTestId("candidate-option")[1]).toHaveAttribute("aria-pressed", "false")
 })
 
+it("preseleciona a variante de logo recomendada para fundo escuro", async () => {
+  const props = renderStep({
+    question: {
+      id: "logo.onDark",
+      kind: "confirm-logo",
+      promptPt: "Qual versão do logo deve aparecer em fundos escuros?",
+      candidates: [
+        { value: "assets/logos/negative.svg", score: 1, evidence: [] },
+        { value: "assets/logos/positive.svg", score: 0.8, evidence: [] },
+      ],
+      recommendedCount: 1,
+      required: false,
+    },
+  })
+
+  expect(screen.getByText(/versão clara, branca ou negativa/i)).toBeInTheDocument()
+  expect(screen.getAllByTestId("candidate-option")[0]).toHaveAttribute("aria-pressed", "true")
+  await userEvent.click(screen.getByTestId("wizard-confirmar"))
+  expect(props.onConfirm).toHaveBeenCalledWith("assets/logos/negative.svg")
+})
+
 it("reinicia o estado transitório ao avançar para outro papel", async () => {
   const common = {
     draftId: "d1",

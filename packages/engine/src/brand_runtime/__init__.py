@@ -6,6 +6,12 @@ from brand_runtime.ecosystem import (
     PackageValidationReport,
     validate_brand_package,
 )
+from brand_runtime.artifacts import (
+    ArtifactInstance,
+    ArtifactValue,
+    artifact_from_content_spec,
+    artifact_to_content_spec,
+)
 from brand_runtime.guard.static_checks import GuardCheck, GuardVerdict, run_static_checks
 from brand_runtime.intake.compile import Answers, CompileError, compile_ir
 from brand_runtime.intake.draft import BrandDraft, build_draft
@@ -14,7 +20,14 @@ from brand_runtime.ir.schema import export_schemas
 from brand_runtime.kit.carousel import CarouselProfile, generate_carousel_layouts
 from brand_runtime.kit.direction import apply_creative_direction, suggested_surface
 from brand_runtime.kit.generator import KitGenerationError, generate_kit
-from brand_runtime.kit.models import ContentSpec, LayoutSpec, materialize_content_layout
+from brand_runtime.kit.models import (
+    ContentSpec,
+    LayoutSpec,
+    SceneGraph,
+    SceneGroup,
+    TemplateRef,
+    materialize_content_layout,
+)
 from brand_runtime.native import (
     canonical_ooxml_manifest,
     derive_branded_template,
@@ -38,11 +51,19 @@ from brand_runtime.roundtrip import (
     lint_roundtrip,
     parse_pptx_document_graph,
 )
+from brand_runtime.style import StyleSystemIR, derive_style_system
+from brand_runtime.templates import (
+    TemplatePackage,
+    generate_template_layouts,
+    typographic_editorial_package,
+)
 
 __version__ = "0.1.0"
 
 __all__ = [
     "Answers",
+    "ArtifactInstance",
+    "ArtifactValue",
     "BrandDraft",
     "BrandIR",
     "BrandPackageManifest",
@@ -61,8 +82,15 @@ __all__ = [
     "PackageValidationError",
     "PackageValidationReport",
     "RoundtripReport",
+    "SceneGraph",
+    "SceneGroup",
+    "StyleSystemIR",
+    "TemplatePackage",
+    "TemplateRef",
     "analyze_docx_brand",
     "apply_creative_direction",
+    "artifact_from_content_spec",
+    "artifact_to_content_spec",
     "apply_docx_brand_plan",
     "apply_pptx_fix_plan",
     "build_draft",
@@ -70,8 +98,10 @@ __all__ = [
     "canonical_ooxml_manifest",
     "compile_ir",
     "derive_branded_template",
+    "derive_style_system",
     "export_schemas",
     "generate_kit",
+    "generate_template_layouts",
     "generate_carousel_layouts",
     "inspect_semantic_shapes",
     "lint_roundtrip",
@@ -82,6 +112,7 @@ __all__ = [
     "render_pptx",
     "run_static_checks",
     "suggested_surface",
+    "typographic_editorial_package",
     "validate_ooxml",
     "validate_brand_package",
 ]

@@ -95,6 +95,9 @@ export function KitPage(): JSX.Element {
 
   const assetsBaseUrl = api.revisionAssetsBaseUrl(revisionId)
   const headingFont = kit.brandIr.fonts["font.heading"]?.family ?? "Fonte da marca"
+  const orderedLayouts = [...kit.layouts].sort(
+    (left, right) => Number(right.templateRef != null) - Number(left.templateRef != null),
+  )
 
   return (
     <main
@@ -140,7 +143,7 @@ export function KitPage(): JSX.Element {
           data-layout-count={kit.layouts.length}
           aria-label="Modelos disponíveis"
         >
-          {kit.layouts.map((layout) => {
+          {orderedLayouts.map((layout) => {
             const sample = placeholderContent(layout, revisionId, kit.brandIr)
             return (
               <Link
@@ -162,6 +165,11 @@ export function KitPage(): JSX.Element {
               </span>
               <span className="kit-card-caption">
                 <span>
+                  {layout.templateRef ? (
+                    <span className="kit-card-family">
+                      Tipográfico editorial · v{layout.templateRef.version}
+                    </span>
+                  ) : null}
                   <span>{layout.namePt}</span>
                   <span className="kit-card-action">Editar peça →</span>
                 </span>

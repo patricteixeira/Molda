@@ -465,3 +465,30 @@ def test_identical_logo_files_are_deduplicated_by_hash(tmp_path):
 
     assert len(logo_question.candidates) == 1
     assert logo_question.candidates[0].value == "assets/logos/logo-a.svg"
+
+
+def test_logo_variants_are_reviewed_separately_when_package_has_more_than_one(tmp_path):
+    package = tmp_path / "logo-variants"
+    logos = package / "assets" / "logos"
+    logos.mkdir(parents=True)
+    (logos / "brand-positive.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        '<path fill="#161616" d="M0 0h100v100H0z"/></svg>',
+        encoding="utf-8",
+    )
+    (logos / "brand-negative.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+        '<path fill="#FAFAFA" d="M0 0h100v100H0z"/></svg>',
+        encoding="utf-8",
+    )
+
+    draft = build_draft(package)
+    on_light = next(question for question in draft.questions if question.id == "logo.onLight")
+    on_dark = next(question for question in draft.questions if question.id == "logo.onDark")
+
+    assert on_light.required is False
+    assert on_dark.required is False
+    assert on_light.candidates[0].value.endswith("brand-positive.svg")
+    assert on_dark.candidates[0].value.endswith("brand-negative.svg")
+    assert on_light.recommended_count == 1
+    assert on_dark.recommended_count == 1

@@ -30,6 +30,8 @@ class DocumentBody(BaseModel):
     layout_id: str = Field(min_length=1)
     brand_revision_id: str = Field(min_length=1)
     values: dict[str, Any]
+    background_color_token: str | None = Field(default=None, min_length=1)
+    asset_bindings: dict[str, str] = Field(default_factory=dict)
     overrides: dict[str, Any] = Field(default_factory=dict)
     surface: SurfaceStyle | None = None
     added_slots: list[Slot] = Field(default_factory=list)

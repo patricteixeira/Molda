@@ -127,6 +127,39 @@ def _contract_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> l
                 slot_id=slot_id,
             )
         )
+    if (
+        content.background_color_token is not None
+        and content.background_color_token not in ir.colors
+    ):
+        checks.append(
+            _blocked(
+                "background-reference",
+                "O fundo escolhido não pertence às cores confirmadas desta marca.",
+                detail={"colorToken": content.background_color_token},
+            )
+        )
+    slots = {slot.id: slot for slot in layout.slots}
+    for slot_id, asset_token in sorted(content.asset_bindings.items()):
+        slot = slots.get(slot_id)
+        if slot is None or slot.kind != "logo":
+            checks.append(
+                _blocked(
+                    "asset-binding",
+                    "Um asset só pode ser vinculado a um slot de logo conhecido.",
+                    slot_id=slot_id,
+                    detail={"assetToken": asset_token},
+                )
+            )
+            continue
+        if asset_token not in ir.assets:
+            checks.append(
+                _blocked(
+                    "asset-binding",
+                    "O logo escolhido não pertence aos assets confirmados desta marca.",
+                    slot_id=slot_id,
+                    detail={"assetToken": asset_token},
+                )
+            )
     return checks
 
 
@@ -904,10 +937,13 @@ def _contrast_checks(
     content: ContentSpec,
 ) -> list[GuardCheck]:
     """Avalia texto base e destaque sobre fundo sólido com limiar por tamanho."""
-    if layout.background.kind != "color" or layout.background.color_token is None:
+    background_ref = content.background_color_token
+    if background_ref is None and layout.background.kind == "color":
+        background_ref = layout.background.color_token
+    if background_ref is None:
         return []
     checks: list[GuardCheck] = []
-    background_token = ir.colors.get(layout.background.color_token)
+    background_token = ir.colors.get(background_ref)
     for slot in layout.slots:
         if slot.kind != "text":
             continue
@@ -918,6 +954,8 @@ def _contrast_checks(
         effective_size = (
             override.font_size_px
             if override is not None and override.font_size_px is not None
+            else slot.font_size_px
+            if slot.font_size_px is not None
             else role.min_size_px
             if role is not None
             else None

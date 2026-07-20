@@ -88,6 +88,27 @@ beforeEach(() => {
   document.body.appendChild(container);
 });
 
+it("aplica tipografia autoral do template antes dos valores semânticos da role", () => {
+  const payload = fixturePayload();
+  Object.assign(payload.layoutSpec.slots[0], {
+    fit: "fixed" as const,
+    fontSizePx: 144,
+    fontWeight: 800,
+    fontStyle: "italic" as const,
+    lineHeight: 0.88,
+  });
+
+  renderDocument(container, payload);
+
+  const content = container.querySelector<HTMLElement>(
+    '[data-slot-id="headline"] [data-slot-content]',
+  )!;
+  expect(content.style.fontSize).toBe("144px");
+  expect(content.style.fontWeight).toBe("800");
+  expect(content.style.fontStyle).toBe("italic");
+  expect(content.style.lineHeight).toBe("0.88");
+});
+
 it("canvas 1:1 px com fundo do token", () => {
   renderDocument(container, fixturePayload());
   expect(container.style.width).toBe("1080px");
@@ -95,6 +116,36 @@ it("canvas 1:1 px com fundo do token", () => {
   expect(container.style.position).toBe("relative");
   const background = container.style.backgroundColor.toLowerCase().replaceAll(" ", "");
   expect(["#ffffff", "#fff", "rgb(255,255,255)"]).toContain(background);
+});
+
+it("usa o fundo efetivo para escolher a variante de logo e respeita binding manual", () => {
+  const payload = fixturePayload();
+  payload.brandIr.colors["color.night"] = { value: "#101820" };
+  Object.assign(payload.brandIr.assets, {
+    "logo.onLight": { path: "assets/logos/logo-on-light.svg" },
+    "logo.onDark": { path: "assets/logos/logo-on-dark.svg" },
+  });
+
+  payload.contentSpec.backgroundColorToken = "color.background";
+  renderDocument(container, payload);
+  expect(container.querySelector<HTMLImageElement>('[data-slot-id="logo"] img')!.src).toContain(
+    "logo-on-light.svg",
+  );
+
+  payload.contentSpec.backgroundColorToken = "color.night";
+  renderDocument(container, payload);
+  expect(container.style.backgroundColor.toLowerCase().replaceAll(" ", "")).toMatch(
+    /#101820|rgb\(16,24,32\)/,
+  );
+  expect(container.querySelector<HTMLImageElement>('[data-slot-id="logo"] img')!.src).toContain(
+    "logo-on-dark.svg",
+  );
+
+  payload.contentSpec.assetBindings = { logo: "logo.primary" };
+  renderDocument(container, payload);
+  expect(container.querySelector<HTMLImageElement>('[data-slot-id="logo"] img')!.src).toContain(
+    "logo.svg",
+  );
 });
 
 it("fundo image-slot limpa uma cor de render anterior", () => {

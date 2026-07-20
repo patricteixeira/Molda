@@ -67,6 +67,49 @@ function activeCompositionMode(payload: Payload): CompositionModeRule | null {
   return payload.brandIr.compositionRules?.modes?.[name] ?? null;
 }
 
+function effectiveBackgroundToken(
+  payload: Payload,
+  compositionMode: CompositionModeRule | null,
+): string | null {
+  if (payload.contentSpec.backgroundColorToken) {
+    return payload.contentSpec.backgroundColorToken;
+  }
+  if (compositionMode?.backgroundColorToken) return compositionMode.backgroundColorToken;
+  if (payload.layoutSpec.background.kind !== "color") return null;
+  return payload.layoutSpec.background.colorToken ?? null;
+}
+
+function relativeLuminance(color: string): number {
+  const channels = [color.slice(1, 3), color.slice(3, 5), color.slice(5, 7)].map((channel) => {
+    const value = Number.parseInt(channel, 16) / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+}
+
+function automaticLogoToken(payload: Payload, backgroundToken: string | null): string | null {
+  if (!backgroundToken) return null;
+  const background = payload.brandIr.colors[backgroundToken];
+  if (!background) return null;
+  const token = relativeLuminance(background.value) >= 0.179 ? "logo.onLight" : "logo.onDark";
+  return Object.hasOwn(payload.brandIr.assets, token) ? token : null;
+}
+
+function logoAssetToken(
+  payload: Payload,
+  slot: Slot,
+  compositionMode: CompositionModeRule | null,
+  backgroundToken: string | null,
+): string {
+  return (
+    payload.contentSpec.assetBindings?.[slot.id] ??
+    automaticLogoToken(payload, backgroundToken) ??
+    slot.assetToken ??
+    compositionMode?.logoAssetToken ??
+    "logo.primary"
+  );
+}
+
 function appendSurface(container: HTMLElement, payload: Payload): void {
   const surface = payload.contentSpec.surface;
   if (!surface) return;
@@ -179,9 +222,9 @@ export function renderDocument(
     backgroundColor: "",
   });
   const compositionMode = activeCompositionMode(payload);
-  if (layout.background.kind === "color" && layout.background.colorToken) {
-    const token = compositionMode?.backgroundColorToken ?? layout.background.colorToken;
-    container.style.backgroundColor = ir.colors[token].value;
+  const backgroundToken = effectiveBackgroundToken(payload, compositionMode);
+  if (backgroundToken) {
+    container.style.backgroundColor = ir.colors[backgroundToken].value;
   }
 
   const fontBuild = buildFontFaces(ir, payload.assetsBaseUrl);
@@ -208,7 +251,7 @@ export function renderDocument(
     applyBoxStyle(box, slot, override);
 
     if (slot.kind === "logo") {
-      const assetToken = slot.assetToken ?? compositionMode?.logoAssetToken ?? "logo.primary";
+      const assetToken = logoAssetToken(payload, slot, compositionMode, backgroundToken);
       box.appendChild(
         createImage(
           joinUrl(payload.assetsBaseUrl, ir.assets[assetToken].path),
@@ -242,10 +285,10 @@ export function renderDocument(
         boxSizing: "border-box",
         display: "block",
         fontFamily: fontBuild.families[fontToken],
-        fontWeight: String(override?.fontWeight ?? font.weight),
-        fontStyle: override?.fontStyle ?? font.style,
+        fontWeight: String(override?.fontWeight ?? slot.fontWeight ?? font.weight),
+        fontStyle: override?.fontStyle ?? slot.fontStyle ?? font.style,
         color: fillMode === "stroke" ? "transparent" : color,
-        lineHeight: String(override?.lineHeight ?? textStyle.lineHeight),
+        lineHeight: String(override?.lineHeight ?? slot.lineHeight ?? textStyle.lineHeight),
         whiteSpace: "pre-wrap",
         overflowWrap: "break-word",
         textRendering: "optimizeLegibility",
@@ -294,6 +337,7 @@ export function renderDocument(
       const effectiveArea = override?.area ?? slot.area;
       const size =
         override?.fontSizePx ??
+        slot.fontSizePx ??
         (slot.fit === "shrink-within-role-range"
           ? chooseFontSize(measureAt, effectiveArea[3], textStyle.minSizePx, textStyle.maxSizePx)
           : textStyle.maxSizePx);

@@ -24,6 +24,8 @@ interface ExportControlsProps {
   addedSlots?: Slot[]
   addedLayers?: ShapeLayer[]
   surface?: SurfaceStyle | null
+  backgroundColorToken?: string | null
+  assetBindings?: Record<string, string>
   onPendingChange?(pending: boolean): void
 }
 
@@ -49,6 +51,8 @@ export function ExportControls({
   addedSlots = [],
   addedLayers = [],
   surface = null,
+  backgroundColorToken = null,
+  assetBindings = {},
   onPendingChange,
 }: ExportControlsProps) {
   const client = useApi()
@@ -64,8 +68,20 @@ export function ExportControls({
       surface,
       addedSlots,
       addedLayers,
+      backgroundColorToken,
+      assetBindings,
     }),
-    [addedLayers, addedSlots, layout.id, overrides, revisionId, surface, values],
+    [
+      addedLayers,
+      addedSlots,
+      assetBindings,
+      backgroundColorToken,
+      layout.id,
+      overrides,
+      revisionId,
+      surface,
+      values,
+    ],
   )
   const primaryFlow = useExportFlow(client, content, primaryFormat, pollIntervalMs)
   const editableFlow = useExportFlow(client, content, editableFormat, pollIntervalMs)

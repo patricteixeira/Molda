@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -98,6 +98,10 @@ class Slot(CamelModel):
     text_align: Literal["left", "center", "right"] = "left"
     text_transform: Literal["none", "uppercase"] = "none"
     letter_spacing_em: LetterSpacing = 0.0
+    font_size_px: EditorFontSize | None = None
+    font_weight: EditorFontWeight | None = None
+    font_style: Literal["normal", "italic"] | None = None
+    line_height: EditorLineHeight | None = None
     fill_mode: Literal["fill", "stroke"] = "fill"
     stroke_color_token: NonBlankString | None = None
     stroke_width_px: StrokeWidth | None = None
@@ -118,6 +122,10 @@ class Slot(CamelModel):
                 self.text_align != "left",
                 self.text_transform != "none",
                 self.letter_spacing_em != 0,
+                self.font_size_px is not None,
+                self.font_weight is not None,
+                self.font_style is not None,
+                self.line_height is not None,
                 self.fill_mode != "fill",
                 self.stroke_color_token is not None,
                 self.stroke_width_px is not None,
@@ -206,6 +214,55 @@ class Background(CamelModel):
         return self
 
 
+class TemplateRef(CamelModel):
+    """Identidade imutável do template que originou um layout compilado."""
+
+    package_id: NonBlankString
+    version: Annotated[str, Field(pattern=r"^\d+\.\d+\.\d+$")]
+    composition_id: NonBlankString
+    scene_schema_version: Literal["2.0.0"] = "2.0.0"
+
+
+class SceneGroup(CamelModel):
+    """Relação estrutural compilada sobre os elementos planos do LayoutSpec v1.
+
+    A geometria continua absoluta no contrato legado para manter preview, edição e
+    exportação determinísticos. O grupo registra intenção e relações sem duplicar
+    os slots/camadas que já são a fonte renderizável.
+    """
+
+    id: NonBlankString
+    kind: Literal["group", "frame", "stack", "grid"]
+    area: Area
+    children: list[NonBlankString] = Field(min_length=1)
+    direction: Literal["horizontal", "vertical"] | None = None
+    gap_px: NonNegativeInt = 0
+    columns: PositiveInt | None = None
+    clip: bool = False
+
+    @model_validator(mode="after")
+    def _container_options_match_kind(self) -> Self:
+        if len(self.children) != len(set(self.children)):
+            raise ValueError(f"O grupo «{self.id}» não pode repetir filhos.")
+        if self.kind == "stack" and self.direction is None:
+            raise ValueError("Stacks precisam declarar direction.")
+        if self.kind != "stack" and self.direction is not None:
+            raise ValueError("direction só pode ser usada em stacks.")
+        if self.kind == "grid" and self.columns is None:
+            raise ValueError("Grids precisam declarar columns.")
+        if self.kind != "grid" and self.columns is not None:
+            raise ValueError("columns só pode ser usada em grids.")
+        return self
+
+
+class SceneGraph(CamelModel):
+    """Estrutura v2 preservada junto ao layout plano compilado."""
+
+    schema_version: Literal["2.0.0"] = "2.0.0"
+    roots: list[NonBlankString] = Field(min_length=1)
+    groups: list[SceneGroup] = Field(min_length=1)
+
+
 class LayoutSpec(CamelModel):
     """Layout declarativo adaptado para um dos perfis publicados pelo motor."""
 
@@ -219,6 +276,8 @@ class LayoutSpec(CamelModel):
     slots: list[Slot]
     composition_mode: Literal["light", "dark"] | None = None
     locked_layers: list[LockedLayer] = Field(default_factory=list)
+    template_ref: TemplateRef | None = None
+    scene_graph: SceneGraph | None = None
 
     @model_validator(mode="after")
     def _validate_geometry(self) -> LayoutSpec:
@@ -244,6 +303,54 @@ class LayoutSpec(CamelModel):
             slot.kind == "image" for slot in self.slots
         ):
             raise ValueError("Fundos de imagem precisam de um slot de imagem no layout.")
+        if self.scene_graph is not None:
+            group_ids = [group.id for group in self.scene_graph.groups]
+            if len(group_ids) != len(set(group_ids)):
+                raise ValueError("Os identificadores de grupo precisam ser únicos.")
+            if set(group_ids) & set(element_ids):
+                raise ValueError("Grupos e elementos renderizáveis não podem compartilhar ids.")
+
+            known_ids = {*element_ids, *group_ids}
+            for root in self.scene_graph.roots:
+                if root not in group_ids:
+                    raise ValueError(f"A raiz «{root}» não referencia um grupo da cena.")
+            for group in self.scene_graph.groups:
+                if group.id in group.children:
+                    raise ValueError(f"O grupo «{group.id}» não pode conter a si mesmo.")
+                unknown = [child for child in group.children if child not in known_ids]
+                if unknown:
+                    raise ValueError(
+                        f"O grupo «{group.id}» referencia filhos desconhecidos: {', '.join(unknown)}."
+                    )
+                x, y, group_width, group_height = group.area
+                if x + group_width > width or y + group_height > height:
+                    raise ValueError(f"O grupo «{group.id}» ultrapassa os limites do canvas.")
+
+            groups_by_id = {group.id: group for group in self.scene_graph.groups}
+            visiting: set[str] = set()
+            visited: set[str] = set()
+
+            def visit(group_id: str) -> None:
+                if group_id in visiting:
+                    raise ValueError("O SceneGraph não pode conter ciclos.")
+                if group_id in visited:
+                    return
+                visiting.add(group_id)
+                for child in groups_by_id[group_id].children:
+                    if child in groups_by_id:
+                        visit(child)
+                visiting.remove(group_id)
+                visited.add(group_id)
+
+            for root in self.scene_graph.roots:
+                visit(root)
+            if visited != set(group_ids):
+                unreachable = sorted(set(group_ids) - visited)
+                raise ValueError(
+                    "Todos os grupos precisam estar ligados a uma raiz: "
+                    + ", ".join(unreachable)
+                    + "."
+                )
         return self
 
 
@@ -361,6 +468,8 @@ class ContentSpec(CamelModel):
     layout_id: NonBlankString
     brand_revision_id: NonBlankString
     values: dict[str, TextValue | ImageValue]
+    background_color_token: NonBlankString | None = None
+    asset_bindings: dict[NonBlankString, NonBlankString] = Field(default_factory=dict)
     overrides: dict[str, LayerOverride] = Field(default_factory=dict)
     surface: SurfaceStyle | None = None
     added_slots: list[Slot] = Field(default_factory=list)

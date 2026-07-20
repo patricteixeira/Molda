@@ -13,7 +13,7 @@ from PIL import Image, ImageColor, ImageDraw
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.dml import MSO_COLOR_TYPE
-from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
+from pptx.enum.shapes import MSO_SHAPE, MSO_SHAPE_TYPE, PP_PLACEHOLDER
 from pptx.enum.text import PP_ALIGN
 from pptx.slide import SlideLayout
 from pptx.util import Emu, Pt
@@ -26,6 +26,7 @@ from brand_runtime.kit.models import (
     ImageValue,
     LayerOverride,
     LayoutSpec,
+    ShapeLayer,
     Slot,
     TextValue,
 )
@@ -101,12 +102,16 @@ def _send_to_back(shape) -> None:
 def _set_text(
     shape,
     value: TextValue,
+    slot: Slot,
     role: SemanticRole,
     ir: BrandIR,
     override: LayerOverride | None = None,
 ) -> None:
     text = value.text
-    if override is not None and override.text_transform == "uppercase":
+    text_transform = (
+        override.text_transform if override and override.text_transform else slot.text_transform
+    )
+    if text_transform == "uppercase":
         text = text.upper()
     shape.text = text
     paragraph = shape.text_frame.paragraphs[0]
@@ -120,26 +125,48 @@ def _set_text(
     font = ir.fonts[font_token]
     color = ir.colors[color_token]
     run.font.name = font.family
-    font_size_px = override.font_size_px if override and override.font_size_px else role.max_size_px
+    font_size_px = (
+        override.font_size_px
+        if override and override.font_size_px
+        else slot.font_size_px or role.max_size_px
+    )
     run.font.size = Pt(font_size_px * 0.75)
-    font_weight = override.font_weight if override and override.font_weight else font.weight
-    font_style = override.font_style if override and override.font_style else font.style
+    font_weight = (
+        override.font_weight
+        if override and override.font_weight
+        else slot.font_weight or font.weight
+    )
+    font_style = (
+        override.font_style if override and override.font_style else slot.font_style or font.style
+    )
     run.font.bold = font_weight >= 600
     run.font.italic = font_style == "italic"
     run.font.color.rgb = RGBColor.from_string(color.value.removeprefix("#"))
-    if override is not None:
-        if override.text_align is not None:
-            paragraph.alignment = {
-                "left": PP_ALIGN.LEFT,
-                "center": PP_ALIGN.CENTER,
-                "right": PP_ALIGN.RIGHT,
-            }[override.text_align]
-        if override.line_height is not None:
-            paragraph.line_spacing = override.line_height
-        if override.letter_spacing_em is not None:
-            run_properties = run._r.get_or_add_rPr()
-            spacing = round(override.letter_spacing_em * font_size_px * 0.75 * 100)
-            run_properties.set("spc", str(spacing))
+    text_align = (
+        override.text_align
+        if override and override.text_align
+        else slot.text_align
+        if slot.text_align != "left"
+        else None
+    )
+    if text_align is not None:
+        paragraph.alignment = {
+            "left": PP_ALIGN.LEFT,
+            "center": PP_ALIGN.CENTER,
+            "right": PP_ALIGN.RIGHT,
+        }[text_align]
+    line_height = override.line_height if override and override.line_height else slot.line_height
+    if line_height is not None:
+        paragraph.line_spacing = line_height
+    letter_spacing = (
+        override.letter_spacing_em
+        if override and override.letter_spacing_em is not None
+        else slot.letter_spacing_em
+    )
+    if letter_spacing:
+        run_properties = run._r.get_or_add_rPr()
+        spacing = round(letter_spacing * font_size_px * 0.75 * 100)
+        run_properties.set("spc", str(spacing))
 
 
 def _placeholder(slide, accepted: set[PP_PLACEHOLDER]):
@@ -217,6 +244,67 @@ def _slot_override(content: ContentSpec, slot: Slot) -> LayerOverride | None:
     return content.overrides.get(slot.id)
 
 
+def _relative_luminance(color: str) -> float:
+    """Calcula luminância WCAG de uma cor canônica #RRGGBB."""
+    channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [
+        value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+        for value in channels
+    ]
+    return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+
+
+def _automatic_logo_token(ir: BrandIR, background_token: str | None) -> str | None:
+    """Escolhe a variante semântica que contrasta com o fundo efetivo."""
+    if background_token is None or background_token not in ir.colors:
+        return None
+    candidate = (
+        "logo.onLight"
+        if _relative_luminance(ir.colors[background_token].value) >= 0.179
+        else "logo.onDark"
+    )
+    return candidate if candidate in ir.assets else None
+
+
+def _render_shape_layers(
+    slide,
+    presentation: Presentation,
+    ir: BrandIR,
+    layout: LayoutSpec,
+    content: ContentSpec,
+) -> None:
+    """Materializa o subconjunto portátil de retângulos/círculos como shapes editáveis."""
+    layers = sorted(
+        (layer for layer in layout.locked_layers if isinstance(layer, ShapeLayer)),
+        key=lambda layer: layer.z_index,
+    )
+    for layer in layers:
+        override = content.overrides.get(layer.id)
+        if override is not None and override.hidden:
+            continue
+        area = override.area if override and override.area else layer.area
+        left, top, width, height = _normalized_box(presentation, layout, area)
+        shape_type = MSO_SHAPE.OVAL if layer.shape == "circle" else MSO_SHAPE.RECTANGLE
+        shape = slide.shapes.add_shape(shape_type, left, top, width, height)
+        shape.line.fill.background()
+        color_token = (
+            override.color_token if override and override.color_token else layer.color_token
+        )
+        color = ir.colors[color_token]
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = RGBColor.from_string(color.value.removeprefix("#"))
+        _apply_opacity(
+            shape,
+            override.opacity if override and override.opacity is not None else layer.opacity,
+        )
+        _tag_shape(
+            shape,
+            role="layer",
+            revision_id=ir.revision.id,
+            slot_id=layer.id,
+        )
+
+
 def _text_slots(layout: LayoutSpec, content: ContentSpec) -> list[tuple[Slot, TextValue]]:
     values: list[tuple[Slot, TextValue]] = []
     for slot in layout.slots:
@@ -231,6 +319,18 @@ def _validate_contracts(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -
         raise PptxRenderError("O Content Spec não pertence à revisão de marca informada.")
     if content.layout_id != layout.id:
         raise PptxRenderError("O Content Spec não pertence ao Layout Spec informado.")
+    if (
+        content.background_color_token is not None
+        and content.background_color_token not in ir.colors
+    ):
+        raise PptxRenderError("O fundo da peça referencia uma cor ausente do Brand IR.")
+    slots = {slot.id: slot for slot in layout.slots}
+    for slot_id, asset_token in content.asset_bindings.items():
+        slot = slots.get(slot_id)
+        if slot is None or slot.kind != "logo":
+            raise PptxRenderError("Asset bindings só podem referenciar slots de logo.")
+        if asset_token not in ir.assets:
+            raise PptxRenderError("O logo vinculado à peça não existe no Brand IR.")
     for slot, value in _text_slots(layout, content):
         if slot.role not in ir.roles:
             raise PptxRenderError(f"O papel semântico «{slot.role}» não existe no Brand IR.")
@@ -465,8 +565,11 @@ def render_pptx(
     presentation = Presentation(template_path)
     native_layout = _select_layout(presentation, native_layout_name)
     slide = presentation.slides.add_slide(native_layout)
-    if layout.background.kind == "color" and layout.background.color_token is not None:
-        background = ir.colors.get(layout.background.color_token)
+    background_color_token = content.background_color_token
+    if background_color_token is None and layout.background.kind == "color":
+        background_color_token = layout.background.color_token
+    if background_color_token is not None:
+        background = ir.colors.get(background_color_token)
         if background is not None:
             fill = slide.background.fill
             fill.solid()
@@ -483,6 +586,7 @@ def render_pptx(
             )
             picture.name = "br:surface"
             _send_to_back(picture)
+    _render_shape_layers(slide, presentation, ir, layout, content)
     text_values = _text_slots(layout, content)
     if not text_values:
         raise PptxRenderError("O slide precisa de ao menos um slot de texto preenchido.")
@@ -494,7 +598,9 @@ def render_pptx(
     title_override = _slot_override(content, title_slot)
     _position_shape(title_shape, presentation, layout, title_slot, title_override)
     if title_override is None or not title_override.hidden:
-        _set_text(title_shape, title_value, ir.roles[title_slot.role], ir, title_override)
+        _set_text(
+            title_shape, title_value, title_slot, ir.roles[title_slot.role], ir, title_override
+        )
     else:
         title_shape.text = ""
     _apply_opacity(
@@ -518,7 +624,9 @@ def render_pptx(
         body_override = _slot_override(content, body_slot)
         _position_shape(body_shape, presentation, layout, body_slot, body_override)
         if body_override is None or not body_override.hidden:
-            _set_text(body_shape, body_value, ir.roles[body_slot.role], ir, body_override)
+            _set_text(
+                body_shape, body_value, body_slot, ir.roles[body_slot.role], ir, body_override
+            )
         else:
             body_shape.text = ""
         _apply_opacity(
@@ -543,7 +651,9 @@ def render_pptx(
         left, top, width, height = _normalized_box(presentation, layout, area)
         text_box = slide.shapes.add_textbox(left, top, width, height)
         if extra_override is None or not extra_override.hidden:
-            _set_text(text_box, extra_value, ir.roles[extra_slot.role], ir, extra_override)
+            _set_text(
+                text_box, extra_value, extra_slot, ir.roles[extra_slot.role], ir, extra_override
+            )
         _apply_opacity(
             text_box,
             extra_override.opacity
@@ -589,7 +699,18 @@ def render_pptx(
             logo_slot = None
     if logo_slot is not None:
         logo_override = _slot_override(content, logo_slot)
-        asset_token = logo_slot.asset_token or next(iter(ir.assets), None)
+        composition_mode = (
+            getattr(ir.composition_rules.modes, layout.composition_mode, None)
+            if ir.composition_rules is not None and layout.composition_mode is not None
+            else None
+        )
+        asset_token = (
+            content.asset_bindings.get(logo_slot.id)
+            or _automatic_logo_token(ir, background_color_token)
+            or logo_slot.asset_token
+            or (composition_mode.logo_asset_token if composition_mode is not None else None)
+            or next(iter(ir.assets), None)
+        )
         if asset_token is None or asset_token not in ir.assets:
             raise PptxRenderError(
                 "O layout exige logo, mas o Brand IR não possui asset compatível."

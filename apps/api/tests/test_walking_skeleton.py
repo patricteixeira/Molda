@@ -26,7 +26,7 @@ def test_walking_skeleton_api(client, package_zip):
     assert ir["revision"]["id"] == revision_id
 
     kit = client.get(f"/v1/brand-revisions/{revision_id}/kit").json()
-    assert len(kit) == 10
+    assert len(kit) == 13
 
     bad = client.post(
         "/v1/documents",

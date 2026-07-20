@@ -17,6 +17,7 @@ from brand_runtime.kit.models import (
     ShapeLayer,
     Slot,
 )
+from brand_runtime.templates.registry import generate_template_layouts
 
 _SOCIAL_PROFILES: tuple[Profile, ...] = ("post-1x1", "post-4x5", "story-9x16")
 
@@ -734,7 +735,7 @@ def _signature_layout(ir: BrandIR) -> LayoutSpec:
 
 
 def generate_kit(ir: BrandIR) -> list[LayoutSpec]:
-    """Gera os dez layouts canônicos e editoriais quando há regras explícitas."""
+    """Gera o legado estável e acrescenta famílias versionadas compiladas."""
     _validate_ir(ir)
     builders: tuple[Callable[[BrandIR, Profile], LayoutSpec], ...] = (
         _statement,
@@ -743,6 +744,7 @@ def generate_kit(ir: BrandIR) -> list[LayoutSpec]:
     )
     layouts = [builder(ir, profile) for builder in builders for profile in _SOCIAL_PROFILES]
     layouts.append(_one_pager(ir))
+    layouts.extend(generate_template_layouts(ir))
     if _editorial_ready(ir):
         layouts.extend(
             (

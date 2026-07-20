@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Literal
 
 from PIL import Image
+from pydantic import Field
 
 from brand_runtime.colors import dedupe_colors, delta_e, is_neutral, lightness
 from brand_runtime.intake.base import Candidate
@@ -101,6 +102,8 @@ _PROMPTS = {
     "font.heading": "Qual fonte aparece nos títulos?",
     "font.body": "Qual fonte aparece nos textos?",
     "logo.primary": "Este é o logo principal da marca?",
+    "logo.onLight": "Qual versão do logo deve aparecer em fundos claros?",
+    "logo.onDark": "Qual versão do logo deve aparecer em fundos escuros?",
 }
 
 
@@ -122,6 +125,7 @@ class BrandDraft(CamelModel):
 
     package_dir: str
     questions: list[DraftQuestion]
+    palette_candidates: list[Candidate] = Field(default_factory=list)
     diagnostics: list[Diagnostic]
     composition_declarations: CompositionDeclarations | None = None
 
@@ -151,6 +155,59 @@ def _question(
         recommended_count=visible_recommendations,
         required=required,
     )
+
+
+def _logo_name_appearance(relative: str) -> Literal["dark", "light"] | None:
+    """Lê convenções explícitas de variante sem adivinhar pelo nome da marca."""
+    stem = Path(relative).stem.casefold()
+    if any(marker in stem for marker in ("on-light", "on_light", "positivo", "positive")):
+        return "dark"
+    if any(marker in stem for marker in ("on-dark", "on_dark", "negativo", "negative")):
+        return "light"
+    return None
+
+
+def _logo_candidate_appearance(
+    package_dir: Path,
+    candidate: Candidate,
+) -> Literal["dark", "light"] | None:
+    """Classifica uma variante apenas quando nome ou tinta vetorial são inequívocos."""
+    if not isinstance(candidate.value, str):
+        return None
+    relative = candidate.value
+    named = _logo_name_appearance(relative)
+    if named is not None:
+        return named
+    path = package_dir / relative
+    if path.suffix.casefold() != ".svg":
+        return None
+    colors = extract_svg_colors(path)
+    total = sum(item.score for item in colors)
+    if total <= 0:
+        return None
+    weighted_lightness = sum(lightness(item.value) * item.score for item in colors) / total
+    if weighted_lightness <= 40:
+        return "dark"
+    if weighted_lightness >= 60:
+        return "light"
+    return None
+
+
+def _variant_logo_candidates(
+    package_dir: Path,
+    candidates: list[Candidate],
+    *,
+    surface: Literal["light", "dark"],
+) -> tuple[list[Candidate], int]:
+    """Ordena o logo de maior contraste primeiro e informa se a sugestão é segura."""
+    desired_appearance = "dark" if surface == "light" else "light"
+    preferred = [
+        item
+        for item in candidates
+        if _logo_candidate_appearance(package_dir, item) == desired_appearance
+    ]
+    remaining = [item for item in candidates if item not in preferred]
+    return [*preferred, *remaining], len(preferred)
 
 
 def _dtcg_candidates(package_dir: Path) -> dict[str, Candidate]:
@@ -804,10 +861,40 @@ def build_draft(
         )
     )
     questions.append(_question("logo.primary", "confirm-logo", logo_candidates, required=True))
+    if len(logo_candidates) > 1:
+        on_light, on_light_recommended = _variant_logo_candidates(
+            package_dir,
+            logo_candidates,
+            surface="light",
+        )
+        on_dark, on_dark_recommended = _variant_logo_candidates(
+            package_dir,
+            logo_candidates,
+            surface="dark",
+        )
+        questions.extend(
+            (
+                _question(
+                    "logo.onLight",
+                    "confirm-logo",
+                    on_light,
+                    required=False,
+                    recommended_count=on_light_recommended,
+                ),
+                _question(
+                    "logo.onDark",
+                    "confirm-logo",
+                    on_dark,
+                    required=False,
+                    recommended_count=on_dark_recommended,
+                ),
+            )
+        )
 
     return BrandDraft(
         package_dir=str(package_dir),
         questions=questions,
+        palette_candidates=_unique_colors(dtcg_colors, declared_colors["all"])[:24],
         composition_declarations=(
             composition_declarations if composition_declarations.has_rules() else None
         ),

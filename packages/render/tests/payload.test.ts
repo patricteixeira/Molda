@@ -78,6 +78,95 @@ it("aceita payload válido e devolve a mesma referência", () => {
   expect(parsePayload(payload)).toBe(payload);
 });
 
+it("valida fundo da instância e bindings manuais somente para slots de logo", () => {
+  const payload = fixturePayload();
+  payload.brandIr.colors["color.night"] = { value: "#101820" };
+  payload.brandIr.assets["logo.onDark"] = { path: "assets/logos/logo-on-dark.svg" };
+  payload.contentSpec.backgroundColorToken = "color.night";
+  payload.contentSpec.assetBindings = { logo: "logo.onDark" };
+  expect(parsePayload(payload)).toBe(payload);
+
+  const unknownColor = fixturePayload();
+  unknownColor.contentSpec.backgroundColorToken = "color.missing";
+  expect(() => parsePayload(unknownColor)).toThrow(/backgroundColorToken.*desconhecido/i);
+
+  const unknownSlot = fixturePayload();
+  unknownSlot.contentSpec.assetBindings = { absent: "logo.primary" };
+  expect(() => parsePayload(unknownSlot)).toThrow(/assetBindings\.absent.*slot desconhecido/i);
+
+  const textSlot = fixturePayload();
+  textSlot.contentSpec.assetBindings = { headline: "logo.primary" };
+  expect(() => parsePayload(textSlot)).toThrow(/headline.*slot de logo/i);
+
+  const unknownAsset = fixturePayload();
+  unknownAsset.contentSpec.assetBindings = { logo: "logo.missing" };
+  expect(() => parsePayload(unknownAsset)).toThrow(/assetBindings\.logo.*asset desconhecido/i);
+});
+
+it("aceita TemplateRef e SceneGraph v2 coerentes sobre elementos legados", () => {
+  const payload = fixturePayload();
+  payload.layoutSpec.templateRef = {
+    packageId: "typographic-editorial",
+    version: "1.0.0",
+    compositionId: payload.layoutSpec.id,
+    sceneSchemaVersion: "2.0.0",
+  };
+  payload.layoutSpec.sceneGraph = {
+    schemaVersion: "2.0.0",
+    roots: ["root"],
+    groups: [
+      {
+        id: "root",
+        kind: "stack",
+        area: [0, 0, 1080, 1080],
+        children: payload.layoutSpec.slots.map((slot) => slot.id),
+        direction: "vertical",
+        gapPx: 24,
+      },
+    ],
+  };
+
+  expect(parsePayload(payload)).toBe(payload);
+});
+
+it("rejeita ciclos e referências desconhecidas no SceneGraph v2", () => {
+  const cyclic = fixturePayload();
+  cyclic.layoutSpec.sceneGraph = {
+    schemaVersion: "2.0.0",
+    roots: ["root"],
+    groups: [
+      {
+        id: "root",
+        kind: "group",
+        area: [0, 0, 1080, 1080],
+        children: ["nested"],
+      },
+      {
+        id: "nested",
+        kind: "group",
+        area: [0, 0, 1080, 1080],
+        children: ["root"],
+      },
+    ],
+  };
+  expect(() => parsePayload(cyclic)).toThrow(/ciclos/);
+
+  const unknown = fixturePayload();
+  unknown.layoutSpec.sceneGraph = {
+    schemaVersion: "2.0.0",
+    roots: ["root"],
+    groups: [
+      {
+        id: "root",
+        kind: "frame",
+        area: [0, 0, 1080, 1080],
+        children: ["absent"],
+      },
+    ],
+  };
+  expect(() => parsePayload(unknown)).toThrow(/filho desconhecido/);
+});
+
 it("aceita base root-relative e loopback com porta explícita", () => {
   const root = fixturePayload();
   root.assetsBaseUrl = "/api/brands/marca/assets/";

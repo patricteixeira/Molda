@@ -54,7 +54,7 @@ _IDENTITY_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 # A revisão persiste IR e kit como um único bundle write-once. Mudanças
 # semânticas no gerador precisam trocar este domínio para não ressuscitar um
 # kit antigo sob o mesmo id depois de um upgrade.
-_REVISION_BUNDLE_DOMAIN = b"brand-ir-0.4-kit-v4\0"
+_REVISION_BUNDLE_DOMAIN = b"brand-ir-0.4-kit-v6\0"
 
 
 class Answers(CamelModel):
@@ -288,6 +288,30 @@ def _compile_color(
     )
 
 
+def _compile_palette_colors(
+    draft: BrandDraft,
+    semantic_colors: dict[str, ColorToken],
+) -> dict[str, ColorToken]:
+    """Preserva cores explicitamente declaradas no manual ou nos tokens DTCG."""
+    known_values = {token.value for token in semantic_colors.values()}
+    palette: dict[str, ColorToken] = {}
+    package_dir = Path(draft.package_dir)
+    for candidate in draft.palette_candidates:
+        try:
+            value = normalize_color(str(candidate.value))
+        except ValueError:
+            continue
+        if value in known_values:
+            continue
+        known_values.add(value)
+        token_id = f"color.palette.{len(palette) + 1:02d}"
+        palette[token_id] = ColorToken(
+            value=value,
+            evidence=[_portable_evidence(item, package_dir) for item in candidate.evidence],
+        )
+    return palette
+
+
 def _compile_font(
     draft: BrandDraft,
     token_id: str,
@@ -335,11 +359,12 @@ def _compile_logo(
     value: Any,
     created_at: datetime,
     *,
+    question_id: str = "logo.primary",
     confirmed: bool = True,
 ) -> LogoAsset:
     """Compila um logo candidato com path portátil, formato e hash do arquivo real."""
     relative = _portable_relative_path(value)
-    candidate = _match_logo(_question(draft, "logo.primary"), relative)
+    candidate = _match_logo(_question(draft, question_id), relative)
     if candidate is None:
         raise CompileError("O logo confirmado precisa ser uma das opções válidas do rascunho.")
     suffix = Path(relative).suffix.casefold().removeprefix(".")
@@ -414,11 +439,26 @@ def _logo_name_appearance(relative: str) -> Literal["dark", "light"] | None:
     return None
 
 
-def _compile_logo_variants(draft: BrandDraft, created_at: datetime) -> dict[str, LogoAsset]:
-    """Publica aliases de contraste apenas para um par claro/escuro inequívoco."""
+def _compile_logo_variants(
+    draft: BrandDraft,
+    answers: Answers,
+    created_at: datetime,
+) -> dict[str, LogoAsset]:
+    """Prioriza variantes confirmadas e usa inferência inequívoca como compatibilidade."""
+    explicit: dict[str, LogoAsset] = {}
+    for token in ("logo.onLight", "logo.onDark"):
+        if token not in answers.values or _question(draft, token) is None:
+            continue
+        explicit[token] = _compile_logo(
+            draft,
+            answers.values[token],
+            created_at,
+            question_id=token,
+        )
+
     question = _question(draft, "logo.primary")
     if question is None:
-        return {}
+        return explicit
     by_appearance: dict[str, list[str]] = {"dark": [], "light": []}
     for candidate in question.candidates:
         if not isinstance(candidate.value, str):
@@ -430,12 +470,22 @@ def _compile_logo_variants(draft: BrandDraft, created_at: datetime) -> dict[str,
         appearance = _logo_appearance(path) or _logo_name_appearance(relative)
         if appearance is not None:
             by_appearance[appearance].append(relative)
-    if len(by_appearance["dark"]) != 1 or len(by_appearance["light"]) != 1:
-        return {}
-    return {
-        "logo.onLight": _compile_logo(draft, by_appearance["dark"][0], created_at, confirmed=False),
-        "logo.onDark": _compile_logo(draft, by_appearance["light"][0], created_at, confirmed=False),
-    }
+    inferred: dict[str, LogoAsset] = {}
+    if len(by_appearance["dark"]) == 1:
+        inferred["logo.onLight"] = _compile_logo(
+            draft,
+            by_appearance["dark"][0],
+            created_at,
+            confirmed=False,
+        )
+    if len(by_appearance["light"]) == 1:
+        inferred["logo.onDark"] = _compile_logo(
+            draft,
+            by_appearance["light"][0],
+            created_at,
+            confirmed=False,
+        )
+    return {**inferred, **explicit}
 
 
 def _portable_evidence_list(items: list[Evidence], package_dir: Path) -> list[Evidence]:
@@ -464,7 +514,8 @@ def _compile_composition_rules(
         matching = [
             token_id
             for token_id, token in colors.items()
-            if token.value.casefold() == declaration.color_value.casefold()
+            if not token_id.startswith("color.palette.")
+            and token.value.casefold() == declaration.color_value.casefold()
         ]
         if len(matching) == 1:
             role_tokens[declaration.role] = matching[0]
@@ -696,6 +747,7 @@ def compile_ir(
                 message="A cor secundária da marca não foi determinada.",
             )
         )
+    colors.update(_compile_palette_colors(draft, colors))
 
     fonts = {
         token_id: _compile_font(
@@ -713,7 +765,7 @@ def compile_ir(
             answers.values["logo.primary"],
             timestamp,
         ),
-        **_compile_logo_variants(draft, timestamp),
+        **_compile_logo_variants(draft, answers, timestamp),
     }
     composition_rules = _compile_composition_rules(draft, colors, assets, diagnostics)
 

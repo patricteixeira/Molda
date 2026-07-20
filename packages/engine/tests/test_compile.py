@@ -6,6 +6,7 @@ import pymupdf
 import pytest
 
 from brand_runtime.intake.compile import Answers, CompileError, compile_ir
+from brand_runtime.intake.base import Candidate
 from brand_runtime.intake.draft import build_draft
 from brand_runtime.intake.pdf_composition import (
     CompositionDeclarations,
@@ -192,6 +193,32 @@ def test_happy_path_produces_valid_ir(brand_package):
     assert "svg-asset" in logo_evidence and "wizard-confirmation" in logo_evidence
 
 
+def test_explicit_manual_palette_remains_available_beyond_semantic_roles(brand_package):
+    draft = build_draft(brand_package)
+    draft.palette_candidates.append(
+        Candidate(
+            value="#7B4AE2",
+            score=1,
+            evidence=[
+                Evidence(
+                    source_type="pdf-guideline",
+                    path=str(brand_package / "manual.pdf"),
+                    page=1,
+                    detail="cor HEX declarada no texto: #7B4AE2",
+                    confidence=0.98,
+                )
+            ],
+        )
+    )
+
+    ir = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
+
+    palette = ir.colors["color.palette.01"]
+    assert palette.value == "#7B4AE2"
+    assert palette.evidence[0].path == "manual.pdf"
+    assert all(item.source_type != "wizard-confirmation" for item in palette.evidence)
+
+
 def test_composition_rules_and_logo_variants_compile_with_precise_provenance(brand_package):
     ir = _composition_ir(brand_package)
 
@@ -240,6 +267,24 @@ def test_composition_rules_and_logo_variants_compile_with_precise_provenance(bra
         for evidence in rules.modes.light.evidence
         if evidence.path is not None
     )
+
+
+def test_confirmed_logo_variants_override_automatic_inference(brand_package):
+    draft = _composition_draft(brand_package)
+    answers = _answers(draft)
+    answers.values["logo.onLight"] = next(
+        question.candidates[0].value
+        for question in draft.questions
+        if question.id == "logo.onLight"
+    )
+    answers.values["logo.onDark"] = next(
+        question.candidates[0].value for question in draft.questions if question.id == "logo.onDark"
+    )
+
+    ir = compile_ir(draft, answers, "ACME", created_at=FIXED)
+
+    for token in ("logo.onLight", "logo.onDark"):
+        assert any(item.source_type == "wizard-confirmation" for item in ir.assets[token].evidence)
 
 
 def test_composition_binds_by_declared_color_value_not_misleading_token_name(brand_package):

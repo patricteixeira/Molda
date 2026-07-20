@@ -138,6 +138,10 @@ export interface Slot {
   textAlign?: "left" | "center" | "right" | null;
   textTransform?: "none" | "uppercase" | null;
   letterSpacingEm?: number | null;
+  fontSizePx?: number | null;
+  fontWeight?: number | null;
+  fontStyle?: "normal" | "italic" | null;
+  lineHeight?: number | null;
   fillMode?: "fill" | "stroke" | null;
   strokeColorToken?: string | null;
   strokeWidthPx?: number | null;
@@ -191,6 +195,32 @@ export interface LayoutSpec {
   slots: Slot[];
   compositionMode?: "light" | "dark" | null;
   lockedLayers?: LockedLayer[] | null;
+  templateRef?: TemplateRef | null;
+  sceneGraph?: SceneGraph | null;
+}
+
+export interface TemplateRef {
+  packageId: string;
+  version: string;
+  compositionId: string;
+  sceneSchemaVersion: "2.0.0";
+}
+
+export interface SceneGroup {
+  id: string;
+  kind: "group" | "frame" | "stack" | "grid";
+  area: [number, number, number, number];
+  children: string[];
+  direction?: "horizontal" | "vertical" | null;
+  gapPx?: number;
+  columns?: number | null;
+  clip?: boolean;
+}
+
+export interface SceneGraph {
+  schemaVersion: "2.0.0";
+  roots: string[];
+  groups: SceneGroup[];
 }
 
 export type SlotValue =
@@ -222,6 +252,8 @@ export interface ContentSpec {
   layoutId: string;
   brandRevisionId: string;
   values: Record<string, SlotValue>;
+  backgroundColorToken?: string | null;
+  assetBindings?: Record<string, string>;
   overrides?: Record<string, LayerOverride>;
   surface?: SurfaceStyle | null;
   addedSlots?: Slot[];

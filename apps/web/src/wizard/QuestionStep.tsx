@@ -22,6 +22,17 @@ function automaticallySuggestedFont(question: DraftQuestion): unknown | null {
   return question.candidates[0]?.value ?? null
 }
 
+function automaticallySuggestedLogoVariant(question: DraftQuestion): unknown | null {
+  if (
+    question.kind !== "confirm-logo" ||
+    !["logo.onLight", "logo.onDark"].includes(question.id) ||
+    (question.recommendedCount ?? 0) < 1
+  ) {
+    return null
+  }
+  return question.candidates[0]?.value ?? null
+}
+
 function validSelection(question: DraftQuestion, value: unknown): boolean {
   if (question.kind !== "review-identity") return value !== null
   if (typeof value !== "object" || value === null) return false
@@ -43,6 +54,12 @@ function instructionForQuestion(question: DraftQuestion): string {
   if (question.kind === "pick-font") {
     return "Compare com os arquivos da marca. Se a fonte certa não aparecer, digite o nome dela."
   }
+  if (question.id === "logo.onLight") {
+    return "Escolha a versão escura ou colorida, feita para continuar visível em fundos claros."
+  }
+  if (question.id === "logo.onDark") {
+    return "Escolha a versão clara, branca ou negativa, feita para continuar visível em fundos escuros."
+  }
   return "Escolha o logo que a marca mais usa."
 }
 
@@ -63,7 +80,9 @@ export function QuestionStep(props: Props) {
   const selected =
     selection?.questionId === question.id
       ? selection.value
-      : storedAnswer ?? automaticallySuggestedFont(question)
+      : storedAnswer ??
+        automaticallySuggestedFont(question) ??
+        automaticallySuggestedLogoVariant(question)
   useEffect(() => {
     const heading = headingRef.current
     heading?.closest(".wizard-bench")?.scrollIntoView?.({ block: "start" })

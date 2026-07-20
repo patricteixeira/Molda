@@ -152,6 +152,10 @@ export interface Slot {
   textAlign?: "left" | "center" | "right"
   textTransform?: "none" | "uppercase"
   letterSpacingEm?: number
+  fontSizePx?: number | null
+  fontWeight?: number | null
+  fontStyle?: "normal" | "italic" | null
+  lineHeight?: number | null
   fillMode?: "fill" | "stroke"
   strokeColorToken?: string | null
   strokeWidthPx?: number | null
@@ -203,6 +207,32 @@ export interface LayoutSpec {
   slots: Slot[]
   compositionMode?: "light" | "dark" | null
   lockedLayers?: LockedLayer[]
+  templateRef?: TemplateRef | null
+  sceneGraph?: SceneGraph | null
+}
+
+export interface TemplateRef {
+  packageId: string
+  version: string
+  compositionId: string
+  sceneSchemaVersion: "2.0.0"
+}
+
+export interface SceneGroup {
+  id: string
+  kind: "group" | "frame" | "stack" | "grid"
+  area: [number, number, number, number]
+  children: string[]
+  direction?: "horizontal" | "vertical" | null
+  gapPx?: number
+  columns?: number | null
+  clip?: boolean
+}
+
+export interface SceneGraph {
+  schemaVersion: "2.0.0"
+  roots: string[]
+  groups: SceneGroup[]
 }
 
 export type SlotValue =
@@ -259,6 +289,8 @@ export interface ContentSpec {
   surface?: SurfaceStyle | null
   addedSlots?: Slot[]
   addedLayers?: ShapeLayer[]
+  backgroundColorToken?: string | null
+  assetBindings?: Record<string, string>
 }
 
 export type SurfaceKind =

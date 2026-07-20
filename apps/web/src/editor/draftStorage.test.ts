@@ -2,6 +2,8 @@ import { expect, it } from "vitest"
 import type { LayoutSpec } from "../api/types"
 import { clearEditorDraft, loadEditorDraft, saveEditorDraft } from "./draftStorage"
 
+const v5Defaults = { backgroundColorToken: null, assetBindings: {} }
+
 const layout: LayoutSpec = {
   id: "folder-a4",
   profile: "document-a4",
@@ -44,6 +46,7 @@ it("salva e reabre o conteúdo do folder", () => {
     surface: null,
     addedSlots: [],
     addedLayers: [],
+    ...v5Defaults,
   })
 })
 
@@ -65,6 +68,7 @@ it("preserva ajustes visuais por camada", () => {
     surface: null,
     addedSlots: [],
     addedLayers: [],
+    ...v5Defaults,
   })
 })
 
@@ -84,6 +88,7 @@ it("preserva a superfície procedural aplicada", () => {
     surface,
     addedSlots: [],
     addedLayers: [],
+    ...v5Defaults,
   })
 })
 
@@ -128,6 +133,69 @@ it("preserva elementos adicionados como parte editável da peça", () => {
     surface: null,
     addedSlots,
     addedLayers,
+    ...v5Defaults,
+  })
+})
+
+it("preserva fundo global e versão de logo por slot no rascunho v5", () => {
+  const layoutWithLogo: LayoutSpec = {
+    ...layout,
+    slots: [
+      ...layout.slots,
+      {
+        id: "logo",
+        kind: "logo",
+        area: [640, 920, 96, 96],
+        fit: "fixed",
+        required: false,
+      },
+    ],
+  }
+
+  expect(
+    saveEditorDraft(
+      "brandrev_v5",
+      layoutWithLogo.id,
+      { title: { kind: "text", text: "Fundo e marca escolhidos" } },
+      {},
+      null,
+      [],
+      [],
+      "color.primary",
+      { logo: "logo.onDark" },
+    ),
+  ).toBe(true)
+  expect(loadEditorDraft("brandrev_v5", layoutWithLogo)).toEqual({
+    values: { title: { kind: "text", text: "Fundo e marca escolhidos" } },
+    overrides: {},
+    surface: null,
+    addedSlots: [],
+    addedLayers: [],
+    backgroundColorToken: "color.primary",
+    assetBindings: { logo: "logo.onDark" },
+  })
+})
+
+it("migra rascunho v4 sem inventar fundo nem binding de asset", () => {
+  window.localStorage.setItem(
+    "brand-runtime:editor-draft:v1:brandrev_v4:folder-a4",
+    JSON.stringify({
+      version: 4,
+      values: { title: { kind: "text", text: "Rascunho anterior" } },
+      overrides: {},
+      surface: null,
+      addedSlots: [],
+      addedLayers: [],
+    }),
+  )
+
+  expect(loadEditorDraft("brandrev_v4", layout)).toEqual({
+    values: { title: { kind: "text", text: "Rascunho anterior" } },
+    overrides: {},
+    surface: null,
+    addedSlots: [],
+    addedLayers: [],
+    ...v5Defaults,
   })
 })
 
@@ -145,6 +213,7 @@ it("isola o rascunho por revisão e por peça", () => {
     surface: null,
     addedSlots: [],
     addedLayers: [],
+    ...v5Defaults,
   })
   expect(loadEditorDraft("brandrev_1", { ...layout, id: "outro-folder" })).toEqual({
     values: {},
@@ -152,6 +221,7 @@ it("isola o rascunho por revisão e por peça", () => {
     surface: null,
     addedSlots: [],
     addedLayers: [],
+    ...v5Defaults,
   })
 })
 
@@ -173,6 +243,7 @@ it("ignora dados corrompidos, slots desconhecidos e valores incompatíveis", () 
     surface: null,
     addedSlots: [],
     addedLayers: [],
+    ...v5Defaults,
   })
 })
 
@@ -191,5 +262,6 @@ it("remove o rascunho ao limpar a peça", () => {
     surface: null,
     addedSlots: [],
     addedLayers: [],
+    ...v5Defaults,
   })
 })

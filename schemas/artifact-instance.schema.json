@@ -1,5 +1,217 @@
 {
   "$defs": {
+    "ArtifactValue": {
+      "additionalProperties": false,
+      "description": "Valor acompanhado de seu estado de verdade e proveniência legível.",
+      "properties": {
+        "status": {
+          "enum": [
+            "confirmed",
+            "derived",
+            "placeholder",
+            "missing"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextValue"
+            },
+            {
+              "$ref": "#/$defs/ImageValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "sourcePt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourcept"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "ArtifactValue",
+      "type": "object"
+    },
+    "AssetLayer": {
+      "additionalProperties": false,
+      "description": "Asset imutável do Brand IR posicionado pelo layout.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "asset",
+          "default": "asset",
+          "title": "Kind",
+          "type": "string"
+        },
+        "assetToken": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Assettoken",
+          "type": "string"
+        },
+        "area": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            }
+          ],
+          "title": "Area",
+          "type": "array"
+        },
+        "fit": {
+          "default": "contain",
+          "enum": [
+            "contain",
+            "cover"
+          ],
+          "title": "Fit",
+          "type": "string"
+        },
+        "opacity": {
+          "default": 1.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Opacity",
+          "type": "number"
+        },
+        "zIndex": {
+          "default": 0,
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Zindex",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "assetToken",
+        "area"
+      ],
+      "title": "AssetLayer",
+      "type": "object"
+    },
+    "Background": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "color"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "colorToken": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "colorToken"
+            ]
+          }
+        }
+      ],
+      "description": "Fundo sólido por token de cor ou fornecido por um slot de imagem.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "color",
+            "image-slot"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "colorToken": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": ".*\\S.*",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Colortoken"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Background",
+      "type": "object"
+    },
+    "Canvas": {
+      "additionalProperties": false,
+      "description": "Dimensões e margem segura de um perfil de saída, em pixels.",
+      "properties": {
+        "widthPx": {
+          "exclusiveMinimum": 0,
+          "title": "Widthpx",
+          "type": "integer"
+        },
+        "heightPx": {
+          "exclusiveMinimum": 0,
+          "title": "Heightpx",
+          "type": "integer"
+        },
+        "safeAreaPx": {
+          "minimum": 0,
+          "title": "Safeareapx",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "widthPx",
+        "heightPx",
+        "safeAreaPx"
+      ],
+      "title": "Canvas",
+      "type": "object"
+    },
     "ImageValue": {
       "additionalProperties": false,
       "description": "Imagem fornecida para um slot, opcionalmente acompanhada de seu hash.",
@@ -318,6 +530,487 @@
         }
       },
       "title": "LayerOverride",
+      "type": "object"
+    },
+    "LayoutSpec": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "profile": {
+                "const": "post-1x1"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "canvas": {
+                "properties": {
+                  "widthPx": {
+                    "const": 1080
+                  },
+                  "heightPx": {
+                    "const": 1080
+                  },
+                  "safeAreaPx": {
+                    "const": 48
+                  }
+                },
+                "required": [
+                  "widthPx",
+                  "heightPx",
+                  "safeAreaPx"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "profile": {
+                "const": "post-4x5"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "canvas": {
+                "properties": {
+                  "widthPx": {
+                    "const": 1080
+                  },
+                  "heightPx": {
+                    "const": 1350
+                  },
+                  "safeAreaPx": {
+                    "const": 48
+                  }
+                },
+                "required": [
+                  "widthPx",
+                  "heightPx",
+                  "safeAreaPx"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "profile": {
+                "const": "story-9x16"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "canvas": {
+                "properties": {
+                  "widthPx": {
+                    "const": 1080
+                  },
+                  "heightPx": {
+                    "const": 1920
+                  },
+                  "safeAreaPx": {
+                    "const": 64
+                  }
+                },
+                "required": [
+                  "widthPx",
+                  "heightPx",
+                  "safeAreaPx"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "profile": {
+                "const": "doc-a4"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "canvas": {
+                "properties": {
+                  "widthPx": {
+                    "const": 794
+                  },
+                  "heightPx": {
+                    "const": 1123
+                  },
+                  "safeAreaPx": {
+                    "const": 76
+                  }
+                },
+                "required": [
+                  "widthPx",
+                  "heightPx",
+                  "safeAreaPx"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "description": "Layout declarativo adaptado para um dos perfis publicados pelo motor.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Id",
+          "type": "string"
+        },
+        "profile": {
+          "enum": [
+            "post-1x1",
+            "post-4x5",
+            "story-9x16",
+            "doc-a4"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "namePt": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Namept",
+          "type": "string"
+        },
+        "canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "background": {
+          "$ref": "#/$defs/Background"
+        },
+        "slots": {
+          "items": {
+            "$ref": "#/$defs/Slot"
+          },
+          "title": "Slots",
+          "type": "array"
+        },
+        "compositionMode": {
+          "anyOf": [
+            {
+              "enum": [
+                "light",
+                "dark"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Compositionmode"
+        },
+        "lockedLayers": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "asset": "#/$defs/AssetLayer",
+                "motif": "#/$defs/MotifLayer",
+                "shape": "#/$defs/ShapeLayer"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ShapeLayer"
+              },
+              {
+                "$ref": "#/$defs/MotifLayer"
+              },
+              {
+                "$ref": "#/$defs/AssetLayer"
+              }
+            ]
+          },
+          "title": "Lockedlayers",
+          "type": "array"
+        },
+        "templateRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemplateRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sceneGraph": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SceneGraph"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "profile",
+        "namePt",
+        "canvas",
+        "background",
+        "slots"
+      ],
+      "title": "LayoutSpec",
+      "type": "object"
+    },
+    "MotifLayer": {
+      "additionalProperties": false,
+      "description": "Aplicação fixa de um motivo pertencente ao vocabulário do Brand IR.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "motif",
+          "default": "motif",
+          "title": "Kind",
+          "type": "string"
+        },
+        "motif": {
+          "const": "diagonal-lines",
+          "title": "Motif",
+          "type": "string"
+        },
+        "area": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            }
+          ],
+          "title": "Area",
+          "type": "array"
+        },
+        "colorToken": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Colortoken",
+          "type": "string"
+        },
+        "opacity": {
+          "default": 1.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Opacity",
+          "type": "number"
+        },
+        "strokeWidthPx": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 20.0,
+          "title": "Strokewidthpx",
+          "type": "number"
+        },
+        "spacingPx": {
+          "exclusiveMinimum": 0.0,
+          "maximum": 256.0,
+          "title": "Spacingpx",
+          "type": "number"
+        },
+        "zIndex": {
+          "default": 0,
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Zindex",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "motif",
+        "area",
+        "colorToken",
+        "strokeWidthPx",
+        "spacingPx"
+      ],
+      "title": "MotifLayer",
+      "type": "object"
+    },
+    "SceneGraph": {
+      "additionalProperties": false,
+      "description": "Estrutura v2 preservada junto ao layout plano compilado.",
+      "properties": {
+        "schemaVersion": {
+          "const": "2.0.0",
+          "default": "2.0.0",
+          "title": "Schemaversion",
+          "type": "string"
+        },
+        "roots": {
+          "items": {
+            "minLength": 1,
+            "pattern": ".*\\S.*",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Roots",
+          "type": "array"
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/SceneGroup"
+          },
+          "minItems": 1,
+          "title": "Groups",
+          "type": "array"
+        }
+      },
+      "required": [
+        "roots",
+        "groups"
+      ],
+      "title": "SceneGraph",
+      "type": "object"
+    },
+    "SceneGroup": {
+      "additionalProperties": false,
+      "description": "Relação estrutural compilada sobre os elementos planos do LayoutSpec v1.\n\nA geometria continua absoluta no contrato legado para manter preview, edição e\nexportação determinísticos. O grupo registra intenção e relações sem duplicar\nos slots/camadas que já são a fonte renderizável.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "group",
+            "frame",
+            "stack",
+            "grid"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "area": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            }
+          ],
+          "title": "Area",
+          "type": "array"
+        },
+        "children": {
+          "items": {
+            "minLength": 1,
+            "pattern": ".*\\S.*",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Children",
+          "type": "array"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direction"
+        },
+        "gapPx": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Gappx",
+          "type": "integer"
+        },
+        "columns": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Columns"
+        },
+        "clip": {
+          "default": false,
+          "title": "Clip",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "area",
+        "children"
+      ],
+      "title": "SceneGroup",
       "type": "object"
     },
     "ShapeLayer": {
@@ -805,6 +1498,42 @@
       "title": "SurfaceStyle",
       "type": "object"
     },
+    "TemplateRef": {
+      "additionalProperties": false,
+      "description": "Identidade imutável do template que originou um layout compilado.",
+      "properties": {
+        "packageId": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Packageid",
+          "type": "string"
+        },
+        "version": {
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Version",
+          "type": "string"
+        },
+        "compositionId": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Compositionid",
+          "type": "string"
+        },
+        "sceneSchemaVersion": {
+          "const": "2.0.0",
+          "default": "2.0.0",
+          "title": "Sceneschemaversion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "packageId",
+        "version",
+        "compositionId"
+      ],
+      "title": "TemplateRef",
+      "type": "object"
+    },
     "TextValue": {
       "additionalProperties": false,
       "description": "Conteúdo textual fornecido para um slot.",
@@ -842,13 +1571,22 @@
     }
   },
   "additionalProperties": false,
-  "description": "Conteúdo de uma peça ligado a um layout e a uma revisão de marca.",
+  "description": "Snapshot autocontido e reabrível de uma composição publicada.",
   "properties": {
-    "layoutId": {
+    "schemaVersion": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
       "minLength": 1,
       "pattern": ".*\\S.*",
-      "title": "Layoutid",
+      "title": "Id",
       "type": "string"
+    },
+    "templateRef": {
+      "$ref": "#/$defs/TemplateRef"
     },
     "brandRevisionId": {
       "minLength": 1,
@@ -856,16 +1594,22 @@
       "title": "Brandrevisionid",
       "type": "string"
     },
+    "sceneSnapshot": {
+      "$ref": "#/$defs/LayoutSpec"
+    },
+    "sceneHash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scenehash",
+      "type": "string"
+    },
     "values": {
-      "additionalProperties": {
-        "anyOf": [
-          {
-            "$ref": "#/$defs/TextValue"
-          },
-          {
-            "$ref": "#/$defs/ImageValue"
-          }
-        ]
+      "patternProperties": {
+        ".*\\S.*": {
+          "$ref": "#/$defs/ArtifactValue"
+        }
+      },
+      "propertyNames": {
+        "minLength": 1
       },
       "title": "Values",
       "type": "object"
@@ -884,6 +1628,18 @@
       "default": null,
       "title": "Backgroundcolortoken"
     },
+    "overrides": {
+      "patternProperties": {
+        ".*\\S.*": {
+          "$ref": "#/$defs/LayerOverride"
+        }
+      },
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Overrides",
+      "type": "object"
+    },
     "assetBindings": {
       "patternProperties": {
         ".*\\S.*": {
@@ -898,12 +1654,15 @@
       "title": "Assetbindings",
       "type": "object"
     },
-    "overrides": {
-      "additionalProperties": {
-        "$ref": "#/$defs/LayerOverride"
-      },
-      "title": "Overrides",
-      "type": "object"
+    "locale": {
+      "default": "pt-BR",
+      "enum": [
+        "pt-BR",
+        "en",
+        "unknown"
+      ],
+      "title": "Locale",
+      "type": "string"
     },
     "surface": {
       "anyOf": [
@@ -932,10 +1691,13 @@
     }
   },
   "required": [
-    "layoutId",
+    "id",
+    "templateRef",
     "brandRevisionId",
+    "sceneSnapshot",
+    "sceneHash",
     "values"
   ],
-  "title": "ContentSpec",
+  "title": "ArtifactInstance",
   "type": "object"
 }

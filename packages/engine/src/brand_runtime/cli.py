@@ -405,7 +405,7 @@ def schemas_command(
         if out_dir.exists() and not out_dir.is_dir():
             raise CliInputError(f"O destino «{out_dir}» não é um diretório.")
         paths = export_schemas(out_dir)
-        if len(paths) != 12:
+        if len(paths) != 15:
             raise CliInputError("A publicação de schemas não produziu os contratos esperados.")
     except _EXPECTED_ERRORS as error:
         _fail(error)

@@ -8,13 +8,55 @@ def test_get_ir_verbatim(client, compiled):
     assert "color.primary" in ir["colors"]
 
 
-def test_get_kit_dez_layouts(client, compiled):
+def test_get_kit_treze_layouts(client, compiled):
     response = client.get(f"/v1/brand-revisions/{compiled['brandRevisionId']}/kit")
     assert response.status_code == 200
     kit = response.json()
-    assert len(kit) == 10
-    assert len({layout["id"] for layout in kit}) == 10
+    assert len(kit) == 13
+    assert len({layout["id"] for layout in kit}) == 13
     assert all("canvas" in layout and "slots" in layout for layout in kit)
+
+
+def test_catalogo_versionado_aparece_em_revisao_legada_sem_mudar_snapshot(client, compiled):
+    from brand_api.models import BrandRevision
+
+    revision_id = compiled["brandRevisionId"]
+    with client.app.state.session_factory() as session:
+        revision = session.get(BrandRevision, revision_id)
+        revision.kit = [
+            layout for layout in revision.kit if not layout["id"].startswith("typographic-")
+        ]
+        session.commit()
+        assert len(revision.kit) == 10
+
+    response = client.get(f"/v1/brand-revisions/{revision_id}/kit")
+    assert response.status_code == 200
+    assert len(response.json()) == 13
+    assert response.json()[10]["templateRef"] == {
+        "packageId": "typographic-editorial",
+        "version": "1.0.0",
+        "compositionId": "typographic-ledger-post-4x5",
+        "sceneSchemaVersion": "2.0.0",
+    }
+
+    document = client.post(
+        "/v1/documents",
+        json={
+            "layoutId": "typographic-ledger-post-4x5",
+            "brandRevisionId": revision_id,
+            "values": {
+                "kicker": {"kind": "text", "text": "Sistema visual em uso"},
+                "signature": {"kind": "text", "text": "@sua-marca"},
+                "index": {"kind": "text", "text": "1"},
+                "headline": {"kind": "text", "text": "Forma também é argumento."},
+                "body": {"kind": "text", "text": "Estrutura para uma mensagem clara."},
+            },
+        },
+    )
+    assert document.status_code == 201, document.text
+
+    with client.app.state.session_factory() as session:
+        assert len(session.get(BrandRevision, revision_id).kit) == 10
 
 
 def test_get_asset_do_pacote_sanitizado(client, compiled):

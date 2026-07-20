@@ -32,6 +32,7 @@ from brand_runtime.kit.models import (
     ContentSpec,
     LayerOverride,
     LayoutSpec,
+    ShapeLayer,
     Slot,
     SURFACE_KINDS,
     SurfaceStyle,
@@ -285,6 +286,76 @@ def test_pptx_template_fill_preserves_native_structure_and_source(
     assert shapes["logo"].kind == "picture"
 
 
+def test_pptx_uses_instance_background_and_logo_binding(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    secondary_path = tmp_path / "logo-secondary.png"
+    Image.new("RGBA", (180, 180), "#D4A72C").save(secondary_path, compress_level=0)
+    secondary_digest = hashlib.sha256(secondary_path.read_bytes()).hexdigest()
+    branded = native_brand.model_copy(deep=True)
+    branded.assets["logo.secondary"] = LogoAsset(
+        path=str(secondary_path),
+        sha256=secondary_digest,
+        format="png",
+        evidence=branded.assets["logo.primary"].evidence,
+    )
+    layout, content = slide_contracts
+    instance = content.model_copy(deep=True)
+    instance.background_color_token = "color.primary"
+    instance.asset_bindings = {"logo": "logo.secondary"}
+
+    output = _render_pptx(
+        tmp_path,
+        pptx_template,
+        branded,
+        (layout, instance),
+        "instance-bindings.pptx",
+    )
+
+    presentation = Presentation(output)
+    slide = presentation.slides[0]
+    assert str(slide.background.fill.fore_color.rgb) == "173F2C"
+    logo = next(shape for shape in slide.shapes if shape.name == "br:logo:logo")
+    assert hashlib.sha256(logo.image.blob).hexdigest() == secondary_digest
+
+
+def test_pptx_selects_logo_variant_from_effective_background(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    branded = native_brand.model_copy(deep=True)
+    for token, color in (("logo.onLight", "#151515"), ("logo.onDark", "#FAFAFA")):
+        path = tmp_path / f"{token}.png"
+        Image.new("RGBA", (180, 180), color).save(path, compress_level=0)
+        branded.assets[token] = LogoAsset(
+            path=str(path),
+            sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            format="png",
+            evidence=branded.assets["logo.primary"].evidence,
+        )
+    layout, content = slide_contracts
+    instance = content.model_copy(deep=True)
+    instance.background_color_token = "color.primary"
+
+    output = _render_pptx(
+        tmp_path,
+        pptx_template,
+        branded,
+        (layout, instance),
+        "automatic-logo-variant.pptx",
+    )
+
+    logo = next(
+        shape for shape in Presentation(output).slides[0].shapes if shape.name == "br:logo:logo"
+    )
+    assert hashlib.sha256(logo.image.blob).hexdigest() == branded.assets["logo.onDark"].sha256
+
+
 def test_pptx_applies_editor_geometry_typography_and_opacity_overrides(
     tmp_path,
     pptx_template,
@@ -350,6 +421,52 @@ def test_pptx_applies_editor_geometry_typography_and_opacity_overrides(
     assert surface.shape_type == 13
     assert surface.width == presentation.slide_width
     assert not [item for item in validate_ooxml(output) if item.blocking]
+
+
+def test_pptx_preserves_template_typography_and_shape_layers_as_editable_objects(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    layout, content = slide_contracts
+    authored_layout = layout.model_copy(deep=True)
+    headline = next(slot for slot in authored_layout.slots if slot.id == "headline")
+    headline.font_size_px = 128
+    headline.font_weight = 800
+    headline.font_style = "italic"
+    headline.line_height = 0.9
+    headline.text_align = "center"
+    authored_layout.locked_layers = [
+        ShapeLayer(
+            id="template-field",
+            shape="rectangle",
+            area=(40, 120, 960, 720),
+            color_token="color.secondary",
+            opacity=0.18,
+            z_index=0,
+        )
+    ]
+
+    output = _render_pptx(
+        tmp_path,
+        pptx_template,
+        native_brand,
+        (authored_layout, content),
+        "template-style.pptx",
+    )
+    presentation = Presentation(output)
+    slide = presentation.slides[0]
+    title = next(shape for shape in slide.shapes if shape.name == "br:heading:headline")
+    field = next(shape for shape in slide.shapes if shape.name == "br:layer:template-field")
+    run = title.text_frame.paragraphs[0].runs[0]
+
+    assert run.font.size.pt == pytest.approx(96)
+    assert run.font.bold is True
+    assert run.font.italic is True
+    assert title.text_frame.paragraphs[0].alignment == 2
+    assert str(field.fill.fore_color.rgb) == "D4A72C"
+    assert field._element.xpath(".//a:alpha")[0].get("val") == "18000"
 
 
 @pytest.mark.parametrize("kind", SURFACE_KINDS)

@@ -73,7 +73,11 @@ function seedElements(
   brand: BrandIr | null,
   brandName: string,
 ): { slots: Slot[]; layers: ShapeLayer[]; values: Record<string, ContentValue> } {
-  if (layout.profile === "doc-a4" || layout.id.startsWith("editorial-")) {
+  if (
+    layout.profile === "doc-a4" ||
+    layout.id.startsWith("editorial-") ||
+    layout.templateRef != null
+  ) {
     return { slots: [], layers: [], values: {} }
   }
 
@@ -180,6 +184,7 @@ export function placeholderContent(
   const { name: brandName, ir } = brandData(brand)
   const values: Record<string, ContentValue> = {}
   const closure = layout.id.startsWith("editorial-closure-")
+  const legacyEditorial = layout.id.startsWith("editorial-")
   const isEditorial =
     layout.compositionMode != null ||
     (layout.lockedLayers?.length ?? 0) > 0 ||
@@ -221,7 +226,7 @@ export function placeholderContent(
       signature: handleFor(brandName),
     }
     const sample =
-      (!closure && isEditorial ? editorialBySlot[slot.id] : undefined) ??
+      (!closure && legacyEditorial ? editorialBySlot[slot.id] : undefined) ??
       bySlot[slot.id] ??
       roleFallback(slot.role, brandName)
     const text = slot.maxChars == null ? sample : excerpt(sample, sample, slot.maxChars)
@@ -238,7 +243,7 @@ export function placeholderContent(
 
   const seeded = seedElements(layout, ir, brandName)
   Object.assign(values, seeded.values)
-  const direction = ir ? directionApplication(ir, layout) : null
+  const direction = ir && layout.templateRef == null ? directionApplication(ir, layout) : null
   const overrides = {
     ...(closure ? { tagline: { fontSizePx: 42, fontStyle: "italic" as const, lineHeight: 1.15 } } : {}),
     ...(direction?.patches ?? {}),

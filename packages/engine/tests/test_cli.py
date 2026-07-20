@@ -69,7 +69,7 @@ def test_engine_walking_skeleton(brand_package, tmp_path):
     kit_dir = tmp_path / "kit"
     result = runner.invoke(app, ["kit", str(ir_p), "--out-dir", str(kit_dir)])
     assert result.exit_code == 0, result.output
-    assert len(list(kit_dir.glob("*.json"))) == 10
+    assert len(list(kit_dir.glob("*.json"))) == 13
     for layout_path in kit_dir.glob("*.json"):
         LayoutSpec.model_validate_json(layout_path.read_text(encoding="utf-8"))
 
@@ -160,6 +160,9 @@ def test_schemas_exports_all_published_contracts(tmp_path):
         "brand-ir.schema.json",
         "layout-spec.schema.json",
         "content-spec.schema.json",
+        "style-system-ir.schema.json",
+        "template-package.schema.json",
+        "artifact-instance.schema.json",
         "guard-verdict.schema.json",
         "document-graph.schema.json",
         "roundtrip-report.schema.json",

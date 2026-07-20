@@ -25,6 +25,10 @@ interface SlotFormProps {
   surface: SurfaceStyle | null
   onSurfaceChange(surface: SurfaceStyle | null): void
   onApplyDirection(): void
+  backgroundColorToken: string | null
+  onBackgroundColorChange(colorToken: string | null): void
+  assetBindings: Record<string, string>
+  onAssetBindingChange(slotId: string, assetToken: string | null): void
   disabled?: boolean
   onUploadingChange?(uploading: boolean): void
 }
@@ -43,6 +47,23 @@ function numberValue(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function humanizeToken(token: string, prefix: string): string {
+  const standardLabels: Record<string, string> = {
+    "color.primary": "Principal",
+    "color.secondary": "Secundária",
+    "color.background": "Fundo",
+    "color.text": "Texto",
+    "logo.primary": "Principal",
+    "logo.onLight": "Para fundo claro",
+    "logo.onDark": "Para fundo escuro",
+  }
+  const known = standardLabels[token]
+  if (known) return known
+  const raw = token.startsWith(prefix) ? token.slice(prefix.length) : token
+  const words = raw.replace(/([a-zà-ÿ])([A-ZÀ-Ý])/g, "$1 $2").replace(/[._-]+/g, " ").trim()
+  return words ? `${words.charAt(0).toLocaleUpperCase("pt-BR")}${words.slice(1)}` : token
+}
+
 export function SlotForm({
   brandIr,
   layout,
@@ -55,6 +76,10 @@ export function SlotForm({
   surface,
   onSurfaceChange,
   onApplyDirection,
+  backgroundColorToken,
+  onBackgroundColorChange,
+  assetBindings,
+  onAssetBindingChange,
   disabled = false,
   onUploadingChange,
 }: SlotFormProps): JSX.Element {
@@ -81,6 +106,48 @@ export function SlotForm({
   const reportUploading = (): void => {
     onUploadingChangeRef.current?.(activeUploadsRef.current.size > 0)
   }
+
+  const modelBackgroundToken =
+    layout.background.kind === "color" ? (layout.background.colorToken ?? null) : null
+  const activeBackgroundToken = backgroundColorToken ?? modelBackgroundToken
+  const backgroundPanel = (
+    <section className="inspector-section canvas-background-panel">
+      <div className="canvas-background-heading">
+        <div>
+          <h3>Fundo da peça</h3>
+          <p className="field-guidance">A troca vale para toda a peça.</p>
+        </div>
+        <button
+          type="button"
+          className="canvas-background-reset"
+          disabled={disabled || backgroundColorToken === null}
+          onClick={() => onBackgroundColorChange(null)}
+        >
+          Usar o modelo
+        </button>
+      </div>
+      <div className="canvas-color-grid" role="group" aria-label="Cor de fundo da peça">
+        {Object.entries(brandIr.colors).map(([token, color]) => (
+          <button
+            key={token}
+            type="button"
+            className="canvas-color-option"
+            aria-label={`${humanizeToken(token, "color.")}, ${color.value}`}
+            aria-pressed={activeBackgroundToken === token}
+            data-active={activeBackgroundToken === token || undefined}
+            disabled={disabled}
+            onClick={() => onBackgroundColorChange(token)}
+          >
+            <span className="canvas-color-swatch" style={{ backgroundColor: color.value }} />
+            <span>
+              <b>{humanizeToken(token, "color.")}</b>
+              <small>{color.value}</small>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
 
   const handleImage = async (slotId: string, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0]
@@ -126,6 +193,7 @@ export function SlotForm({
           onSurfaceChange={onSurfaceChange}
           onApplyDirection={onApplyDirection}
         />
+        {backgroundPanel}
         <p className="inspector-empty">Escolha um item na peça ou na lista.</p>
       </aside>
     )
@@ -374,6 +442,7 @@ export function SlotForm({
         onSurfaceChange={onSurfaceChange}
         onApplyDirection={onApplyDirection}
       />
+      {backgroundPanel}
       <div className="panel-heading inspector-heading">
         <div>
           <p className="panel-kicker">Ajustes</p>
@@ -400,6 +469,44 @@ export function SlotForm({
           {uploadState.phase === "uploading" ? <p role="status">Enviando imagem…</p> : null}
           {uploadState.phase === "ready" ? <p role="status">Foto pronta.</p> : null}
           {uploadState.phase === "error" ? <p role="alert">{uploadState.message}</p> : null}
+        </section>
+      ) : null}
+
+      {element.kind === "logo" ? (
+        <section className="inspector-section logo-binding-panel">
+          <h3>Versão da marca</h3>
+          <label htmlFor={`slot-logo-binding-${element.id}`}>
+            <span>Logo usada neste item</span>
+            <select
+              id={`slot-logo-binding-${element.id}`}
+              data-testid={`slot-logo-binding-${element.id}`}
+              value={assetBindings[element.id] ?? ""}
+              disabled={disabled}
+              onChange={(event) =>
+                onAssetBindingChange(element.id, event.currentTarget.value || null)
+              }
+            >
+              <option value="">Automático para o fundo</option>
+              {Object.keys(brandIr.assets)
+                .filter((token) => token.startsWith("logo."))
+                .sort((left, right) => left.localeCompare(right))
+                .map((token) => (
+                  <option key={token} value={token}>
+                    {humanizeToken(token, "logo.")}
+                  </option>
+                ))}
+            </select>
+          </label>
+          {"logo.onLight" in brandIr.assets && "logo.onDark" in brandIr.assets ? (
+            <p className="field-guidance">
+              No modo automático, o Molda escolhe a versão adequada à cor do fundo.
+            </p>
+          ) : (
+            <p className="field-guidance field-guidance-warning">
+              Esta revisão tem apenas uma versão do logo. Para alternar com segurança, instale a
+              marca novamente com as versões para fundo claro e escuro.
+            </p>
+          )}
         </section>
       ) : null}
 

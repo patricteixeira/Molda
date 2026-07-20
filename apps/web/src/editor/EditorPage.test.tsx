@@ -114,8 +114,10 @@ it("permite restaurar a composição inicial da peça", async () => {
   expect(screen.getByTestId("slot-input-headline")).toHaveValue("ACME em movimento.")
   await waitFor(() =>
     expect(JSON.parse(window.localStorage.getItem(key) ?? "{}")).toMatchObject({
-      version: 4,
+      version: 5,
       values: { headline: { kind: "text", text: "ACME em movimento." } },
+      backgroundColorToken: null,
+      assetBindings: {},
     }),
   )
 })
@@ -394,6 +396,52 @@ it("slot de logo não vira campo de formulário", async () => {
   await screen.findByTestId("slot-input-headline")
   expect(screen.queryByTestId("slot-input-logo")).not.toBeInTheDocument()
   expect(screen.queryByTestId("slot-image-input-logo")).not.toBeInTheDocument()
+})
+
+it("troca o fundo por qualquer cor da marca e permite voltar ao modelo", async () => {
+  renderEditor(kitClient())
+  await screen.findByTestId("slot-input-headline")
+
+  const colorChoices = screen.getByRole("group", { name: "Cor de fundo da peça" })
+  expect(within(colorChoices).getAllByRole("button")).toHaveLength(
+    Object.keys(FAKE_IR.colors).length,
+  )
+  await userEvent.click(within(colorChoices).getByRole("button", { name: "Principal, #1A4D8F" }))
+  await waitFor(() =>
+    expect(lastPayload().contentSpec.backgroundColorToken).toBe("color.primary"),
+  )
+  expect(within(colorChoices).getByRole("button", { name: "Principal, #1A4D8F" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  )
+
+  await userEvent.click(screen.getByRole("button", { name: "Usar o modelo" }))
+  await waitFor(() => expect(lastPayload().contentSpec.backgroundColorToken).toBeNull())
+  expect(within(colorChoices).getByRole("button", { name: "Fundo, #FFFFFF" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  )
+})
+
+it("permite escolher uma variante de logo por slot e restaurar o automático", async () => {
+  renderEditor(kitClient())
+  await screen.findByTestId("slot-input-headline")
+  await userEvent.click(screen.getByRole("button", { name: "Logo" }))
+
+  const selector = screen.getByRole("combobox", { name: "Logo usada neste item" })
+  expect(selector).toHaveValue("")
+  expect(
+    within(selector).getByRole("option", { name: "Automático para o fundo" }),
+  ).toBeInTheDocument()
+  expect(within(selector).getByRole("option", { name: "Principal" })).toBeInTheDocument()
+  expect(within(selector).getByRole("option", { name: "Para fundo claro" })).toBeInTheDocument()
+
+  await userEvent.selectOptions(selector, "logo.onLight")
+  await waitFor(() =>
+    expect(lastPayload().contentSpec.assetBindings).toEqual({ logo: "logo.onLight" }),
+  )
+  await userEvent.selectOptions(selector, "")
+  await waitFor(() => expect(lastPayload().contentSpec.assetBindings).toEqual({}))
 })
 
 it("expõe os controles gráficos completos pedidos para a camada de texto", async () => {

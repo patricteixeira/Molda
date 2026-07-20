@@ -8,8 +8,10 @@ import type {
   LockedLayer,
   Payload,
   Profile,
+  SceneGraph,
   Slot,
   SlotValue,
+  TemplateRef,
 } from "./types";
 import { SURFACE_KINDS } from "./types";
 
@@ -31,6 +33,7 @@ const MAX_Z_INDEX = 20;
 const MAX_STROKE_WIDTH_PX = 20;
 const MAX_LAYER_SPACING_PX = 256;
 const MAX_EDITOR_AREA_PX = 32_768;
+const MAX_SCENE_GROUPS = 64;
 const SURFACE_KIND_SET = new Set<string>(SURFACE_KINDS);
 const MIN_LETTER_SPACING_EM = -0.1;
 const MAX_LETTER_SPACING_EM = 0.5;
@@ -577,6 +580,114 @@ function validateBackground(raw: unknown, colors: BrandIr["colors"]): Background
   return raw as Background;
 }
 
+function validateTemplateRef(raw: unknown): TemplateRef {
+  const reference = record(raw, "layoutSpec.templateRef");
+  onlyFields(
+    reference,
+    ["packageId", "version", "compositionId", "sceneSchemaVersion"],
+    "layoutSpec.templateRef",
+  );
+  nonEmptyString(reference.packageId, "layoutSpec.templateRef.packageId");
+  const version = nonEmptyString(reference.version, "layoutSpec.templateRef.version");
+  if (!/^\d+\.\d+\.\d+$/.test(version)) invalid("layoutSpec.templateRef.version é inválida.");
+  nonEmptyString(reference.compositionId, "layoutSpec.templateRef.compositionId");
+  if (reference.sceneSchemaVersion !== "2.0.0") {
+    invalid("layoutSpec.templateRef.sceneSchemaVersion é incompatível.");
+  }
+  return raw as TemplateRef;
+}
+
+function validateSceneGraph(raw: unknown, canvas: Canvas, elementIds: Set<string>): SceneGraph {
+  const scene = record(raw, "layoutSpec.sceneGraph");
+  onlyFields(scene, ["schemaVersion", "roots", "groups"], "layoutSpec.sceneGraph");
+  if (scene.schemaVersion !== "2.0.0") invalid("layoutSpec.sceneGraph.schemaVersion é inválida.");
+  if (!Array.isArray(scene.roots) || scene.roots.length === 0) {
+    invalid("layoutSpec.sceneGraph.roots precisa conter ao menos uma raiz.");
+  }
+  if (!Array.isArray(scene.groups) || scene.groups.length === 0) {
+    invalid("layoutSpec.sceneGraph.groups precisa conter ao menos um grupo.");
+  }
+  if (scene.groups.length > MAX_SCENE_GROUPS) {
+    invalid(`layoutSpec.sceneGraph.groups excede ${MAX_SCENE_GROUPS} itens.`);
+  }
+
+  const groups = new Map<string, Record<string, unknown>>();
+  for (const [index, rawGroup] of scene.groups.entries()) {
+    const prefix = `layoutSpec.sceneGraph.groups[${index}]`;
+    const group = record(rawGroup, prefix);
+    onlyFields(
+      group,
+      ["id", "kind", "area", "children", "direction", "gapPx", "columns", "clip"],
+      prefix,
+    );
+    const id = nonEmptyString(group.id, `${prefix}.id`);
+    if (groups.has(id) || elementIds.has(id)) invalid(`${prefix}.id é duplicado.`);
+    if (!["group", "frame", "stack", "grid"].includes(String(group.kind))) {
+      invalid(`${prefix}.kind é inválido.`);
+    }
+    validateArea(group.area, `${prefix}.area`, canvas);
+    if (!Array.isArray(group.children) || group.children.length === 0) {
+      invalid(`${prefix}.children precisa conter ao menos um id.`);
+    }
+    const children = group.children.map((child, childIndex) =>
+      nonEmptyString(child, `${prefix}.children[${childIndex}]`),
+    );
+    if (new Set(children).size !== children.length) invalid(`${prefix}.children repete ids.`);
+    if (children.includes(id)) invalid(`${prefix} não pode conter a si mesmo.`);
+    if (group.gapPx !== undefined) boundedNumber(group.gapPx, `${prefix}.gapPx`, 0, 2048);
+    if (group.clip !== undefined && typeof group.clip !== "boolean") {
+      invalid(`${prefix}.clip deve ser booleano.`);
+    }
+    if (group.kind === "stack") {
+      if (group.direction !== "horizontal" && group.direction !== "vertical") {
+        invalid(`${prefix}.direction é obrigatória em stack.`);
+      }
+    } else if (group.direction !== undefined && group.direction !== null) {
+      invalid(`${prefix}.direction só pode ser usada em stack.`);
+    }
+    if (group.kind === "grid") {
+      const columns = integer(group.columns, `${prefix}.columns`);
+      if (columns < 1 || columns > 24) invalid(`${prefix}.columns deve estar entre 1 e 24.`);
+    } else if (group.columns !== undefined && group.columns !== null) {
+      invalid(`${prefix}.columns só pode ser usada em grid.`);
+    }
+    groups.set(id, group);
+  }
+
+  const roots = scene.roots.map((root, index) =>
+    nonEmptyString(root, `layoutSpec.sceneGraph.roots[${index}]`),
+  );
+  if (new Set(roots).size !== roots.length) invalid("layoutSpec.sceneGraph.roots repete ids.");
+  for (const root of roots) {
+    if (!groups.has(root))
+      invalid(`layoutSpec.sceneGraph.roots referencia grupo desconhecido: ${root}.`);
+  }
+  const knownIds = new Set([...elementIds, ...groups.keys()]);
+  for (const [id, group] of groups) {
+    for (const child of group.children as string[]) {
+      if (!knownIds.has(child)) invalid(`O grupo ${id} referencia filho desconhecido: ${child}.`);
+    }
+  }
+
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+  const visit = (id: string): void => {
+    if (visiting.has(id)) invalid("layoutSpec.sceneGraph não pode conter ciclos.");
+    if (visited.has(id)) return;
+    visiting.add(id);
+    const group = groups.get(id);
+    if (!group) invalid(`layoutSpec.sceneGraph referencia grupo desconhecido: ${id}.`);
+    for (const child of group.children as string[]) {
+      if (groups.has(child)) visit(child);
+    }
+    visiting.delete(id);
+    visited.add(id);
+  };
+  roots.forEach(visit);
+  if (visited.size !== groups.size) invalid("layoutSpec.sceneGraph contém grupos fora das raízes.");
+  return raw as SceneGraph;
+}
+
 function validateLockedLayer(
   raw: unknown,
   index: number,
@@ -675,6 +786,10 @@ function validateSlot(raw: unknown, index: number, canvas: Canvas, ir: BrandIr):
       "textAlign",
       "textTransform",
       "letterSpacingEm",
+      "fontSizePx",
+      "fontWeight",
+      "fontStyle",
+      "lineHeight",
       "fillMode",
       "strokeColorToken",
       "strokeWidthPx",
@@ -750,6 +865,24 @@ function validateSlot(raw: unknown, index: number, canvas: Canvas, ir: BrandIr):
       MAX_LETTER_SPACING_EM,
     );
   }
+  if (slot.fontSizePx !== undefined && slot.fontSizePx !== null) {
+    boundedNumber(slot.fontSizePx, `${prefix}.fontSizePx`, 6, 1024);
+  }
+  if (slot.fontWeight !== undefined && slot.fontWeight !== null) {
+    const weight = integer(slot.fontWeight, `${prefix}.fontWeight`);
+    if (weight < 100 || weight > 900) invalid(`${prefix}.fontWeight é inválido.`);
+  }
+  if (
+    slot.fontStyle !== undefined &&
+    slot.fontStyle !== null &&
+    slot.fontStyle !== "normal" &&
+    slot.fontStyle !== "italic"
+  ) {
+    invalid(`${prefix}.fontStyle é inválido.`);
+  }
+  if (slot.lineHeight !== undefined && slot.lineHeight !== null) {
+    boundedNumber(slot.lineHeight, `${prefix}.lineHeight`, 0.5, 3);
+  }
   if (
     slot.fillMode !== undefined &&
     slot.fillMode !== null &&
@@ -795,6 +928,10 @@ function validateSlot(raw: unknown, index: number, canvas: Canvas, ir: BrandIr):
     (slot.letterSpacingEm !== undefined &&
       slot.letterSpacingEm !== null &&
       slot.letterSpacingEm !== 0) ||
+    (slot.fontSizePx !== undefined && slot.fontSizePx !== null) ||
+    (slot.fontWeight !== undefined && slot.fontWeight !== null) ||
+    (slot.fontStyle !== undefined && slot.fontStyle !== null) ||
+    (slot.lineHeight !== undefined && slot.lineHeight !== null) ||
     (slot.fillMode !== undefined && slot.fillMode !== null && slot.fillMode !== "fill") ||
     (slot.strokeColorToken !== undefined && slot.strokeColorToken !== null) ||
     (slot.strokeWidthPx !== undefined && slot.strokeWidthPx !== null);
@@ -890,6 +1027,12 @@ function validateLayout(raw: unknown, ir: BrandIr): LayoutSpec {
       invalid(`layoutSpec contém id duplicado entre slots/camadas: ${layer.id}.`);
     }
     ids.add(layer.id);
+  }
+  if (layout.templateRef !== undefined && layout.templateRef !== null) {
+    validateTemplateRef(layout.templateRef);
+  }
+  if (layout.sceneGraph !== undefined && layout.sceneGraph !== null) {
+    validateSceneGraph(layout.sceneGraph, expected, ids);
   }
   if (background.kind === "image-slot" && !slots.some((slot) => slot.kind === "image")) {
     invalid("layoutSpec.background image-slot exige ao menos um slot image.");
@@ -1074,7 +1217,17 @@ function validateContent(raw: unknown, layout: LayoutSpec, ir: BrandIr): Content
   const content = record(raw, "contentSpec");
   onlyFields(
     content,
-    ["layoutId", "brandRevisionId", "values", "overrides", "surface", "addedSlots", "addedLayers"],
+    [
+      "layoutId",
+      "brandRevisionId",
+      "values",
+      "backgroundColorToken",
+      "assetBindings",
+      "overrides",
+      "surface",
+      "addedSlots",
+      "addedLayers",
+    ],
     "contentSpec",
   );
   const layoutId = nonEmptyString(content.layoutId, "contentSpec.layoutId");
@@ -1084,6 +1237,27 @@ function validateContent(raw: unknown, layout: LayoutSpec, ir: BrandIr): Content
     invalid("contentSpec.brandRevisionId diverge da revisão da marca.");
   const values = record(content.values, "contentSpec.values");
   const slots = new Map(layout.slots.map((slot) => [slot.id, slot]));
+  if (content.backgroundColorToken !== undefined && content.backgroundColorToken !== null) {
+    knownKey(
+      content.backgroundColorToken,
+      "contentSpec.backgroundColorToken",
+      ir.colors,
+      "token de cor",
+    );
+  }
+  if (content.assetBindings !== undefined) {
+    const bindings = record(content.assetBindings, "contentSpec.assetBindings");
+    for (const slotId of Object.keys(bindings).sort()) {
+      const slot = slots.get(slotId);
+      if (!slot) {
+        invalid(`contentSpec.assetBindings.${slotId} referencia slot desconhecido.`);
+      }
+      if (slot.kind !== "logo") {
+        invalid(`contentSpec.assetBindings.${slotId} só pode vincular um slot de logo.`);
+      }
+      knownKey(bindings[slotId], `contentSpec.assetBindings.${slotId}`, ir.assets, "asset");
+    }
+  }
   for (const [field, expectedKind] of [
     ["addedSlots", "slot"],
     ["addedLayers", "layer"],

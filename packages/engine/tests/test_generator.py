@@ -13,10 +13,10 @@ def _ir(brand_package):
     return compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
 
 
-def test_kit_has_ten_unique_layouts(brand_package):
+def test_kit_has_legacy_ten_plus_three_versioned_templates(brand_package):
     kit = generate_kit(_ir(brand_package))
-    assert len(kit) == 10
-    assert len({layout.id for layout in kit}) == 10
+    assert len(kit) == 13
+    assert len({layout.id for layout in kit}) == 13
     assert {layout.profile for layout in kit} == set(PROFILES)
 
 
@@ -72,6 +72,9 @@ def test_layout_ids_order_and_background_contract(brand_package):
         "announce-post-4x5",
         "announce-story-9x16",
         "one-pager-doc-a4",
+        "typographic-ledger-post-4x5",
+        "typographic-monument-post-4x5",
+        "typographic-diptych-post-4x5",
     ]
     for layout in kit:
         if layout.id.startswith("quote-"):
@@ -169,7 +172,7 @@ def test_explicit_composition_adds_four_editorial_4x5_layouts_after_canonical_te
     kit = generate_kit(ir)
 
     editorial = kit[-4:]
-    assert len(kit) == 14
+    assert len(kit) == 17
     assert [layout.id for layout in editorial] == [
         "editorial-light-post-4x5",
         "editorial-dark-post-4x5",
@@ -239,16 +242,16 @@ def test_explicit_composition_adds_four_editorial_4x5_layouts_after_canonical_te
 def test_partial_composition_never_invents_editorial_layouts(brand_package):
     ir = _ir(brand_package).model_copy(deep=True)
     assert ir.composition_rules is None
-    assert len(generate_kit(ir)) == 10
+    assert len(generate_kit(ir)) == 13
 
     composition_ir = _composition_ir(brand_package)
     ir = composition_ir.model_copy(deep=True)
     ir.composition_rules.color_ratios = []
-    assert len(generate_kit(ir)) == 10
+    assert len(generate_kit(ir)) == 13
 
     ir = composition_ir.model_copy(deep=True)
     ir.assets["logo.onLight"].min_width_px = 96
-    assert len(generate_kit(ir)) == 10
+    assert len(generate_kit(ir)) == 13
 
 
 @pytest.mark.parametrize(
@@ -284,7 +287,7 @@ def test_declared_layout_style_adds_one_distinct_signature_layout(
     kit = generate_kit(ir)
     layout = kit[-1]
 
-    assert len(kit) == 11
+    assert len(kit) == 14
     assert layout.id == layout_id
     assert layout.profile == "post-4x5"
     assert [layer.id for layer in layout.locked_layers] == layer_ids

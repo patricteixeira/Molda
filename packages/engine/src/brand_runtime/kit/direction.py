@@ -169,12 +169,10 @@ def apply_creative_direction(ir: BrandIR, layout: LayoutSpec, content: ContentSp
             )
         overrides[logo.id] = logo_override
 
-    return ContentSpec(
-        layout_id=content.layout_id,
-        brand_revision_id=content.brand_revision_id,
-        values=content.values,
-        overrides=overrides,
-        surface=content.surface or suggested_surface(ir),
-        added_slots=content.added_slots,
-        added_layers=content.added_layers,
+    return content.model_copy(
+        deep=True,
+        update={
+            "overrides": overrides,
+            "surface": content.surface or suggested_surface(ir),
+        },
     )

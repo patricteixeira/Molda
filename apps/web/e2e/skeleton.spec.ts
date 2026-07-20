@@ -44,12 +44,17 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
     "Como é a sua marca?",
   )
   await page
-    .getByLabel("Por que a marca existe")
+    .getByLabel("O que a marca entrega às pessoas")
     .fill("Uma marca ousada e dinâmica que transforma sistemas em autonomia.")
   await page
-    .getByLabel("Como a marca deve parecer")
+    .getByLabel("Que impressão a marca deve deixar")
     .fill("Geométrica, precisa, técnica e confiável.")
-  await page.getByLabel("Como a marca fala").fill("Direta, clara e acessível.")
+  await page
+    .getByLabel("Como a marca conversa com as pessoas")
+    .fill("Direta, clara e acessível.")
+  await page
+    .getByLabel("O que nunca deve aparecer na marca")
+    .fill("Urgência artificial, exagero e promessas vazias.")
   await page.getByTestId("wizard-confirmar").click()
 
   await expect(page.getByTestId("wizard-question")).toContainText(
@@ -70,7 +75,7 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   await page.getByTestId("wizard-publicar").click()
 
   await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/kit/)
-  await expect(page.getByTestId("kit-card")).toHaveCount(10)
+  await expect(page.getByTestId("kit-card")).toHaveCount(13)
   const kitUrl = page.url()
 
   await page.locator('[data-testid="kit-card"][data-layout-id="quote-post-1x1"]').click()

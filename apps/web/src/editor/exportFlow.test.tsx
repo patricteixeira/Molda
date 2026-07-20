@@ -93,6 +93,12 @@ it("export feliz: documento → job → link de download", async () => {
   const input = await screen.findByTestId("slot-input-headline")
   await userEvent.clear(input)
   await userEvent.type(input, "Lançamento em agosto")
+  await userEvent.click(screen.getByRole("button", { name: "Principal, #1A4D8F" }))
+  await userEvent.click(screen.getByRole("button", { name: "Logo" }))
+  await userEvent.selectOptions(
+    screen.getByRole("combobox", { name: "Logo usada neste item" }),
+    "logo.onLight",
+  )
   await userEvent.click(screen.getByTestId("exportar-png"))
   const link = await screen.findByTestId("download-link", {}, { timeout: 3000 })
   expect(link).toHaveAttribute("href", `/v1/assets/${sha}`)
@@ -104,6 +110,8 @@ it("export feliz: documento → job → link de download", async () => {
       brandRevisionId: "brandrev_test",
       overrides: {},
       surface: null,
+      backgroundColorToken: "color.primary",
+      assetBindings: { logo: "logo.onLight" },
       values: expect.objectContaining({
         headline: { kind: "text", text: "Lançamento em agosto" },
       }),

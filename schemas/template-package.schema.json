@@ -164,6 +164,294 @@
       "title": "Canvas",
       "type": "object"
     },
+    "ExportSupport": {
+      "additionalProperties": false,
+      "description": "Capacidade declarada por composição, sem prometer paridade inexistente.",
+      "properties": {
+        "preview": {
+          "const": "native",
+          "default": "native",
+          "title": "Preview",
+          "type": "string"
+        },
+        "png": {
+          "const": "native",
+          "default": "native",
+          "title": "Png",
+          "type": "string"
+        },
+        "pdf": {
+          "const": "native",
+          "default": "native",
+          "title": "Pdf",
+          "type": "string"
+        },
+        "pptx": {
+          "default": "hybrid",
+          "enum": [
+            "native",
+            "hybrid",
+            "unsupported"
+          ],
+          "title": "Pptx",
+          "type": "string"
+        }
+      },
+      "title": "ExportSupport",
+      "type": "object"
+    },
+    "LayoutSpec": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "profile": {
+                "const": "post-1x1"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "canvas": {
+                "properties": {
+                  "widthPx": {
+                    "const": 1080
+                  },
+                  "heightPx": {
+                    "const": 1080
+                  },
+                  "safeAreaPx": {
+                    "const": 48
+                  }
+                },
+                "required": [
+                  "widthPx",
+                  "heightPx",
+                  "safeAreaPx"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "profile": {
+                "const": "post-4x5"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "canvas": {
+                "properties": {
+                  "widthPx": {
+                    "const": 1080
+                  },
+                  "heightPx": {
+                    "const": 1350
+                  },
+                  "safeAreaPx": {
+                    "const": 48
+                  }
+                },
+                "required": [
+                  "widthPx",
+                  "heightPx",
+                  "safeAreaPx"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "profile": {
+                "const": "story-9x16"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "canvas": {
+                "properties": {
+                  "widthPx": {
+                    "const": 1080
+                  },
+                  "heightPx": {
+                    "const": 1920
+                  },
+                  "safeAreaPx": {
+                    "const": 64
+                  }
+                },
+                "required": [
+                  "widthPx",
+                  "heightPx",
+                  "safeAreaPx"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "profile": {
+                "const": "doc-a4"
+              }
+            },
+            "required": [
+              "profile"
+            ]
+          },
+          "then": {
+            "properties": {
+              "canvas": {
+                "properties": {
+                  "widthPx": {
+                    "const": 794
+                  },
+                  "heightPx": {
+                    "const": 1123
+                  },
+                  "safeAreaPx": {
+                    "const": 76
+                  }
+                },
+                "required": [
+                  "widthPx",
+                  "heightPx",
+                  "safeAreaPx"
+                ]
+              }
+            }
+          }
+        }
+      ],
+      "description": "Layout declarativo adaptado para um dos perfis publicados pelo motor.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Id",
+          "type": "string"
+        },
+        "profile": {
+          "enum": [
+            "post-1x1",
+            "post-4x5",
+            "story-9x16",
+            "doc-a4"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "namePt": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Namept",
+          "type": "string"
+        },
+        "canvas": {
+          "$ref": "#/$defs/Canvas"
+        },
+        "background": {
+          "$ref": "#/$defs/Background"
+        },
+        "slots": {
+          "items": {
+            "$ref": "#/$defs/Slot"
+          },
+          "title": "Slots",
+          "type": "array"
+        },
+        "compositionMode": {
+          "anyOf": [
+            {
+              "enum": [
+                "light",
+                "dark"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Compositionmode"
+        },
+        "lockedLayers": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "asset": "#/$defs/AssetLayer",
+                "motif": "#/$defs/MotifLayer",
+                "shape": "#/$defs/ShapeLayer"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ShapeLayer"
+              },
+              {
+                "$ref": "#/$defs/MotifLayer"
+              },
+              {
+                "$ref": "#/$defs/AssetLayer"
+              }
+            ]
+          },
+          "title": "Lockedlayers",
+          "type": "array"
+        },
+        "templateRef": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemplateRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sceneGraph": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SceneGraph"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "profile",
+        "namePt",
+        "canvas",
+        "background",
+        "slots"
+      ],
+      "title": "LayoutSpec",
+      "type": "object"
+    },
     "MotifLayer": {
       "additionalProperties": false,
       "description": "Aplicação fixa de um motivo pertencente ao vocabulário do Brand IR.",
@@ -806,6 +1094,153 @@
       "title": "Slot",
       "type": "object"
     },
+    "TemplateComposition": {
+      "additionalProperties": false,
+      "description": "Composição individual compilada e seu conteúdo demonstrativo.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Id",
+          "type": "string"
+        },
+        "namePt": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Namept",
+          "type": "string"
+        },
+        "intentPt": {
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Intentpt",
+          "type": "string"
+        },
+        "layout": {
+          "$ref": "#/$defs/LayoutSpec"
+        },
+        "sampleContentPt": {
+          "patternProperties": {
+            ".*\\S.*": {
+              "type": "string"
+            }
+          },
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Samplecontentpt",
+          "type": "object"
+        },
+        "criticalNodes": {
+          "items": {
+            "minLength": 1,
+            "pattern": ".*\\S.*",
+            "type": "string"
+          },
+          "title": "Criticalnodes",
+          "type": "array"
+        },
+        "allowedOverlaps": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "minLength": 1,
+                "pattern": ".*\\S.*",
+                "type": "string"
+              },
+              {
+                "minLength": 1,
+                "pattern": ".*\\S.*",
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Allowedoverlaps",
+          "type": "array"
+        },
+        "exportSupport": {
+          "$ref": "#/$defs/ExportSupport"
+        }
+      },
+      "required": [
+        "id",
+        "namePt",
+        "intentPt",
+        "layout",
+        "sampleContentPt"
+      ],
+      "title": "TemplateComposition",
+      "type": "object"
+    },
+    "TemplateEvaluation": {
+      "additionalProperties": false,
+      "description": "Gate determinístico aplicado antes de publicar um pacote.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "no-overflow",
+            "safe-area",
+            "contrast",
+            "type-hierarchy",
+            "negative-space",
+            "structural-distance"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "stage": {
+          "default": "portable",
+          "enum": [
+            "portable",
+            "guard",
+            "renderer"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "severity": {
+          "default": "error",
+          "enum": [
+            "error",
+            "warning"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "minimum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum"
+        },
+        "maximum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "TemplateEvaluation",
+      "type": "object"
+    },
     "TemplateRef": {
       "additionalProperties": false,
       "description": "Identidade imutável do template que originou um layout compilado.",
@@ -844,253 +1279,118 @@
     }
   },
   "additionalProperties": false,
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "profile": {
-            "const": "post-1x1"
-          }
-        },
-        "required": [
-          "profile"
-        ]
-      },
-      "then": {
-        "properties": {
-          "canvas": {
-            "properties": {
-              "widthPx": {
-                "const": 1080
-              },
-              "heightPx": {
-                "const": 1080
-              },
-              "safeAreaPx": {
-                "const": 48
-              }
-            },
-            "required": [
-              "widthPx",
-              "heightPx",
-              "safeAreaPx"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "profile": {
-            "const": "post-4x5"
-          }
-        },
-        "required": [
-          "profile"
-        ]
-      },
-      "then": {
-        "properties": {
-          "canvas": {
-            "properties": {
-              "widthPx": {
-                "const": 1080
-              },
-              "heightPx": {
-                "const": 1350
-              },
-              "safeAreaPx": {
-                "const": 48
-              }
-            },
-            "required": [
-              "widthPx",
-              "heightPx",
-              "safeAreaPx"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "profile": {
-            "const": "story-9x16"
-          }
-        },
-        "required": [
-          "profile"
-        ]
-      },
-      "then": {
-        "properties": {
-          "canvas": {
-            "properties": {
-              "widthPx": {
-                "const": 1080
-              },
-              "heightPx": {
-                "const": 1920
-              },
-              "safeAreaPx": {
-                "const": 64
-              }
-            },
-            "required": [
-              "widthPx",
-              "heightPx",
-              "safeAreaPx"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "profile": {
-            "const": "doc-a4"
-          }
-        },
-        "required": [
-          "profile"
-        ]
-      },
-      "then": {
-        "properties": {
-          "canvas": {
-            "properties": {
-              "widthPx": {
-                "const": 794
-              },
-              "heightPx": {
-                "const": 1123
-              },
-              "safeAreaPx": {
-                "const": 76
-              }
-            },
-            "required": [
-              "widthPx",
-              "heightPx",
-              "safeAreaPx"
-            ]
-          }
-        }
-      }
-    }
-  ],
-  "description": "Layout declarativo adaptado para um dos perfis publicados pelo motor.",
+  "description": "Pacote seguro: dados declarativos, sem CSS, HTML ou código executável.",
   "properties": {
+    "schemaVersion": {
+      "const": "1.0.0",
+      "default": "1.0.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
     "id": {
       "minLength": 1,
       "pattern": ".*\\S.*",
       "title": "Id",
       "type": "string"
     },
-    "profile": {
-      "enum": [
-        "post-1x1",
-        "post-4x5",
-        "story-9x16",
-        "doc-a4"
-      ],
-      "title": "Profile",
+    "version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Version",
       "type": "string"
     },
-    "namePt": {
+    "family": {
       "minLength": 1,
       "pattern": ".*\\S.*",
-      "title": "Namept",
+      "title": "Family",
       "type": "string"
     },
-    "canvas": {
-      "$ref": "#/$defs/Canvas"
+    "titlePt": {
+      "minLength": 1,
+      "pattern": ".*\\S.*",
+      "title": "Titlept",
+      "type": "string"
     },
-    "background": {
-      "$ref": "#/$defs/Background"
+    "descriptionPt": {
+      "minLength": 1,
+      "pattern": ".*\\S.*",
+      "title": "Descriptionpt",
+      "type": "string"
     },
-    "slots": {
+    "sceneSchemaVersion": {
+      "const": "2.0.0",
+      "default": "2.0.0",
+      "title": "Sceneschemaversion",
+      "type": "string"
+    },
+    "profiles": {
       "items": {
-        "$ref": "#/$defs/Slot"
+        "enum": [
+          "post-1x1",
+          "post-4x5",
+          "story-9x16",
+          "doc-a4"
+        ],
+        "type": "string"
       },
-      "title": "Slots",
+      "minItems": 1,
+      "title": "Profiles",
       "type": "array"
     },
-    "compositionMode": {
-      "anyOf": [
-        {
-          "enum": [
-            "light",
-            "dark"
-          ],
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Compositionmode"
-    },
-    "lockedLayers": {
+    "requiredRoles": {
       "items": {
-        "discriminator": {
-          "mapping": {
-            "asset": "#/$defs/AssetLayer",
-            "motif": "#/$defs/MotifLayer",
-            "shape": "#/$defs/ShapeLayer"
-          },
-          "propertyName": "kind"
-        },
-        "oneOf": [
-          {
-            "$ref": "#/$defs/ShapeLayer"
-          },
-          {
-            "$ref": "#/$defs/MotifLayer"
-          },
-          {
-            "$ref": "#/$defs/AssetLayer"
-          }
-        ]
+        "minLength": 1,
+        "pattern": ".*\\S.*",
+        "type": "string"
       },
-      "title": "Lockedlayers",
+      "minItems": 1,
+      "title": "Requiredroles",
       "type": "array"
     },
-    "templateRef": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/TemplateRef"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
+    "requiredColorTokens": {
+      "items": {
+        "minLength": 1,
+        "pattern": ".*\\S.*",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Requiredcolortokens",
+      "type": "array"
     },
-    "sceneGraph": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/SceneGraph"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
+    "compositions": {
+      "items": {
+        "$ref": "#/$defs/TemplateComposition"
+      },
+      "minItems": 1,
+      "title": "Compositions",
+      "type": "array"
+    },
+    "evaluations": {
+      "items": {
+        "$ref": "#/$defs/TemplateEvaluation"
+      },
+      "minItems": 1,
+      "title": "Evaluations",
+      "type": "array"
+    },
+    "license": {
+      "const": "project-internal",
+      "default": "project-internal",
+      "title": "License",
+      "type": "string"
     }
   },
   "required": [
     "id",
-    "profile",
-    "namePt",
-    "canvas",
-    "background",
-    "slots"
+    "version",
+    "family",
+    "titlePt",
+    "descriptionPt",
+    "profiles",
+    "requiredRoles",
+    "requiredColorTokens",
+    "compositions",
+    "evaluations"
   ],
-  "title": "LayoutSpec",
+  "title": "TemplatePackage",
   "type": "object"
 }

@@ -64,6 +64,8 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
   const [surface, setSurface] = useState<SurfaceStyle | null>(null)
   const [addedSlots, setAddedSlots] = useState<Slot[]>([])
   const [addedLayers, setAddedLayers] = useState<ShapeLayer[]>([])
+  const [backgroundColorToken, setBackgroundColorToken] = useState<string | null>(null)
+  const [assetBindings, setAssetBindings] = useState<Record<string, string>>({})
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
   const [zoom, setZoom] = useState(50)
   const [error, setError] = useState<string | null>(null)
@@ -81,6 +83,8 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
     setSurface(null)
     setAddedSlots([])
     setAddedLayers([])
+    setBackgroundColorToken(null)
+    setAssetBindings({})
     setSelectedLayerId(null)
     setUploading(false)
     setExporting(false)
@@ -107,12 +111,16 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
             Object.keys(stored.overrides).length > 0 ||
             stored.surface !== null ||
             stored.addedSlots.length > 0 ||
-            stored.addedLayers.length > 0
+            stored.addedLayers.length > 0 ||
+            stored.backgroundColorToken !== null ||
+            Object.keys(stored.assetBindings).length > 0
           setValues(hasStoredDraft ? stored.values : sample.values)
           setOverrides(hasStoredDraft ? stored.overrides : (sample.overrides ?? {}))
           setSurface(hasStoredDraft ? stored.surface : null)
           setAddedSlots(hasStoredDraft ? stored.addedSlots : (sample.addedSlots ?? []))
           setAddedLayers(hasStoredDraft ? stored.addedLayers : (sample.addedLayers ?? []))
+          setBackgroundColorToken(hasStoredDraft ? stored.backgroundColorToken : null)
+          setAssetBindings(hasStoredDraft ? stored.assetBindings : {})
           setSelectedLayerId(
             initialSelection(
               materializeContentLayout(activeLayout, {
@@ -154,9 +162,21 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
             surface,
             addedSlots,
             addedLayers,
+            backgroundColorToken,
+            assetBindings,
           }
         : null,
-    [addedLayers, addedSlots, layout, overrides, revisionId, surface, values],
+    [
+      addedLayers,
+      addedSlots,
+      assetBindings,
+      backgroundColorToken,
+      layout,
+      overrides,
+      revisionId,
+      surface,
+      values,
+    ],
   )
 
   const activeLayout = useMemo(
@@ -192,9 +212,22 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
         surface,
         addedSlots,
         addedLayers,
+        backgroundColorToken,
+        assetBindings,
       ),
     )
-  }, [addedLayers, addedSlots, draftReady, layout, overrides, revisionId, surface, values])
+  }, [
+    addedLayers,
+    addedSlots,
+    assetBindings,
+    backgroundColorToken,
+    draftReady,
+    layout,
+    overrides,
+    revisionId,
+    surface,
+    values,
+  ])
 
   if (error) {
     return (
@@ -268,6 +301,8 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
     setSurface(null)
     setAddedSlots(sample.addedSlots ?? [])
     setAddedLayers(sample.addedLayers ?? [])
+    setBackgroundColorToken(null)
+    setAssetBindings({})
     setSelectedLayerId(initialSelection(materializeContentLayout(layout, sample)))
     setDraftSaved(true)
   }
@@ -378,6 +413,11 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
       const { [elementId]: _removed, ...remaining } = current
       return remaining
     })
+    setAssetBindings((current) => {
+      if (!(elementId in current)) return current
+      const { [elementId]: _removed, ...remaining } = current
+      return remaining
+    })
     setSelectedLayerId(initialSelection(layout))
   }
 
@@ -400,6 +440,10 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
       setAddedSlots((current) => [...current, { ...slot, id, area: moveArea(slot.area) }])
       const value = values[elementId]
       if (value) setValues((current) => ({ ...current, [id]: { ...value } }))
+      const assetBinding = assetBindings[elementId]
+      if (slot.kind === "logo" && assetBinding) {
+        setAssetBindings((current) => ({ ...current, [id]: assetBinding }))
+      }
     } else if (layer) {
       setAddedLayers((current) => [...current, { ...layer, id, area: moveArea(layer.area) }])
     } else {
@@ -511,6 +555,18 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
           surface={surface}
           onSurfaceChange={setSurface}
           onApplyDirection={applyBrandDirection}
+          backgroundColorToken={backgroundColorToken}
+          onBackgroundColorChange={setBackgroundColorToken}
+          assetBindings={assetBindings}
+          onAssetBindingChange={(slotId, assetToken) =>
+            setAssetBindings((current) => {
+              if (assetToken === null) {
+                const { [slotId]: _removed, ...remaining } = current
+                return remaining
+              }
+              return { ...current, [slotId]: assetToken }
+            })
+          }
           onUploadingChange={setUploading}
           disabled={exporting}
         />
@@ -532,6 +588,8 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
           addedSlots={addedSlots}
           addedLayers={addedLayers}
           surface={surface}
+          backgroundColorToken={backgroundColorToken}
+          assetBindings={assetBindings}
           onPendingChange={setExporting}
         />
       </section>
