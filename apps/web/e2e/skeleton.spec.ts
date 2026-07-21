@@ -20,7 +20,10 @@ function enginePython(): string {
   return executable
 }
 
-function validateOutput(kind: "png" | "pdf" | "pptx" | "docx", file: string): void {
+function validateOutput(
+  kind: "png" | "png-4x5" | "pdf" | "pptx" | "docx",
+  file: string,
+): void {
   execFileSync(
     enginePython(),
     [path.join(here, "fixtures", "validate_output.py"), kind, file],
@@ -250,12 +253,12 @@ test("walking skeleton v0.2: instalar → kit → editar → carrossel → expor
 
   const archive = await JSZip.loadAsync(fs.readFileSync(zipPath))
   const slideNames = Object.keys(archive.files)
-    .filter((name) => /^\d{2}-.*\.png$/.test(name))
+    .filter((name) => /^\d{2}\.png$/.test(name))
     .sort()
-  expect(slideNames).toHaveLength(3)
+  expect(slideNames).toEqual(["01.png", "02.png", "03.png"])
   for (const [index, name] of slideNames.entries()) {
     const slidePath = path.join(FIX, `out-carousel-${index + 1}.png`)
     fs.writeFileSync(slidePath, await archive.file(name)!.async("nodebuffer"))
-    validateOutput("png", slidePath)
+    validateOutput("png-4x5", slidePath)
   }
 })
