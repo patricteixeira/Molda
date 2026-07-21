@@ -40,6 +40,9 @@ release pública.
   posição, sem transportar conteúdo durante a navegação.
 - A seleção de templates oferece uma prova ampliada completa por mouse ou foco,
   evitando decisões baseadas em miniaturas recortadas.
+- A direção criativa interpreta limites da marca como negações, reconhece termos
+  completos e exige evidência mínima antes de recomendar linguagens técnicas,
+  evitando que marcas artesanais sejam classificadas como diagramas ou dados.
 
 ## [0.1.0] - 2026-07-19
 

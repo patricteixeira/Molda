@@ -1,4 +1,6 @@
 from brand_runtime.ir.models import CreativeDirection, ExpressionAxis
+from brand_runtime.intake.direction import derive_creative_direction
+from brand_runtime.ir.models import BrandIdentity
 from brand_runtime.templates import generate_template_layouts, recommend_template_layouts
 from tests.test_compile import FIXED, _answers
 from brand_runtime.intake.compile import compile_ir
@@ -106,3 +108,89 @@ def test_falls_back_to_an_honest_diverse_sample_without_direction(brand_package)
     assert all(item.basis == "exploratory" for item in recommendations)
     assert len(set(_packages(recommendations, layouts))) == 4
     assert "Ponto de partida variado" in recommendations[0].reason_pt
+
+
+def test_real_artisanal_layered_language_avoids_technical_and_data_families(brand_package):
+    direction = derive_creative_direction(
+        BrandIdentity(
+            essence="Afeto em camadas, construído com calma e cuidado.",
+            personality="Afetuosa, artesanal, acolhedora e delicada.",
+            voice="Escrita quente e próxima.",
+            avoid="Nunca fria, dessaturada, rígida ou impessoal.",
+            evidence=[],
+        )
+    )
+    assert direction is not None
+    ir = _ir(brand_package).model_copy(update={"creative_direction": direction})
+    layouts = generate_template_layouts(ir)
+
+    first = recommend_template_layouts(ir, layouts)
+    second = recommend_template_layouts(ir, layouts)
+    packages = _packages(first, layouts)
+
+    assert first == second
+    assert packages[0] == "editorial-collage"
+    assert set(packages).isdisjoint(
+        {
+            "technical-diagram",
+            "data-evidence",
+            "kinetic-typography",
+            "typographic-brutalist",
+            "constructivist-dynamics",
+        }
+    )
+
+
+def test_partial_ocr_identity_does_not_invent_specialized_visual_language(brand_package):
+    direction = derive_creative_direction(
+        BrandIdentity(
+            essence=(
+                "Afeto em camadas. Um bolo no pote se faz camada por camada, com calma e cuidado."
+            ),
+            personality="",
+            voice="Escrita quente e próxima.",
+            avoid="Nunca fria ou dessaturada.",
+            evidence=[],
+        )
+    )
+    assert direction is not None
+    ir = _ir(brand_package).model_copy(update={"creative_direction": direction})
+    layouts = generate_template_layouts(ir)
+
+    recommendations = recommend_template_layouts(ir, layouts)
+    packages = set(_packages(recommendations, layouts))
+
+    assert "editorial-collage" in packages
+    assert packages.isdisjoint(
+        {
+            "technical-diagram",
+            "data-evidence",
+            "device-mockup",
+            "kinetic-typography",
+            "typographic-brutalist",
+            "constructivist-dynamics",
+        }
+    )
+
+
+def test_default_selection_keeps_principal_and_alternative_together(brand_package):
+    ir = _ir(brand_package)
+    layouts = generate_template_layouts(ir)
+    recommendations = recommend_template_layouts(ir, layouts)
+
+    assert [item.rank for item in recommendations] == list(range(1, 9))
+    for principal, alternative in zip(recommendations[::2], recommendations[1::2], strict=True):
+        assert alternative.layout_id == f"{principal.layout_id}-alternative"
+
+
+def test_filtered_story_catalog_never_recommends_an_unavailable_layout(brand_package):
+    ir = _ir(brand_package)
+    story_layouts = [
+        layout for layout in generate_template_layouts(ir) if layout.profile == "story-9x16"
+    ]
+
+    recommendations = recommend_template_layouts(ir, story_layouts)
+    available_ids = {layout.id for layout in story_layouts}
+
+    assert len(recommendations) == min(8, len(story_layouts))
+    assert {item.layout_id for item in recommendations}.issubset(available_ids)

@@ -16,9 +16,14 @@ _AXES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
         (
             "calma",
             "serena",
+            "sereno",
             "silenciosa",
+            "silencioso",
             "contemplativa",
+            "contemplativo",
             "sutil",
+            "controlada",
+            "controlado",
             "quiet",
             "silent",
             "calm",
@@ -26,9 +31,13 @@ _AXES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
         ),
         (
             "energica",
+            "energico",
             "dinamica",
+            "dinamico",
             "provocadora",
+            "provocador",
             "ousada",
+            "ousado",
             "vibrante",
             "movimento",
             "bold",
@@ -39,13 +48,32 @@ _AXES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
         ),
     ),
     "geometry": (
-        ("organica", "fluida", "natural", "humana", "imperfeita", "organic", "fluid"),
+        (
+            "organica",
+            "organico",
+            "fluida",
+            "fluido",
+            "natural",
+            "humana",
+            "humano",
+            "imperfeita",
+            "imperfeito",
+            "organic",
+            "fluid",
+        ),
         (
             "geometrica",
+            "geometrico",
             "precisa",
+            "preciso",
             "sistematica",
+            "sistematico",
             "modular",
             "arquitetonica",
+            "arquitetonico",
+            "rigida",
+            "rigido",
+            "escultural",
             "geometric",
             "modular",
             "architectural",
@@ -62,6 +90,8 @@ _AXES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
             "respiro",
             "simples",
             "clara",
+            "claro",
+            "poucos elementos",
             "sparse",
             "focused",
             "few elements",
@@ -71,6 +101,7 @@ _AXES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
         (
             "camadas",
             "rica",
+            "rico",
             "imersiva",
             "abundante",
             "textura",
@@ -79,13 +110,26 @@ _AXES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
         ),
     ),
     "formality": (
-        ("proxima", "acolhedora", "artesanal", "pessoal", "acessivel", "human", "warm"),
+        (
+            "proxima",
+            "proximo",
+            "acolhedora",
+            "acolhedor",
+            "artesanal",
+            "pessoal",
+            "acessivel",
+            "human",
+            "warm",
+        ),
         (
             "institucional",
             "tecnica",
+            "tecnico",
             "rigorosa",
+            "rigoroso",
             "confiavel",
             "especialista",
+            "sofisticado",
             "professional",
             "rigorous",
             "sophisticated",
@@ -99,6 +143,7 @@ _AXES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
             "material",
             "papel",
             "feito a mao",
+            "artesanal",
             "sensorial",
             "craft",
             "tactile",
@@ -117,12 +162,23 @@ _AXES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
         ),
     ),
     "contrast": (
-        ("delicada", "discreta", "continua", "harmoniosa", "subtle", "gentle"),
+        (
+            "delicada",
+            "delicado",
+            "discreta",
+            "discreto",
+            "continua",
+            "continuo",
+            "harmoniosa",
+            "harmonioso",
+            "baixo contraste",
+            "subtle",
+            "gentle",
+        ),
         (
             "contraste",
             "impacto",
             "ruptura",
-            "direta",
             "radical",
             "emphatic",
             "contrast",
@@ -141,24 +197,64 @@ def _normalized(value: str) -> str:
     return re.sub(r"\s+", " ", without_marks).casefold()
 
 
-def _axis(text: str, negative: tuple[str, ...], positive: tuple[str, ...]) -> ExpressionAxis:
-    negative_hits = [term for term in negative if term in text]
-    positive_hits = [term for term in positive if term in text]
+def _polarized_hits(
+    text: str,
+    negative: tuple[str, ...],
+    positive: tuple[str, ...],
+) -> tuple[list[str], list[str]]:
+    """Prefere a expressão mais específica quando dois marcadores se sobrepõem."""
+    matches: list[tuple[int, int, str, str]] = []
+    for polarity, terms in (("negative", negative), ("positive", positive)):
+        for term in terms:
+            pattern = rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])"
+            matches.extend(
+                (match.start(), match.end(), polarity, term) for match in re.finditer(pattern, text)
+            )
+    selected: list[tuple[int, int, str, str]] = []
+    for candidate in sorted(matches, key=lambda item: (-(item[1] - item[0]), item[0])):
+        if any(candidate[0] < other[1] and other[0] < candidate[1] for other in selected):
+            continue
+        selected.append(candidate)
+    selected.sort(key=lambda item: item[0])
+    return (
+        [term for _, _, polarity, term in selected if polarity == "negative"],
+        [term for _, _, polarity, term in selected if polarity == "positive"],
+    )
+
+
+def _axis(
+    affirmed_text: str,
+    avoided_text: str,
+    negative: tuple[str, ...],
+    positive: tuple[str, ...],
+) -> ExpressionAxis:
+    """Lê declarações afirmadas e inverte explicitamente o campo de restrições."""
+    affirmed_negative, affirmed_positive = _polarized_hits(affirmed_text, negative, positive)
+    avoided_negative, avoided_positive = _polarized_hits(avoided_text, negative, positive)
+    negative_hits = [*affirmed_negative, *avoided_positive]
+    positive_hits = [*affirmed_positive, *avoided_negative]
     total = len(negative_hits) + len(positive_hits)
     value = 0.0 if total == 0 else (len(positive_hits) - len(negative_hits)) / total
     return ExpressionAxis(
         value=value,
         confidence=min(1.0, total / 4),
-        evidence_terms=[*negative_hits, *positive_hits],
+        evidence_terms=[
+            *affirmed_negative,
+            *affirmed_positive,
+            *(f"não {term}" for term in avoided_negative),
+            *(f"não {term}" for term in avoided_positive),
+        ],
     )
 
 
 def derive_creative_direction(identity: BrandIdentity) -> CreativeDirection | None:
     """Converte linguagem confirmada em parâmetros; sinal fraco não gera palpite."""
-    text = _normalized(
-        " ".join((identity.essence, identity.personality, identity.voice, identity.avoid))
-    )
-    axes = {name: _axis(text, negative, positive) for name, (negative, positive) in _AXES.items()}
+    affirmed_text = _normalized(" ".join((identity.essence, identity.personality, identity.voice)))
+    avoided_text = _normalized(identity.avoid)
+    axes = {
+        name: _axis(affirmed_text, avoided_text, negative, positive)
+        for name, (negative, positive) in _AXES.items()
+    }
     evidence_count = sum(len(axis.evidence_terms) for axis in axes.values())
     if evidence_count < 2:
         return None

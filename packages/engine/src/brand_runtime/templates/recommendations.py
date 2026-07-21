@@ -15,6 +15,7 @@ class _FamilyProfile:
     compositions: frozenset[str]
     surfaces: frozenset[str]
     promise_pt: str
+    required_axes: frozenset[int] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -39,54 +40,63 @@ _FAMILY_PROFILES: dict[str, _FamilyProfile] = {
         frozenset({"expansive", "layered"}),
         frozenset({"linear-rhythm", "technical-grid"}),
         "Dá impacto direto à mensagem com escala e contraste assumidos.",
+        frozenset({0, 5}),
     ),
     "swiss-system": _FamilyProfile(
         (-0.10, 0.90, -0.50, 0.80, 0.20, 0.35),
         frozenset({"modular", "contemplative"}),
         frozenset({"technical-grid", "none"}),
         "Organiza a informação com precisão, ritmo e bastante legibilidade.",
+        frozenset({1, 3}),
     ),
     "geometric-modernism": _FamilyProfile(
         (0.45, 0.95, 0.10, 0.45, 0.10, 0.65),
         frozenset({"modular", "expansive"}),
         frozenset({"technical-grid", "concentric-rings"}),
         "Transforma geometria e cor em sinais claros da identidade.",
+        frozenset({1}),
     ),
     "kinetic-typography": _FamilyProfile(
         (1.00, 0.30, 0.55, -0.20, 0.20, 0.90),
         frozenset({"expansive", "layered"}),
         frozenset({"linear-rhythm", "point-field"}),
         "Constrói sensação de movimento sem sacrificar a leitura.",
+        frozenset({0, 5}),
     ),
     "constructivist-dynamics": _FamilyProfile(
         (0.85, 0.85, 0.55, 0.20, -0.10, 1.00),
         frozenset({"expansive", "layered"}),
         frozenset({"linear-rhythm", "technical-grid"}),
         "Usa tensão, diagonais e blocos para tornar a mensagem enfática.",
+        frozenset({0, 1, 5}),
     ),
     "fashion-editorial": _FamilyProfile(
-        (0.20, 0.10, -0.15, 0.85, -0.30, 0.55),
+        (0.20, 0.10, -0.15, 0.85, -0.30, 0.45),
         frozenset({"asymmetric", "contemplative"}),
         frozenset({"paper-grain", "none"}),
         "Equilibra sofisticação, imagem e tipografia com ritmo editorial.",
+        frozenset({3}),
     ),
     "minimal-luxury": _FamilyProfile(
         (-0.55, 0.20, -0.90, 0.90, -0.35, 0.20),
         frozenset({"contemplative", "asymmetric"}),
         frozenset({"none", "paper-grain"}),
         "Preserva silêncio visual, proporção e uma presença mais refinada.",
+        frozenset({2}),
     ),
     "editorial-collage": _FamilyProfile(
-        (0.65, -0.65, 0.90, -0.30, -1.00, 0.80),
+        (0.35, -0.65, 0.90, -0.30, -1.00, 0.45),
         frozenset({"layered", "asymmetric"}),
         frozenset({"paper-grain", "point-field"}),
         "Combina camadas e materialidade para uma expressão mais humana.",
+        frozenset({2}),
     ),
     "technical-diagram": _FamilyProfile(
         (0.05, 1.00, 0.20, 1.00, 0.60, 0.40),
         frozenset({"modular", "layered"}),
         frozenset({"technical-grid", "point-field"}),
         "Explica sistemas complexos com estrutura, precisão e rastreabilidade.",
+        frozenset({1, 3}),
     ),
     "product-campaign": _FamilyProfile(
         (0.45, 0.40, 0.10, 0.50, 0.10, 0.55),
@@ -99,12 +109,14 @@ _FAMILY_PROFILES: dict[str, _FamilyProfile] = {
         frozenset({"modular", "layered"}),
         frozenset({"technical-grid", "point-field"}),
         "Transforma números e evidências em uma narrativa visual confiável.",
+        frozenset({1, 3}),
     ),
     "device-mockup": _FamilyProfile(
         (0.25, 0.75, -0.05, 0.65, 1.00, 0.30),
         frozenset({"modular", "asymmetric"}),
         frozenset({"technical-grid", "none"}),
         "Mostra interfaces e experiências digitais dentro do contexto da marca.",
+        frozenset({1, 4}),
     ),
 }
 
@@ -116,6 +128,23 @@ _AXIS_LABELS = (
     ("tátil", "digital"),
     ("sutil", "enfática"),
 )
+
+_CONTRADICTION_AXES = (0, 1, 4, 5)
+_CONTRADICTION_THRESHOLD = 0.55
+_CONTRADICTION_PENALTY = 0.25
+_MISSING_REQUIRED_AXIS_PENALTY = 0.25
+_CONTRADICTED_REQUIRED_AXIS_PENALTY = 0.24
+
+_SPECIALIZED_REQUIRED_AXES: dict[str, frozenset[int]] = {
+    "typographic-brutalist": frozenset({5}),
+    "swiss-system": frozenset({1, 3}),
+    "geometric-modernism": frozenset({1}),
+    "kinetic-typography": frozenset({0, 5}),
+    "constructivist-dynamics": frozenset({1, 5}),
+    "technical-diagram": frozenset({1, 3}),
+    "data-evidence": frozenset({1, 3}),
+    "device-mockup": frozenset({4}),
+}
 
 
 def _package_id(layout: LayoutSpec) -> str:
@@ -161,7 +190,36 @@ def _score(direction: CreativeDirection, profile: _FamilyProfile) -> float:
     )
     composition_bonus = 0.22 if direction.composition in profile.compositions else 0.0
     surface_bonus = 0.10 if direction.surface in profile.surfaces else 0.0
-    return axis_score + composition_bonus + surface_bonus
+    # Energia, geometria, materialidade e contraste definem a voz visual mais
+    # imediatamente que densidade e formalidade, que o conteúdo pode modular.
+    # Uma família que contradiz frontalmente qualquer desses sinais não deve
+    # vencer só porque compartilha a palavra estrutural "camadas".
+    contradiction_penalty = sum(
+        _CONTRADICTION_PENALTY
+        for index in _CONTRADICTION_AXES
+        if values[index] * profile.axes[index] < 0
+        and abs(values[index]) >= _CONTRADICTION_THRESHOLD
+        and abs(profile.axes[index]) >= _CONTRADICTION_THRESHOLD
+    )
+    missing_signal_penalty = sum(
+        _MISSING_REQUIRED_AXIS_PENALTY for index in profile.required_axes if confidences[index] <= 0
+    )
+    contradicted_required_signal_penalty = sum(
+        _CONTRADICTED_REQUIRED_AXIS_PENALTY
+        for index in profile.required_axes
+        if confidences[index] > 0
+        and values[index] * profile.axes[index] < 0
+        and abs(values[index]) >= _CONTRADICTION_THRESHOLD
+        and abs(profile.axes[index]) >= _CONTRADICTION_THRESHOLD
+    )
+    return (
+        axis_score
+        + composition_bonus
+        + surface_bonus
+        - contradiction_penalty
+        - missing_signal_penalty
+        - contradicted_required_signal_penalty
+    )
 
 
 def _reason(direction: CreativeDirection, profile: _FamilyProfile) -> str:
@@ -185,6 +243,25 @@ def _reason(direction: CreativeDirection, profile: _FamilyProfile) -> str:
     )
 
 
+def _specialization_is_supported(direction: CreativeDirection, package_id: str) -> bool:
+    """Evita recomendar uma linguagem especializada sem os sinais que a justificam."""
+    required = _SPECIALIZED_REQUIRED_AXES.get(package_id)
+    if required is None:
+        return True
+    values = _axis_values(direction)
+    confidences = _axis_confidences(direction)
+    profile = _FAMILY_PROFILES[package_id]
+    return all(
+        confidences[index] > 0
+        and not (
+            values[index] * profile.axes[index] < 0
+            and abs(values[index]) >= _CONTRADICTION_THRESHOLD
+            and abs(profile.axes[index]) >= _CONTRADICTION_THRESHOLD
+        )
+        for index in required
+    )
+
+
 def _family_order(layouts: list[LayoutSpec], direction: CreativeDirection | None) -> list[str]:
     present = list(dict.fromkeys(_package_id(layout) for layout in layouts))
     if direction is None:
@@ -193,6 +270,7 @@ def _family_order(layouts: list[LayoutSpec], direction: CreativeDirection | None
     return sorted(
         present,
         key=lambda package_id: (
+            not _specialization_is_supported(direction, package_id),
             -_score(direction, _FAMILY_PROFILES[package_id])
             if package_id in _FAMILY_PROFILES
             else 0.0,
