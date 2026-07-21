@@ -12,7 +12,7 @@ class ReleaseCheckTests(unittest.TestCase):
     """Protege o corte público contra versões e documentação divergentes."""
 
     def test_current_release_contract_is_complete(self) -> None:
-        """O checkout deve estar pronto para produzir os artefatos v0.1.0."""
+        """O checkout deve estar pronto para produzir os artefatos v0.2.0."""
         versions = declared_versions(ROOT)
         current = versions["packages/engine/pyproject.toml"]
         self.assertEqual(validate_release(ROOT, current), [])

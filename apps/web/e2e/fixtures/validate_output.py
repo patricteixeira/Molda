@@ -16,12 +16,13 @@ def main() -> None:
     """Valida os quatro formatos oferecidos pelo editor."""
     kind, raw_path = sys.argv[1:3]
     path = Path(raw_path)
-    if kind == "png":
+    if kind in {"png", "png-4x5"}:
         with Image.open(path) as image:
             image.verify()
         with Image.open(path) as image:
             assert image.format == "PNG"
-            assert image.size == (1080, 1080)
+            expected_size = (1080, 1350) if kind == "png-4x5" else (1080, 1080)
+            assert image.size == expected_size
         return
 
     if kind == "pdf":
@@ -40,7 +41,9 @@ def main() -> None:
         assert presentation.slide_width == presentation.slide_height
         slide = presentation.slides[0]
         text = "\n".join(
-            shape.text for shape in slide.shapes if getattr(shape, "has_text_frame", False)
+            shape.text
+            for shape in slide.shapes
+            if getattr(shape, "has_text_frame", False)
         )
         assert "Menos é mais." in text
         assert any(shape.shape_type == MSO_SHAPE_TYPE.PICTURE for shape in slide.shapes)

@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import Depends, FastAPI
 from sqlalchemy.dialects.postgresql import insert
 
+from brand_api import __version__
 from brand_api.auth import hash_token, require_token
 from brand_api.config import Settings
 from brand_api.db import make_engine, make_session_factory
@@ -66,7 +67,7 @@ def create_app(
     storage = Storage(settings.storage_dir)
     _seed_bootstrap_token(session_factory, settings.bootstrap_token)
 
-    app = FastAPI(title="brand-runtime API", version="0.1.0")
+    app = FastAPI(title="brand-runtime API", version=__version__)
     app.state.settings = settings.model_copy(update={"bootstrap_token": None})
     app.state.engine = engine
     app.state.storage = storage

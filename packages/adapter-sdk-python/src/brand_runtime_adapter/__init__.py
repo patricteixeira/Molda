@@ -8,7 +8,7 @@ from brand_runtime_adapter.builder import (
     SourceIdentity,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "AdapterBuildError",
