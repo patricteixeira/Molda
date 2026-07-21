@@ -16,12 +16,24 @@ from brand_runtime.ir.models import Evidence
 _VECTOR_CONFIDENCE = 0.9
 _TEXT_CONFIDENCE = 0.7
 _DEDUPE_THRESHOLD = 6.0
-_HEX_DECLARATION = re.compile(r"(?i)(?P<label>\bHEX\s*)?#(?P<hex>[0-9a-f]{6}|[0-9a-f]{3})\b")
+_HEX_DECLARATION = re.compile(
+    r"(?i)(?P<label>\bHEX\s*|--[a-z0-9-]+\s*[·:=-]\s*)?"
+    r"#(?P<hex>[0-9a-f]{6}|[0-9a-f]{3})\b"
+)
+_BARE_HEX = re.compile(r"(?i)(?<![#0-9a-z])(?P<hex>[0-9a-f]{6})(?![0-9a-z])")
 _PERCENTAGE = re.compile(r"(?P<value>\d{1,3})\s*%")
 
-_PRIMARY_WORDS = ("primaria", "grafite", "tinta", "ambar", "acento")
-_BACKGROUND_WORDS = ("fundo", "papel", "background", "surface")
+_PRIMARY_WORDS = ("primaria", "grafite", "tinta", "institucional", "verde floresta")
+_BACKGROUND_WORDS = ("fundo", "papel", "background", "surface", "creme")
 _TEXT_WORDS = ("texto", "tinta", "grafite", "leitura", "corpo")
+_ACCENT_WORDS = ("ambar", "ouro", "dourado", "gold", "acento", "destaque", "tempero")
+_PALETTE_SECTION_WORDS = (
+    "paleta",
+    "palette",
+    "escala de cores",
+    "color scale",
+    "colour scale",
+)
 
 
 def _rgb_floats_to_hex(rgb: tuple[float, ...]) -> str:
@@ -42,7 +54,7 @@ def _searchable(value: str) -> str:
 
 def _nearest_semantic_label(before: str) -> str:
     """Encontra o rótulo curto imediatamente associado a uma amostra de paleta."""
-    words = (*_PRIMARY_WORDS, *_BACKGROUND_WORDS, *_TEXT_WORDS)
+    words = (*_PRIMARY_WORDS, *_BACKGROUND_WORDS, *_TEXT_WORDS, *_ACCENT_WORDS)
     lines = [
         line
         for line in before.splitlines()
@@ -82,7 +94,8 @@ def extract_pdf_declared_colors(pdf_path: Path) -> dict[str, list[Candidate]]:
     Manuais reais frequentemente escrevem a paleta como ``HEX #RRGGBB``. Essa
     declaração é mais informativa do que a área ocupada por uma cor na página.
     O contexto anterior associa termos como ``grafite/tinta``, ``papel/fundo``
-    e ``texto/leitura`` aos papéis usados pelo wizard. O retorno mantém listas
+    e ``texto/leitura`` aos papéis usados pelo wizard. Ouro, âmbar e acento
+    alimentam um papel separado de destaque. O retorno mantém listas
     independentes porque uma mesma cor pode ser, legitimamente, primária e de
     texto.
     """
@@ -101,6 +114,7 @@ def extract_pdf_declared_colors(pdf_path: Path) -> dict[str, list[Candidate]]:
         "primary": {},
         "background": {},
         "text": {},
+        "accent": {},
     }
     all_values: dict[str, tuple[float, list[Evidence]]] = {}
     for match in _HEX_DECLARATION.finditer(full_text):
@@ -169,18 +183,46 @@ def extract_pdf_declared_colors(pdf_path: Path) -> dict[str, list[Candidate]]:
             + (5.0 if "primaria" in compact_before and match["label"] else 0.0),
             "background": explicit_bonus + _label_score(semantic_context, _BACKGROUND_WORDS),
             "text": explicit_bonus + _label_score(semantic_context, _TEXT_WORDS),
+            "accent": explicit_bonus + _label_score(semantic_context, _ACCENT_WORDS),
         }
         role_relevance = {
             "primary": any(word in semantic_context for word in _PRIMARY_WORDS)
             or bool(match["label"] and "primaria" in compact_before),
             "background": any(word in semantic_context for word in _BACKGROUND_WORDS),
             "text": any(word in semantic_context for word in _TEXT_WORDS),
+            "accent": any(word in semantic_context for word in _ACCENT_WORDS),
         }
         for role, score in role_scores.items():
             if not role_relevance[role]:
                 continue
             previous_score, previous_evidence = by_role[role].get(value, (0.0, []))
             by_role[role][value] = (previous_score + score, [*previous_evidence, evidence])
+
+    # Escalas impressas costumam omitir o ``#`` para economizar espaço. Só
+    # aceitamos esses códigos quando a própria página se declara como paleta e
+    # contém mais de uma amostra; assim, datas e identificadores isolados não
+    # viram cores da marca.
+    for page_number, page_text in pages:
+        searchable_page = _searchable(page_text)
+        if not any(word in searchable_page for word in _PALETTE_SECTION_WORDS):
+            continue
+        matches = list(_BARE_HEX.finditer(page_text))
+        if len(matches) < 2:
+            continue
+        for match in matches:
+            value = normalize_color(f"#{match['hex']}")
+            evidence = Evidence(
+                source_type="pdf-guideline",
+                path=str(pdf_path),
+                page=page_number,
+                detail=f"cor hexadecimal listada em seção de paleta: {value}",
+                confidence=0.9,
+            )
+            previous_score, previous_evidence = all_values.get(value, (0.0, []))
+            all_values[value] = (
+                max(previous_score, 0.9),
+                [*previous_evidence, evidence],
+            )
 
     result: dict[str, list[Candidate]] = {}
     for role, values in by_role.items():

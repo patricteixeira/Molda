@@ -597,9 +597,9 @@ def _compile_composition_rules(
         for token in ("color.background", "color.text", "color.primary", "color.secondary")
         if token in colors
     ]
-    semantic_order.extend(token for token in colors if token not in semantic_order)
 
     def most_contrasting(background_token: str) -> str:
+        """Escolhe somente entre papéis confirmados, nunca entre tinta incidental do PDF."""
         return max(
             (token for token in semantic_order if token != background_token),
             key=lambda token: wcag_contrast(
@@ -619,7 +619,17 @@ def _compile_composition_rules(
         >= 4.5
         else most_contrasting(principal_background)
     )
-    alternative_background = most_contrasting(principal_background)
+    primary_surface = role_tokens["primary"]
+    alternative_background = (
+        primary_surface
+        if primary_surface != principal_background
+        and wcag_contrast(
+            colors[principal_background].value,
+            colors[primary_surface].value,
+        )
+        >= 4.5
+        else most_contrasting(principal_background)
+    )
     alternative_foreground = (
         principal_background
         if wcag_contrast(

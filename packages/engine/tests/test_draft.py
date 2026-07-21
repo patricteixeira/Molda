@@ -415,6 +415,32 @@ def test_semantic_pdf_declarations_drive_color_and_font_roles(tmp_path):
     assert missing_targets == {"Clash Display", "Fraunces", "General Sans"}
 
 
+def test_declared_brand_primary_becomes_text_fallback_instead_of_default_black(tmp_path):
+    package = tmp_path / "vita-style-package"
+    package.mkdir()
+    with pymupdf.open() as doc:
+        page = doc.new_page()
+        page.insert_textbox(
+            pymupdf.Rect(40, 40, 500, 700),
+            "Verde institucional, creme como papel, ouro medicinal como tempero.\n"
+            "Verde floresta\n--green-800 : #1C382A\n"
+            "Creme\n--cream-200 : #F4F1E8\n"
+            "Ouro medicinal\n--gold-500 : #C89C40\n",
+            fontsize=12,
+        )
+        page.draw_line((40, 760), (500, 760), color=(0, 0, 0), width=1)
+        doc.save(package / "manual.pdf")
+
+    draft = build_draft(package)
+    questions = {question.id: question for question in draft.questions}
+
+    assert questions["color.primary"].candidates[0].value == "#1C382A"
+    assert questions["color.background"].candidates[0].value == "#F4F1E8"
+    assert questions["color.text"].candidates[0].value == "#1C382A"
+    assert questions["color.secondary"].candidates[0].value == "#C89C40"
+    assert "#000000" not in {candidate.value for candidate in draft.palette_candidates}
+
+
 def test_observed_pdf_fonts_remain_fallback_without_semantic_declaration(brand_package):
     draft = build_draft(brand_package)
     heading = next(question for question in draft.questions if question.id == "font.heading")

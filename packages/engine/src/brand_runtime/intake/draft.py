@@ -25,7 +25,7 @@ from typing import Literal
 from PIL import Image
 from pydantic import Field
 
-from brand_runtime.colors import dedupe_colors, delta_e, is_neutral, lightness
+from brand_runtime.colors import dedupe_colors, delta_e, is_neutral, lightness, wcag_contrast
 from brand_runtime.intake.base import Candidate
 from brand_runtime.intake.dtcg import load_dtcg
 from brand_runtime.intake.fonts import introspect_font
@@ -415,6 +415,7 @@ def _declared_color_candidates(pdfs: list[Path]) -> dict[str, list[Candidate]]:
         "primary": {},
         "background": {},
         "text": {},
+        "accent": {},
         "all": {},
     }
     for pdf in pdfs:
@@ -697,27 +698,38 @@ def build_draft(
     dtcg_fonts = [c for key, c in dtcg.items() if key.startswith("font.")]
 
     colors = _color_candidates(pdfs, svg_logos, png_logos, dtcg_colors)
+    logo_colors = _color_candidates([], svg_logos, png_logos, [])
     declared_colors = _declared_color_candidates(pdfs)
     dtcg_primary = _dtcg_colors_for_role(dtcg, "primary")
     dtcg_secondary = _dtcg_colors_for_role(dtcg, "secondary")
     dtcg_background = _dtcg_colors_for_role(dtcg, "background")
     dtcg_text = _dtcg_colors_for_role(dtcg, "text")
-    non_neutral = [c for c in colors if not is_neutral(c.value)]
+    # Quando o manual declara uma paleta em texto ou tokens, ela é a fronteira
+    # autoritativa. Tintas vetoriais incidentais do próprio PDF (marcas de corte,
+    # linhas técnicas e sombras) não devem reaparecer como cores da marca.
+    has_declared_palette = bool(dtcg_colors or declared_colors["all"])
+    explicit_palette = _unique_colors(
+        dtcg_colors,
+        declared_colors["all"],
+        logo_colors,
+    )
+    all_document_colors = explicit_palette if has_declared_palette else colors
+
+    non_neutral = [c for c in all_document_colors if not is_neutral(c.value)]
     light_neutrals = [
-        c for c in colors if is_neutral(c.value) and lightness(c.value) > _BACKGROUND_MIN_LIGHTNESS
+        c
+        for c in all_document_colors
+        if is_neutral(c.value) and lightness(c.value) > _BACKGROUND_MIN_LIGHTNESS
     ]
     dark_neutrals = [
-        c for c in colors if is_neutral(c.value) and lightness(c.value) < _TEXT_MAX_LIGHTNESS
+        c
+        for c in all_document_colors
+        if is_neutral(c.value) and lightness(c.value) < _TEXT_MAX_LIGHTNESS
     ]
 
     # Declarações semânticas podem existir apenas como texto (por exemplo,
     # ``HEX #CA6B0B``), sem uma área pintada que o extrator visual encontre.
     # Elas também pertencem à paleta completa oferecida em cada papel.
-    all_document_colors = _unique_colors(
-        colors,
-        declared_colors["all"],
-    )
-
     primary_semantic = _unique_colors(
         dtcg_primary,
         declared_colors["primary"],
@@ -742,10 +754,21 @@ def build_draft(
         dtcg_text,
         declared_colors["text"],
     )
+    background_reference = (
+        background_recommended[0].value if background_recommended else _DEFAULT_BACKGROUND
+    )
+    primary_text_fallback = [
+        candidate
+        for candidate in primary_recommended[:1]
+        if wcag_contrast(candidate.value, background_reference) >= 4.5
+    ]
     text_recommended = (
         text_semantic
         if text_semantic
-        else _plus_default(_unique_colors(dark_neutrals), _DEFAULT_TEXT)
+        else _plus_default(
+            _unique_colors(dark_neutrals, primary_text_fallback),
+            _DEFAULT_TEXT,
+        )
     )
     text_candidates = _unique_colors(text_recommended, all_document_colors)
 
@@ -817,6 +840,11 @@ def build_draft(
         ]
         secondary_semantic = _unique_colors(
             [candidate for candidate in dtcg_secondary if candidate.value != likely_primary],
+            [
+                candidate
+                for candidate in declared_colors["accent"]
+                if candidate.value != likely_primary
+            ],
             [
                 candidate
                 for candidate in declared_colors["primary"]

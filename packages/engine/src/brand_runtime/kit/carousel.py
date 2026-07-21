@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
+from brand_runtime.colors import wcag_contrast
 from brand_runtime.ir.models import BrandIR
 from brand_runtime.kit.generator import KitGenerationError
 from brand_runtime.kit.models import (
@@ -34,6 +35,13 @@ def _tokens(ir: BrandIR) -> tuple[str, str, str]:
         if token not in ir.colors:
             raise KitGenerationError(f"O carrossel não consegue resolver o token {token}.")
     return background, foreground, accent
+
+
+def _accent_text(ir: BrandIR, background: str, foreground: str, accent: str) -> str:
+    """Usa o acento em texto apenas quando ele preserva contraste de leitura."""
+    if wcag_contrast(ir.colors[accent].value, ir.colors[background].value) >= 4.5:
+        return accent
+    return foreground
 
 
 def _frame(height: int, foreground: str, accent: str) -> list[ShapeLayer]:
@@ -108,6 +116,7 @@ def _cover(ir: BrandIR, profile: CarouselProfile) -> LayoutSpec:
     canvas = _canvas(profile)
     height = canvas.height_px
     background, foreground, accent = _tokens(ir)
+    label_color = _accent_text(ir, background, foreground, accent)
     headline_height = 360 if profile == "post-4x5" else 300
     headline_y = 330 if profile == "post-4x5" else 250
     return LayoutSpec(
@@ -150,7 +159,7 @@ def _cover(ir: BrandIR, profile: CarouselProfile) -> LayoutSpec:
                 id="kicker",
                 kind="text",
                 role="caption",
-                color_token=accent,
+                color_token=label_color,
                 max_chars=64,
                 area=(80, 185, 760, 44),
                 required=False,
@@ -189,6 +198,7 @@ def _content(ir: BrandIR, profile: CarouselProfile, variant: Literal["a", "b"]) 
     canvas = _canvas(profile)
     height = canvas.height_px
     background, foreground, accent = _tokens(ir)
+    label_color = _accent_text(ir, background, foreground, accent)
     compact = profile == "post-1x1"
     headline_y = 188 if variant == "a" else 246
     headline_x = 80 if variant == "a" else 320
@@ -248,7 +258,7 @@ def _content(ir: BrandIR, profile: CarouselProfile, variant: Literal["a", "b"]) 
             id="kicker",
             kind="text",
             role="caption",
-            color_token=accent,
+            color_token=label_color,
             max_chars=64,
             area=(headline_x, headline_y - 82, headline_w, 40),
             required=False,

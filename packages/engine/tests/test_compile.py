@@ -271,6 +271,32 @@ def test_composition_rules_and_logo_variants_compile_with_precise_provenance(bra
     )
 
 
+def test_inferred_dark_surface_ignores_incidental_palette_black(brand_package):
+    draft = build_draft(brand_package)
+    draft.palette_candidates.insert(
+        0,
+        Candidate(
+            value="#000000",
+            score=1.0,
+            evidence=[
+                Evidence(
+                    source_type="pdf-guideline",
+                    path="manual.pdf",
+                    page=1,
+                    confidence=0.9,
+                )
+            ],
+        ),
+    )
+
+    ir = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
+    rules = ir.composition_rules
+
+    assert rules is not None and rules.modes.dark is not None
+    assert rules.modes.dark.background_color_token == "color.primary"
+    assert ir.colors[rules.modes.dark.background_color_token].value == "#1A4D8F"
+
+
 def test_confirmed_logo_variants_override_automatic_inference(brand_package):
     draft = _composition_draft(brand_package)
     answers = _answers(draft)

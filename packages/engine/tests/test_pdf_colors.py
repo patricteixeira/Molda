@@ -58,7 +58,38 @@ def test_declared_hex_colors_are_ranked_by_semantic_role_across_pages(tmp_path):
     assert roles["primary"][0].value == "#1F232A"
     assert roles["background"][0].value == "#FCFBF8"
     assert roles["text"][0].value == "#1F232A"
+    assert roles["accent"][0].value == "#CA6B0B"
     assert roles["primary"][0].evidence[0].detail == "cor HEX declarada no texto: #1F232A"
+
+
+def test_design_tokens_bind_brand_pillars_without_promoting_technical_black(tmp_path):
+    pdf_path = tmp_path / "vita-cann-med.pdf"
+    with pymupdf.open() as doc:
+        page = doc.new_page()
+        page.insert_textbox(
+            pymupdf.Rect(40, 40, 500, 700),
+            "CORES\nPaleta\nVerde institucional, creme como papel, "
+            "ouro medicinal como tempero - nunca molho.\nPILARES\n"
+            "Verde floresta\n--green-800 : #1C382A\n"
+            "Creme\n--cream-200 : #F4F1E8\n"
+            "Ouro medicinal\n--gold-500 : #C89C40\n"
+            "VERDE - ESCALA\n14271D 244736 2F5A44\n"
+            "OURO - ESCALA\n94722A B08A34\n",
+            fontsize=12,
+        )
+        # Preto técnico de construção, sem declaração textual de pertencimento à paleta.
+        page.draw_line((40, 760), (500, 760), color=(0, 0, 0), width=1)
+        doc.save(pdf_path)
+
+    roles = extract_pdf_declared_colors(pdf_path)
+
+    assert roles["primary"][0].value == "#1C382A"
+    assert roles["background"][0].value == "#F4F1E8"
+    assert roles["accent"][0].value == "#C89C40"
+    assert {"#14271D", "#244736", "#2F5A44", "#94722A", "#B08A34"}.issubset(
+        {candidate.value for candidate in roles["all"]}
+    )
+    assert "#000000" not in {candidate.value for candidate in roles["all"]}
 
 
 def test_usage_after_hex_can_add_a_second_background_without_contaminating_neighbors(tmp_path):

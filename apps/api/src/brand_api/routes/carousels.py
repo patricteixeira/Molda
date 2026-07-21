@@ -13,11 +13,13 @@ from sqlalchemy import select
 from brand_api.auth import require_token
 from brand_api.db import new_id
 from brand_api.carousel_composition import (
+    CarouselCandidateAssessment,
     CarouselCompositionInput,
     compose_carousel_sequence,
     explain_carousel_choice,
     extract_numeric_tokens,
 )
+from brand_api.carousel_preflight import assess_carousel_candidate
 from brand_api.layout_catalog import current_layouts, resolve_layout
 from brand_api.models import BrandRevision, Carousel, CarouselSlide, Document, Job
 from brand_api.revision_ir import revision_brand_ir
@@ -277,6 +279,8 @@ def _template_values(
     numeric_tokens = extract_numeric_tokens(slide.headline, *blocks, slide.cta)
     block_index = 0
     numeric_index = 0
+    stage_index = 0
+    stage_ids = [slot.id for slot in layout.slots if slot.id.startswith("stage-")]
     headline_ids = {
         "headline",
         "title",
@@ -299,7 +303,9 @@ def _template_values(
 
         slot_id = slot.id
         if slot_id == "index":
-            text = f"{position:02d} / {total:02d}"
+            # Templates públicos tratam o índice como um elemento editorial curto.
+            # O renderer aplica o zero-padding declarado pelo próprio slot.
+            text = str(position)
         elif slot_id == "signature":
             text = signature.text.strip()
         elif slot_id in headline_ids:
@@ -326,9 +332,18 @@ def _template_values(
             numeric_index += 1
         elif slot_id == "source":
             text = slide.kicker.strip() or slide.cta.strip() or (blocks[-1] if blocks else "")
+        elif slot_id.startswith("stage-"):
+            text = blocks[stage_index] if stage_index < len(blocks) else ""
+            stage_index += 1
         elif slot_id.startswith("body") or slot.role == "body":
-            text = blocks[block_index % len(blocks)] if blocks else slide.headline.strip()
-            block_index += 1
+            if stage_ids:
+                remaining = blocks[len(stage_ids) :]
+                text = " ".join(remaining) if remaining else ""
+            elif blocks:
+                text = blocks[block_index % len(blocks)]
+                block_index += 1
+            else:
+                text = slide.headline.strip() if slot.required else ""
         else:
             text = _TEMPLATE_TEXT_DEFAULTS.get(slot_id)
             if text is None:
@@ -401,12 +416,15 @@ def _document_body(
         values["kicker"] = {"kind": "text", "text": slide.kicker.strip()}
 
     role = _slide_role(position, total)
-    if role == "cover" and slide.text_blocks:
+    slot_ids = {slot.id for slot in layout.slots}
+    if role == "cover" and slide.text_blocks and "deck" in slot_ids:
         values["deck"] = {"kind": "text", "text": slide.text_blocks[0].strip()}
     elif role == "content":
         for index, block in enumerate(slide.text_blocks, start=1):
-            values[f"body-{index}"] = {"kind": "text", "text": block.strip()}
-    elif role == "closing" and slide.cta.strip():
+            slot_id = f"body-{index}"
+            if slot_id in slot_ids:
+                values[slot_id] = {"kind": "text", "text": block.strip()}
+    elif role == "closing" and slide.cta.strip() and "cta" in slot_ids:
         values["cta"] = {"kind": "text", "text": slide.cta.strip()}
 
     return DocumentBody(
@@ -594,6 +612,38 @@ def create_carousel(body: CarouselCreateBody, request: Request) -> dict[str, Any
             for layout in generate_carousel_layouts(ir, body.profile)
             if layout.id not in known_layout_ids
         )
+        total = len(body.slides)
+
+        def assess(layout: LayoutSpec, position: int) -> CarouselCandidateAssessment:
+            source = body.slides[position - 1]
+            if source.layout_id is not None:
+                return CarouselCandidateAssessment(viable=True)
+            try:
+                _validate_slide_assets(layout, source, request)
+                content = _validated_content(
+                    _document_body(
+                        revision.id,
+                        ir,
+                        layout,
+                        source,
+                        body.signature,
+                        position,
+                        total,
+                    ),
+                    request,
+                )
+            except HTTPException:
+                return CarouselCandidateAssessment(
+                    viable=False,
+                    issues=("asset-incompatível",),
+                )
+            return assess_carousel_candidate(
+                ir,
+                layout,
+                content,
+                request.app.state.settings.storage_dir,
+            )
+
         try:
             automatic_choices = compose_carousel_sequence(
                 ir,
@@ -607,6 +657,7 @@ def create_carousel(body: CarouselCreateBody, request: Request) -> dict[str, Any
                     )
                     for slide in body.slides
                 ],
+                assess_candidate=assess,
             )
         except ValueError as exc:
             raise HTTPException(
@@ -627,7 +678,6 @@ def create_carousel(body: CarouselCreateBody, request: Request) -> dict[str, Any
         )
         session.add(carousel)
         session.flush()
-        total = len(body.slides)
         for position, (source, automatic) in enumerate(
             zip(body.slides, automatic_choices, strict=True),
             start=1,

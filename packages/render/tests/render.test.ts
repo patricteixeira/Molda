@@ -504,6 +504,15 @@ it("textFormat zero-padded usa dois dígitos quando minDigits é omitido", () =>
   expect(payload.brandIr.compositionRules!.numbering.minDigits).toBeUndefined();
 });
 
+it("textFormat zero-padded normaliza a fração legada do carrossel", () => {
+  const payload = editorialPayload();
+  payload.layoutSpec.slots[0].textFormat = "zero-padded";
+  payload.layoutSpec.slots[0].emphasisColorToken = null;
+  payload.contentSpec.values.headline = { kind: "text", text: "02 / 03" };
+  renderDocument(container, payload);
+  expect(container.querySelector("[data-slot-content]")!.textContent).toBe("02");
+});
+
 it("renderiza a superfície procedural atrás das camadas e recortada pelo canvas", () => {
   const payload = fixturePayload();
   payload.contentSpec.surface = {

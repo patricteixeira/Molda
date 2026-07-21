@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Iterable, Literal, Sequence
+from typing import Callable, Iterable, Literal, Sequence
 
 from brand_runtime import BrandIR, LayoutSpec
 from brand_runtime.templates import recommend_template_layouts
@@ -15,10 +15,19 @@ _NUMBER_RE = re.compile(
     re.IGNORECASE,
 )
 _PROCESS_RE = re.compile(
-    r"\b(?:passo|etapa|fase|fluxo|processo|como|primeiro|segundo|terceiro|antes|depois)\b",
+    r"\b(?:passo|etapa|fase|fluxo|processo)\b",
     re.IGNORECASE,
 )
+_SEQUENCE_RE = re.compile(
+    r"\b(?:primeiro|segundo|terceiro|antes|depois)\b",
+    re.IGNORECASE,
+)
+_HOW_RE = re.compile(r"\bcomo\b", re.IGNORECASE)
 _QUOTE_RE = re.compile(r"^[\s\"'“‘«].+[\"'”’»]\s*$")
+_QUANTITATIVE_TOKEN_RE = re.compile(
+    r"(?:R\$|%|\bx\b|×|\bmil(?:hão|hões)?\b)",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -40,10 +49,34 @@ class CarouselCompositionChoice:
 
 
 @dataclass(frozen=True)
+class CarouselCandidateAssessment:
+    """Resultado do preflight aplicado a um candidato automático."""
+
+    viable: bool
+    issues: tuple[str, ...] = ()
+
+
+CarouselCandidateAssessor = Callable[[LayoutSpec, int], CarouselCandidateAssessment]
+
+
+def _issue_summary(issue: str) -> str:
+    if issue.startswith(("text-length", "text-overflow")):
+        return "há texto que não cabe"
+    if issue.startswith("text-collision"):
+        return "há elementos de texto sobrepostos"
+    if issue.startswith("contrast"):
+        return "o contraste é insuficiente"
+    if issue == "asset-incompatível":
+        return "falta uma imagem compatível"
+    return "o modelo é incompatível com este conteúdo"
+
+
+@dataclass(frozen=True)
 class _Signals:
     headline_length: int
     block_count: int
     numeric_tokens: tuple[str, ...]
+    has_data: bool
     has_process: bool
     has_quote: bool
     has_image: bool
@@ -76,11 +109,22 @@ def _role(position: int, total: int) -> SlideRole:
 def _signals(slide: CarouselCompositionInput) -> _Signals:
     texts = (slide.headline, *slide.text_blocks, slide.cta)
     joined = " ".join(texts)
+    numeric_tokens = extract_numeric_tokens(*texts)
+    headline_tokens = extract_numeric_tokens(slide.headline)
+    block_count = len(tuple(block for block in slide.text_blocks if block.strip()))
     return _Signals(
         headline_length=len(slide.headline.strip()),
-        block_count=len(tuple(block for block in slide.text_blocks if block.strip())),
-        numeric_tokens=extract_numeric_tokens(*texts),
-        has_process=bool(_PROCESS_RE.search(joined)),
+        block_count=block_count,
+        numeric_tokens=numeric_tokens,
+        has_data=(
+            len(headline_tokens) >= 2
+            or sum(bool(_QUANTITATIVE_TOKEN_RE.search(token)) for token in numeric_tokens) >= 2
+        ),
+        has_process=(
+            bool(_PROCESS_RE.search(joined))
+            or len(_SEQUENCE_RE.findall(joined)) >= 2
+            or (block_count >= 2 and bool(_HOW_RE.search(slide.headline)))
+        ),
         has_quote=bool(_QUOTE_RE.match(slide.headline.strip())),
         has_image=slide.image_sha256 is not None,
         has_cta=bool(slide.cta.strip()),
@@ -113,7 +157,7 @@ def _eligible(layout: LayoutSpec, signals: _Signals) -> bool:
     package_id = _package_id(layout)
     if package_id == "device-mockup" and not signals.has_image:
         return False
-    if package_id == "data-evidence" and len(signals.numeric_tokens) < 2:
+    if package_id == "data-evidence" and not signals.has_data:
         return False
     if package_id == "technical-diagram" and not signals.has_process:
         return False
@@ -155,7 +199,7 @@ def _content_score(layout: LayoutSpec, signals: _Signals) -> float:
     image_slots = sum(slot.kind == "image" for slot in layout.slots)
     if signals.has_image:
         score += 18 if image_slots else -8
-    if len(signals.numeric_tokens) >= 2:
+    if signals.has_data:
         score += 28 if package_id == "data-evidence" else 0
         score += 12 if package_id in {"swiss-system", "technical-diagram"} else 0
     if signals.has_process:
@@ -177,7 +221,7 @@ def _content_score(layout: LayoutSpec, signals: _Signals) -> float:
 def _reason(layout: LayoutSpec, role: SlideRole, signals: _Signals) -> str:
     if signals.has_image and any(slot.kind == "image" for slot in layout.slots):
         return "A imagem enviada conduz a composição sem perder a hierarquia da marca."
-    if len(signals.numeric_tokens) >= 2 and _package_id(layout) == "data-evidence":
+    if signals.has_data and _package_id(layout) == "data-evidence":
         return "Os números já presentes no conteúdo viram a estrutura visual deste slide."
     if signals.has_process and _package_id(layout) == "technical-diagram":
         return "As etapas do texto são organizadas como uma sequência visual legível."
@@ -203,6 +247,8 @@ def compose_carousel_sequence(
     ir: BrandIR,
     layouts: Iterable[LayoutSpec],
     slides: Sequence[CarouselCompositionInput],
+    *,
+    assess_candidate: CarouselCandidateAssessor | None = None,
 ) -> list[CarouselCompositionChoice]:
     """Escolhe uma sequência coerente, variada e explicável para o conteúdo recebido."""
     available = list(layouts)
@@ -221,23 +267,6 @@ def compose_carousel_sequence(
         signals = _signals(slide)
         role = _role(position, len(slides))
         candidates = [layout for layout in available if _eligible(layout, signals)]
-        if signals.has_image:
-            image_candidates = [
-                layout
-                for layout in candidates
-                if any(slot.kind == "image" for slot in layout.slots)
-            ]
-            candidates = image_candidates or candidates
-        elif len(signals.numeric_tokens) >= 2:
-            data_candidates = [
-                layout for layout in candidates if _package_id(layout) == "data-evidence"
-            ]
-            candidates = data_candidates or candidates
-        elif signals.has_process:
-            process_candidates = [
-                layout for layout in candidates if _package_id(layout) == "technical-diagram"
-            ]
-            candidates = process_candidates or candidates
         if not candidates:
             candidates = [
                 layout
@@ -257,7 +286,40 @@ def compose_carousel_sequence(
                 value += 2 if position % 2 else -2
             return (value, layout.id)
 
-        selected = max(candidates, key=score)
+        def preference(layout: LayoutSpec) -> int:
+            if signals.has_image:
+                return int(any(slot.kind == "image" for slot in layout.slots))
+            if signals.has_data:
+                return int(_package_id(layout) == "data-evidence")
+            if signals.has_process:
+                return int(_package_id(layout) == "technical-diagram")
+            return 0
+
+        ranked = sorted(
+            candidates,
+            key=lambda layout: (preference(layout), *score(layout)),
+            reverse=True,
+        )
+        rejected: list[CarouselCandidateAssessment] = []
+        selected = None
+        for layout in ranked:
+            assessment = (
+                CarouselCandidateAssessment(viable=True)
+                if assess_candidate is None
+                else assess_candidate(layout, position + 1)
+            )
+            if assessment.viable:
+                selected = layout
+                break
+            rejected.append(assessment)
+        if selected is None:
+            details = "; ".join(
+                dict.fromkeys(_issue_summary(issue) for item in rejected for issue in item.issues)
+            )
+            suffix = f" Motivos: {details}." if details else ""
+            raise ValueError(
+                f"Nenhum modelo acomodou o conteúdo do slide {position + 1} com segurança.{suffix}"
+            )
         choices.append(
             CarouselCompositionChoice(
                 layout=selected,

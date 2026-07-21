@@ -1,6 +1,7 @@
 import pytest
 
 from brand_runtime import generate_carousel_layouts
+from brand_runtime.colors import wcag_contrast
 from tests.test_generator import _ir
 
 
@@ -67,3 +68,21 @@ def test_content_b_reserves_height_for_the_complete_editorial_counter(brand_pack
 
     assert index.role == "heading"
     assert index.area == (80, 86, 190, 232)
+
+
+def test_carousel_does_not_use_low_contrast_accent_for_small_labels(brand_package):
+    ir = _ir(brand_package)
+    cover, content_a, content_b, _ = generate_carousel_layouts(
+        ir,
+        "post-4x5",
+    )
+
+    for layout in (cover, content_a, content_b):
+        kicker = next(slot for slot in layout.slots if slot.id == "kicker")
+        assert (
+            wcag_contrast(
+                ir.colors[kicker.color_token].value,
+                ir.colors[layout.background.color_token].value,
+            )
+            >= 4.5
+        )

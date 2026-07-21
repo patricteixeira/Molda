@@ -22,8 +22,17 @@ DeclaredColorRole = Literal["primary", "background", "accent"]
 DeclaredMotif = Literal["diagonal-lines"]
 DeclaredLayoutStyleKind = Literal["ornamental-divider", "restrained-clinical-grid"]
 
-_MODE_LIGHT = re.compile(r"\bfundo\s+claro\b.{0,24}\bpositivo\b", re.DOTALL)
-_MODE_DARK = re.compile(r"\bfundo\s+escuro\b.{0,24}\bnegativo\b", re.DOTALL)
+_MODE_LIGHT = re.compile(
+    r"(?:\bfundos?\s+claros?\b.{0,40}\bpositivo\b|"
+    r"\bsobre\s+(?:fundo\s+)?claro\b.{0,40}\buso\s+padrao\b)",
+    re.DOTALL,
+)
+_MODE_DARK = re.compile(
+    r"(?:\bfundos?\s+escuros?\b.{0,40}\bnegativo\b|"
+    r"\b(?:creme|branco|claro|negativo)\s+sobre\s+[^\n]{1,60}?"
+    r"\bfundos?\s+escuros?\b)",
+    re.DOTALL,
+)
 _ACCENT_LIMIT = re.compile(
     r"\bambar\b.{0,600}?(?:abaixo\s+de|menor\s+que|<)\s*10\s*%",
     re.DOTALL,
@@ -152,11 +161,11 @@ def extract_pdf_composition(pdf_path: Path) -> CompositionDeclarations:
         compact = text.replace(" ", "").replace("\n", "")
         if _MODE_LIGHT.search(text):
             result.light_mode_evidence.append(
-                _evidence(pdf_path, page_number, "modo declarado: fundo claro · positivo")
+                _evidence(pdf_path, page_number, "modo claro declarado no manual")
             )
         if _MODE_DARK.search(text):
             result.dark_mode_evidence.append(
-                _evidence(pdf_path, page_number, "modo declarado: fundo escuro · negativo")
+                _evidence(pdf_path, page_number, "modo escuro declarado no manual")
             )
         if result.accent is None and _ACCENT_LIMIT.search(text):
             result.accent = DeclaredAccentLimit(

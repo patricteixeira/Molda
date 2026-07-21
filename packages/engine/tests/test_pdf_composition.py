@@ -69,6 +69,21 @@ AREA DE PROTECAO = 1/4 DA ALTURA
     )
 
 
+def test_extracts_positive_and_dark_logo_usage_written_as_real_brand_guidelines(tmp_path):
+    declarations = extract_pdf_composition(
+        _manual(
+            tmp_path,
+            """VARIACOES
+Verde sobre claro - uso padrao
+Creme sobre verde - fundos escuros
+""",
+        )
+    )
+
+    assert declarations.light_mode_evidence
+    assert declarations.dark_mode_evidence
+
+
 def test_does_not_infer_rules_from_incidental_visual_language(tmp_path):
     path = _manual(
         tmp_path,

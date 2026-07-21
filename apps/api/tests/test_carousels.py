@@ -3,6 +3,7 @@ import zipfile
 
 from PIL import Image
 
+from brand_api.carousel_composition import CarouselCandidateAssessment
 from brand_api.exporters import FakeExporter
 from brand_api.worker import run_next_job
 
@@ -56,7 +57,14 @@ def test_carousel_derives_cover_content_closing_and_signature(client, compiled):
     ]
     assert all(slide["composition"]["mode"] == "automatic" for slide in carousel["slides"])
     assert all(slide["composition"]["reasonPt"] for slide in carousel["slides"])
-    assert all(slide["layout"]["templateRef"] is not None for slide in carousel["slides"])
+    assert any(slide["layout"]["templateRef"] is not None for slide in carousel["slides"])
+    assert not [
+        check
+        for slide in carousel["slides"]
+        for check in slide["checks"]
+        if check["status"] == "blocked"
+        or (check["id"] in {"required-slot", "text-length"} and check["status"] == "warning")
+    ]
     assert all(
         not any(slot["kind"] == "image" for slot in slide["layout"]["slots"])
         for slide in carousel["slides"]
@@ -121,6 +129,11 @@ def test_carousel_accepts_individual_kit_templates_per_slide(client, compiled):
         slide["layout"]["templateRef"]["packageId"] == "typographic-editorial"
         for slide in carousel["slides"]
     )
+    assert [slide["content"]["values"]["index"]["text"] for slide in carousel["slides"]] == [
+        "1",
+        "2",
+        "3",
+    ]
     assert carousel["slides"][0]["content"]["values"]["headline"]["text"] == ("Ideia do slide 1")
 
 
@@ -148,6 +161,122 @@ def test_automatic_composition_uses_real_numbers_in_data_layouts(client, compile
     assert "34%" in rendered
     assert "71%" in rendered
     assert "82%" not in rendered
+
+
+def test_automatic_composition_does_not_treat_every_how_headline_as_a_process(
+    client,
+    compiled,
+):
+    slides = _slides(3)
+    slides[1]["headline"] = "Como uma marca ganha presença"
+    slides[1]["textBlocks"] = ["Uma reflexão editorial sobre presença e linguagem."]
+
+    response = client.post(
+        "/v1/carousels",
+        json={
+            "brandRevisionId": compiled["brandRevisionId"],
+            "name": "Leitura editorial",
+            "profile": "post-4x5",
+            "slides": slides,
+        },
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["slides"][1]["layout"]["templateRef"]["packageId"] != (
+        "technical-diagram"
+    )
+    assert response.json()["slides"][2]["layout"]["templateRef"]["packageId"] != (
+        "technical-diagram"
+    )
+
+    slides[1]["headline"] = "Processo em três etapas"
+    slides[1]["textBlocks"] = ["Passo 1: contexto.", "Passo 2: ideia.", "Passo 3: entrega."]
+    process_response = client.post(
+        "/v1/carousels",
+        json={
+            "brandRevisionId": compiled["brandRevisionId"],
+            "name": "Leitura processual",
+            "profile": "post-4x5",
+            "slides": slides,
+        },
+    )
+
+    assert process_response.status_code == 201, process_response.text
+    assert (
+        process_response.json()["slides"][1]["layout"]["templateRef"]["packageId"]
+        == "technical-diagram"
+    )
+    values = process_response.json()["slides"][1]["content"]["values"]
+    assert [values[f"stage-{name}"]["text"] for name in ("one", "two", "three")] == [
+        "Passo 1: contexto.",
+        "Passo 2: ideia.",
+        "Passo 3: entrega.",
+    ]
+    assert "body" not in values
+
+
+def test_automatic_composition_falls_back_when_best_candidate_fails_preflight(
+    client,
+    compiled,
+    monkeypatch,
+):
+    from brand_api.routes import carousels as carousel_routes
+
+    payload = {
+        "brandRevisionId": compiled["brandRevisionId"],
+        "name": "Fallback seguro",
+        "profile": "post-4x5",
+        "slides": _slides(3),
+    }
+    baseline = client.post("/v1/carousels", json=payload)
+    assert baseline.status_code == 201, baseline.text
+    rejected_layout_id = baseline.json()["slides"][0]["layoutId"]
+    original = carousel_routes.assess_carousel_candidate
+
+    def reject_best(ir, layout, content, assets_dir):
+        if layout.id == rejected_layout_id:
+            return CarouselCandidateAssessment(
+                viable=False,
+                issues=("text-collision:forced",),
+            )
+        return original(ir, layout, content, assets_dir)
+
+    monkeypatch.setattr(carousel_routes, "assess_carousel_candidate", reject_best)
+    fallback = client.post("/v1/carousels", json={**payload, "name": "Fallback aplicado"})
+
+    assert fallback.status_code == 201, fallback.text
+    assert fallback.json()["slides"][0]["layoutId"] != rejected_layout_id
+
+
+def test_automatic_carousel_matrix_materializes_without_critical_checks(client, compiled):
+    for count in (3, 5, 10, 20):
+        slides = _slides(count)
+        for index, slide in enumerate(slides[1:-1], start=1):
+            block_count = index % 7
+            slide["headline"] = f"Ideia {index}: uma mensagem com comprimento editorial controlado"
+            slide["textBlocks"] = [
+                f"Ponto {block + 1}: contexto curto para sustentar a leitura."
+                for block in range(block_count)
+            ]
+        response = client.post(
+            "/v1/carousels",
+            json={
+                "brandRevisionId": compiled["brandRevisionId"],
+                "name": f"Matriz {count}",
+                "profile": "post-4x5",
+                "slides": slides,
+            },
+        )
+
+        assert response.status_code == 201, response.text
+        assert len(response.json()["slides"]) == count
+        assert not [
+            check
+            for slide in response.json()["slides"]
+            for check in slide["checks"]
+            if check["status"] == "blocked"
+            or (check["id"] == "text-length" and check["status"] == "warning")
+        ]
 
 
 def test_carousel_slide_can_be_edited_without_changing_its_position_or_template(client, compiled):

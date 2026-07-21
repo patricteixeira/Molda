@@ -329,10 +329,11 @@ export function renderDocument(
         ? ir.colors[slot.emphasisColorToken].value
         : null;
       const minimumDigits = ir.compositionRules?.numbering?.minDigits ?? 2;
-      const text =
-        slot.textFormat === "zero-padded" && /^\d+$/.test(value.text)
-          ? value.text.padStart(minimumDigits, "0")
-          : value.text;
+      const zeroPaddedNumber =
+        slot.textFormat === "zero-padded"
+          ? /^\s*(\d+)(?:\s*\/\s*\d+)?\s*$/.exec(value.text)?.[1]
+          : undefined;
+      const text = zeroPaddedNumber ? zeroPaddedNumber.padStart(minimumDigits, "0") : value.text;
       appendTextWithEmphasis(contentElement, text, value.emphasis, emphasisColor);
       box.appendChild(contentElement);
       container.appendChild(box);
