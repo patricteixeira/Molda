@@ -150,6 +150,17 @@ it("preserva fundo global e versão de logo por slot no rascunho v5", () => {
         required: false,
       },
     ],
+    lockedLayers: [
+      {
+        id: "brand-mark",
+        kind: "asset",
+        assetToken: "logo.onLight",
+        area: [48, 920, 96, 96],
+        fit: "contain",
+        opacity: 1,
+        zIndex: 3,
+      },
+    ],
   }
 
   expect(
@@ -162,7 +173,7 @@ it("preserva fundo global e versão de logo por slot no rascunho v5", () => {
       [],
       [],
       "color.primary",
-      { logo: "logo.onDark" },
+      { logo: "logo.onDark", "brand-mark": "logo.onLight" },
     ),
   ).toBe(true)
   expect(loadEditorDraft("brandrev_v5", layoutWithLogo)).toEqual({
@@ -172,7 +183,7 @@ it("preserva fundo global e versão de logo por slot no rascunho v5", () => {
     addedSlots: [],
     addedLayers: [],
     backgroundColorToken: "color.primary",
-    assetBindings: { logo: "logo.onDark" },
+    assetBindings: { logo: "logo.onDark", "brand-mark": "logo.onLight" },
   })
 })
 
@@ -223,6 +234,43 @@ it("isola o rascunho por revisão e por peça", () => {
     addedLayers: [],
     ...v5Defaults,
   })
+})
+
+it("isola slides diferentes que usam o mesmo modelo", () => {
+  saveEditorDraft(
+    "brandrev_carousel",
+    layout.id,
+    { title: { kind: "text", text: "Primeiro slide" } },
+    {},
+    null,
+    [],
+    [],
+    null,
+    {},
+    "carousel_x:slide_1",
+  )
+  saveEditorDraft(
+    "brandrev_carousel",
+    layout.id,
+    { title: { kind: "text", text: "Segundo slide" } },
+    {},
+    null,
+    [],
+    [],
+    null,
+    {},
+    "carousel_x:slide_2",
+  )
+
+  expect(loadEditorDraft("brandrev_carousel", layout, "carousel_x:slide_1").values.title).toEqual({
+    kind: "text",
+    text: "Primeiro slide",
+  })
+  expect(loadEditorDraft("brandrev_carousel", layout, "carousel_x:slide_2").values.title).toEqual({
+    kind: "text",
+    text: "Segundo slide",
+  })
+  expect(loadEditorDraft("brandrev_carousel", layout).values).toEqual({})
 })
 
 it("ignora dados corrompidos, slots desconhecidos e valores incompatíveis", () => {

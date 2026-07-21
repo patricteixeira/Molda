@@ -1,20 +1,37 @@
 import { useEffect, useMemo, useState } from "react"
 import type { JSX } from "react"
-import { Link, useParams } from "react-router-dom"
-import { ApiError } from "../api/client"
+import { Link, useParams, useSearchParams } from "react-router-dom"
+import { ApiError, contentAddressedPath } from "../api/client"
 import { useApi } from "../api/context"
 import type {
   BrandIr,
   Carousel,
+  ContentSpec,
   CarouselProfile,
   CarouselSignature,
   CarouselSlideInput,
+  LayoutSpec,
 } from "../api/types"
 import { brandThemeStyle } from "../brandTheme"
+import {
+  hasAutomaticLogoPair,
+  logoAssetLabel,
+  logoAssetTokens,
+  uniqueLogoCount,
+} from "../logoAssets"
 import { Preview } from "../render/Preview"
+import { placeholderContent } from "../kit/placeholder"
+import { templateFamilyKey, templateFamilyLabel } from "../kit/templateFamilies"
 
 const MIN_SLIDES = 3
 const MAX_SLIDES = 20
+
+interface TemplateHoverPreview {
+  layout: LayoutSpec
+  content: ContentSpec
+  left: number
+  top: number
+}
 
 function emptySlide(): CarouselSlideInput {
   return {
@@ -22,7 +39,10 @@ function emptySlide(): CarouselSlideInput {
     headline: "",
     textBlocks: [],
     cta: "",
+    layoutId: null,
+    imageSha256: null,
     backgroundColorToken: null,
+    textColorToken: null,
     logoAssetToken: null,
   }
 }
@@ -48,6 +68,48 @@ function resizeSlides(current: CarouselSlideInput[], count: number): CarouselSli
   return [cover, ...content, closing]
 }
 
+function compatibleLayouts(layouts: LayoutSpec[], profile: CarouselProfile): LayoutSpec[] {
+  return layouts.filter((layout) => layout.profile === profile)
+}
+
+function baseLayouts(layouts: LayoutSpec[]): LayoutSpec[] {
+  const withoutAlternatives = layouts.filter((layout) => !layout.id.endsWith("-alternative"))
+  return withoutAlternatives.length > 0 ? withoutAlternatives : layouts
+}
+
+function sequenceLayoutIds(layouts: LayoutSpec[], count: number): string[] {
+  if (layouts.length === 0) return Array.from({ length: count }, () => "")
+  const bases = baseLayouts(layouts)
+  const cover = bases[0] ?? layouts[0]
+  const closing = bases.at(-1) ?? cover
+  const content = bases.slice(1, -1)
+  const middle = content.length > 0 ? content : bases
+  return Array.from({ length: count }, (_, index) => {
+    if (index === 0) return cover.id
+    if (index === count - 1) return closing.id
+    return middle[(index - 1) % middle.length].id
+  })
+}
+
+function withDefaultLayouts(
+  slides: CarouselSlideInput[],
+  layouts: LayoutSpec[],
+  profile: CarouselProfile,
+): CarouselSlideInput[] {
+  const compatible = compatibleLayouts(layouts, profile)
+  if (compatible.length === 0) return slides
+  const firstTemplateFamily = compatible.find((layout) => layout.templateRef)?.templateRef?.packageId
+  const preferred = firstTemplateFamily
+    ? compatible.filter((layout) => layout.templateRef?.packageId === firstTemplateFamily)
+    : compatible
+  const defaults = sequenceLayoutIds(preferred, slides.length)
+  const validIds = new Set(compatible.map((layout) => layout.id))
+  return slides.map((slide, index) => ({
+    ...slide,
+    layoutId: slide.layoutId && validIds.has(slide.layoutId) ? slide.layoutId : defaults[index],
+  }))
+}
+
 function humanizeToken(token: string, prefix: string): string {
   const standardLabels: Record<string, string> = {
     "color.primary": "Principal",
@@ -55,14 +117,103 @@ function humanizeToken(token: string, prefix: string): string {
     "color.background": "Fundo",
     "color.text": "Texto",
     "logo.primary": "Principal",
-    "logo.onLight": "Para fundo claro",
-    "logo.onDark": "Para fundo escuro",
+    "logo.onLight": "Escura · para fundo claro",
+    "logo.onDark": "Clara · para fundo escuro",
   }
   const known = standardLabels[token]
   if (known) return known
   const raw = token.startsWith(prefix) ? token.slice(prefix.length) : token
   const words = raw.replace(/([a-zà-ÿ])([A-ZÀ-Ý])/g, "$1 $2").replace(/[._-]+/g, " ").trim()
   return words ? `${words.charAt(0).toLocaleUpperCase("pt-BR")}${words.slice(1)}` : token
+}
+
+function carouselTemplateContent(
+  layout: LayoutSpec,
+  slide: CarouselSlideInput,
+  revisionId: string,
+  brandIr: BrandIr,
+  signature: CarouselSignature,
+): ContentSpec {
+  const sample = carouselCatalogContent(layout, revisionId, brandIr)
+  const values = { ...sample.values }
+  const mainTextIds = new Set([
+    "headline",
+    "title",
+    "quote",
+    "headline-lead",
+    "echo-near",
+    "echo-far",
+  ])
+  for (const slot of layout.slots) {
+    if (slot.kind === "image" && slide.imageSha256) {
+      values[slot.id] = {
+        kind: "image",
+        path: contentAddressedPath(slide.imageSha256),
+        sha256: slide.imageSha256,
+      }
+    } else if (slot.kind === "text" && mainTextIds.has(slot.id) && slide.headline.trim()) {
+      values[slot.id] = { kind: "text", text: slide.headline.trim() }
+    } else if (slot.kind === "text" && slot.id === "kicker" && slide.kicker.trim()) {
+      values[slot.id] = { kind: "text", text: slide.kicker.trim() }
+    } else if (slot.kind === "text" && slot.id === "cta" && slide.cta.trim()) {
+      values[slot.id] = { kind: "text", text: slide.cta.trim() }
+    } else if (slot.kind === "text" && slot.id.startsWith("body") && slide.textBlocks.length) {
+      const bodyIndex = Number(slot.id.match(/\d+$/)?.[0] ?? "1") - 1
+      values[slot.id] = {
+        kind: "text",
+        text: slide.textBlocks[Math.max(0, bodyIndex) % slide.textBlocks.length] || " ",
+      }
+    } else if (slot.kind === "text" && slot.id === "signature" && signature.text.trim()) {
+      values[slot.id] = { kind: "text", text: signature.text.trim() }
+    }
+  }
+  const assetBindings: Record<string, string> = {}
+  if (slide.logoAssetToken) {
+    for (const slot of layout.slots) {
+      if (slot.kind === "logo") assetBindings[slot.id] = slide.logoAssetToken
+    }
+    for (const layer of layout.lockedLayers ?? []) {
+      if (layer.kind === "asset") assetBindings[layer.id] = slide.logoAssetToken
+    }
+  }
+  const overrides = { ...(sample.overrides ?? {}) }
+  if (slide.textColorToken) {
+    for (const slot of layout.slots) {
+      if (slot.kind === "text") {
+        overrides[slot.id] = {
+          ...(overrides[slot.id] ?? {}),
+          colorToken: slide.textColorToken,
+        }
+      }
+    }
+  }
+  return {
+    ...sample,
+    values,
+    overrides,
+    assetBindings,
+    backgroundColorToken: slide.backgroundColorToken,
+  }
+}
+
+function carouselCatalogContent(
+  layout: LayoutSpec,
+  revisionId: string,
+  brandIr: BrandIr,
+): ContentSpec {
+  const sample = placeholderContent(layout, revisionId, brandIr)
+  if (layout.templateRef != null) return sample
+  const ownedIds = new Set(layout.slots.map((slot) => slot.id))
+  return {
+    ...sample,
+    values: Object.fromEntries(
+      Object.entries(sample.values).filter(([slotId]) => ownedIds.has(slotId)),
+    ),
+    overrides: {},
+    surface: null,
+    addedSlots: [],
+    addedLayers: [],
+  }
 }
 
 const signaturePositions: Array<{
@@ -79,8 +230,11 @@ const signaturePositions: Array<{
 
 export function CarouselPage(): JSX.Element {
   const { revisionId } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requestedCarouselId = searchParams.get("carouselId")
   const api = useApi()
   const [brandIr, setBrandIr] = useState<BrandIr | null>(null)
+  const [layouts, setLayouts] = useState<LayoutSpec[]>([])
   const [name, setName] = useState("")
   const [profile, setProfile] = useState<CarouselProfile>("post-4x5")
   const [slides, setSlides] = useState<CarouselSlideInput[]>(() => initialSlides(5))
@@ -96,6 +250,10 @@ export function CarouselPage(): JSX.Element {
   const [download, setDownload] = useState<{ url: string; filename: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
+  const [familyFilter, setFamilyFilter] = useState("all")
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [templateHoverPreview, setTemplateHoverPreview] =
+    useState<TemplateHoverPreview | null>(null)
 
   useEffect(() => {
     if (!revisionId) {
@@ -103,29 +261,85 @@ export function CarouselPage(): JSX.Element {
       return
     }
     let active = true
-    void api
-      .getBrandRevision(revisionId)
-      .then((result) => {
-        if (active) setBrandIr(result)
+    void Promise.all([
+      api.getBrandRevision(revisionId),
+      api.getKit(revisionId),
+      requestedCarouselId ? api.getCarousel(requestedCarouselId) : Promise.resolve(null),
+    ])
+      .then(([result, kit, savedCarousel]) => {
+        if (!active) return
+        if (savedCarousel && savedCarousel.brandRevisionId !== revisionId) {
+          throw new Error("Este carrossel não pertence à revisão de marca aberta.")
+        }
+        setBrandIr(result)
+        setLayouts(kit)
+        if (savedCarousel) {
+          setCarousel(savedCarousel)
+          setName(savedCarousel.name)
+          setProfile(savedCarousel.profile)
+          setSignature(savedCarousel.signature)
+          setSlides(savedCarousel.slides.map((slide) => slide.source))
+          setActiveIndex(0)
+        } else {
+          setSlides((current) => withDefaultLayouts(current, kit, profile))
+        }
       })
       .catch((reason: unknown) => {
         if (!active) return
         setError(
           reason instanceof ApiError
             ? reason.messagePt
-            : "Não foi possível carregar a marca para o carrossel.",
+            : reason instanceof Error
+              ? reason.message
+              : "Não foi possível carregar a marca para o carrossel.",
         )
       })
     return () => {
       active = false
     }
-  }, [api, revisionId])
+  }, [api, profile, requestedCarouselId, revisionId])
 
   const activeSlide = slides[activeIndex]
   const activeRole = roleFor(activeIndex, slides.length)
+  const formatLayouts = useMemo(
+    () => compatibleLayouts(layouts, profile),
+    [layouts, profile],
+  )
+  const visibleLayouts = useMemo(
+    () =>
+      familyFilter === "all"
+        ? formatLayouts
+        : formatLayouts.filter((layout) => templateFamilyKey(layout) === familyFilter),
+    [familyFilter, formatLayouts],
+  )
+  const templateFamilies = useMemo(
+    () =>
+      Array.from(new Set(formatLayouts.map(templateFamilyKey))).sort((left, right) =>
+        templateFamilyLabel(left).localeCompare(templateFamilyLabel(right), "pt-BR"),
+      ),
+    [formatLayouts],
+  )
+  const formatLayoutById = useMemo(
+    () => new Map(formatLayouts.map((layout) => [layout.id, layout])),
+    [formatLayouts],
+  )
+  const activeLayout = formatLayouts.find((layout) => layout.id === activeSlide.layoutId) ?? null
   const canGenerate = useMemo(
-    () => Boolean(name.trim() && slides.every((slide) => slide.headline.trim())),
-    [name, slides],
+    () =>
+      Boolean(
+        name.trim() &&
+          formatLayouts.length > 0 &&
+          slides.every((slide) => {
+            if (!slide.headline.trim() || !slide.layoutId) return false
+            const layout = formatLayoutById.get(slide.layoutId)
+            if (!layout) return false
+            const requiresImage = layout.slots.some(
+              (slot) => slot.kind === "image" && slot.required,
+            )
+            return !requiresImage || Boolean(slide.imageSha256)
+          }),
+      ),
+    [formatLayoutById, formatLayouts.length, name, slides],
   )
 
   const updateSlide = (change: Partial<CarouselSlideInput>) => {
@@ -155,13 +369,70 @@ export function CarouselPage(): JSX.Element {
     })
   }
 
+  const showTemplateHoverPreview = (
+    layout: LayoutSpec,
+    content: ContentSpec,
+    anchor: HTMLElement,
+  ): void => {
+    const gap = 12
+    const viewportInset = 16
+    const width = Math.min(304, window.innerWidth - viewportInset * 2)
+    const previewHeight = width * (layout.canvas.heightPx / layout.canvas.widthPx)
+    const estimatedHeight = Math.min(window.innerHeight - viewportInset * 2, previewHeight + 82)
+    const rect = anchor.getBoundingClientRect()
+    let left = rect.right + gap
+    if (left + width > window.innerWidth - viewportInset) left = rect.left - width - gap
+    left = Math.max(viewportInset, Math.min(left, window.innerWidth - width - viewportInset))
+    const top = Math.max(
+      viewportInset,
+      Math.min(rect.top, window.innerHeight - estimatedHeight - viewportInset),
+    )
+    setTemplateHoverPreview({ layout, content, left, top })
+  }
+
   const applyAppearanceToAll = (
-    field: "backgroundColorToken" | "logoAssetToken",
+    field: "backgroundColorToken" | "textColorToken" | "logoAssetToken",
     value: string | null,
   ) => {
     setSlides((current) => current.map((slide) => ({ ...slide, [field]: value })))
     setCarousel(null)
     setDownload(null)
+  }
+
+  const applyFamilyToSequence = () => {
+    if (!activeLayout) return
+    const family = templateFamilyKey(activeLayout)
+    const usesAlternative = activeLayout.id.endsWith("-alternative")
+    const familyLayouts = formatLayouts.filter(
+      (layout) =>
+        templateFamilyKey(layout) === family &&
+        layout.id.endsWith("-alternative") === usesAlternative,
+    )
+    const layoutIds = sequenceLayoutIds(familyLayouts, slides.length)
+    setSlides((current) =>
+      current.map((slide, index) => ({ ...slide, layoutId: layoutIds[index] })),
+    )
+    setCarousel(null)
+    setDownload(null)
+  }
+
+  const uploadSlideImage = async (file: File | null) => {
+    if (!file) return
+    setUploadingImage(true)
+    setError(null)
+    try {
+      const uploaded = await api.uploadAsset(file)
+      updateSlide({ imageSha256: uploaded.sha256 })
+      setStatus(`Imagem «${file.name}» pronta para este slide.`)
+    } catch (reason: unknown) {
+      setError(
+        reason instanceof ApiError
+          ? reason.messagePt
+          : "Não foi possível preparar a imagem deste slide.",
+      )
+    } finally {
+      setUploadingImage(false)
+    }
   }
 
   const generate = async () => {
@@ -183,6 +454,7 @@ export function CarouselPage(): JSX.Element {
         slides,
       })
       setCarousel(saved)
+      setSearchParams({ carouselId: saved.id }, { replace: true })
       setStatus(
         `${saved.slides.length} slides gerados: capa, ${saved.slides.length - 2} de conteúdo e fechamento.`,
       )
@@ -240,6 +512,8 @@ export function CarouselPage(): JSX.Element {
 
   const signatureValue = `${signature.vertical}-${signature.horizontal}`
   const assetsBaseUrl = api.revisionAssetsBaseUrl(revisionId)
+  const activeImageSlots = activeLayout?.slots.filter((slot) => slot.kind === "image") ?? []
+  const activeNeedsImage = activeImageSlots.some((slot) => slot.required)
 
   return (
     <main
@@ -288,7 +562,9 @@ export function CarouselPage(): JSX.Element {
               value={slides.length}
               onChange={(event) => {
                 const count = Number(event.currentTarget.value)
-                setSlides((current) => resizeSlides(current, count))
+                setSlides((current) =>
+                  withDefaultLayouts(resizeSlides(current, count), layouts, profile),
+                )
                 setActiveIndex((current) => Math.min(current, count - 1))
                 setCarousel(null)
               }}
@@ -305,7 +581,10 @@ export function CarouselPage(): JSX.Element {
             <select
               value={profile}
               onChange={(event) => {
-                setProfile(event.currentTarget.value as CarouselProfile)
+                const nextProfile = event.currentTarget.value as CarouselProfile
+                setProfile(nextProfile)
+                setSlides((current) => withDefaultLayouts(current, layouts, nextProfile))
+                setFamilyFilter("all")
                 setCarousel(null)
               }}
             >
@@ -380,11 +659,150 @@ export function CarouselPage(): JSX.Element {
             <span>Slide {String(activeIndex + 1).padStart(2, "0")}</span>
             <strong>{activeRole}</strong>
           </div>
+          <section className="carousel-template-picker" aria-labelledby="carousel-template-title">
+            <div className="carousel-template-heading">
+              <div>
+                <p className="product-kicker">Composição do slide</p>
+                <h3 id="carousel-template-title">Escolha qualquer modelo do kit</h3>
+                <p>
+                  {formatLayouts.length} modelos compatíveis com este formato. A escolha vale para
+                  o slide atual; você também pode aplicar a família inteira à sequência.
+                </p>
+              </div>
+              <label>
+                <span>Família</span>
+                <select
+                  aria-label="Família de templates"
+                  value={familyFilter}
+                  onChange={(event) => setFamilyFilter(event.currentTarget.value)}
+                >
+                  <option value="all">Todas as famílias</option>
+                  {templateFamilies.map((family) => (
+                    <option key={family} value={family}>
+                      {templateFamilyLabel(family)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="carousel-template-grid" aria-label="Modelos disponíveis">
+              {visibleLayouts.map((layout) => {
+                const selected = activeSlide.layoutId === layout.id
+                const sample = selected
+                  ? carouselTemplateContent(layout, activeSlide, revisionId, brandIr, signature)
+                  : carouselCatalogContent(layout, revisionId, brandIr)
+                return (
+                  <button
+                    key={layout.id}
+                    type="button"
+                    className="carousel-template-card"
+                    aria-label={`Usar ${layout.namePt}`}
+                    aria-pressed={selected}
+                    data-active={selected || undefined}
+                    onClick={() => updateSlide({ layoutId: layout.id })}
+                    onPointerEnter={(event) =>
+                      showTemplateHoverPreview(layout, sample, event.currentTarget)
+                    }
+                    onPointerLeave={() => setTemplateHoverPreview(null)}
+                    onFocus={(event) =>
+                      showTemplateHoverPreview(layout, sample, event.currentTarget)
+                    }
+                    onBlur={() => setTemplateHoverPreview(null)}
+                  >
+                    <span className="carousel-template-proof" aria-hidden="true">
+                      <Preview
+                        brandIr={brandIr}
+                        layoutSpec={layout}
+                        contentSpec={sample}
+                        assetsBaseUrl={assetsBaseUrl}
+                        maxWidthPx={150}
+                      />
+                    </span>
+                    <span className="carousel-template-caption">
+                      <strong>{layout.namePt}</strong>
+                      <small>{templateFamilyLabel(templateFamilyKey(layout))}</small>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            {templateHoverPreview ? (
+              <aside
+                className="carousel-template-hover-preview"
+                data-testid="carousel-template-hover-preview"
+                aria-label={`Prévia ampliada de ${templateHoverPreview.layout.namePt}`}
+                style={{
+                  left: `${templateHoverPreview.left}px`,
+                  top: `${templateHoverPreview.top}px`,
+                }}
+              >
+                <span className="carousel-template-hover-proof" aria-hidden="true">
+                  <Preview
+                    brandIr={brandIr}
+                    layoutSpec={templateHoverPreview.layout}
+                    contentSpec={templateHoverPreview.content}
+                    assetsBaseUrl={assetsBaseUrl}
+                    maxWidthPx={280}
+                  />
+                </span>
+                <span className="carousel-template-hover-caption">
+                  <strong>{templateHoverPreview.layout.namePt}</strong>
+                  <small>
+                    {templateFamilyLabel(templateFamilyKey(templateHoverPreview.layout))}
+                  </small>
+                </span>
+              </aside>
+            ) : null}
+            <div className="carousel-template-actions">
+              <p>
+                Selecionado: <strong>{activeLayout?.namePt ?? "Escolha um modelo"}</strong>
+              </p>
+              <button
+                type="button"
+                className="secondary-action"
+                disabled={!activeLayout}
+                onClick={applyFamilyToSequence}
+              >
+                Aplicar esta família aos {slides.length} slides
+              </button>
+            </div>
+            {activeImageSlots.length > 0 ? (
+              <div className="carousel-template-image">
+                <label>
+                  <span>Imagem deste slide {activeNeedsImage ? "· necessária" : "· opcional"}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    disabled={uploadingImage}
+                    onChange={(event) =>
+                      void uploadSlideImage(event.currentTarget.files?.[0] ?? null)
+                    }
+                  />
+                </label>
+                <p>
+                  {activeSlide.imageSha256
+                    ? "Imagem pronta. Ela será aplicada a todos os espaços de imagem deste modelo."
+                    : activeNeedsImage
+                      ? "Este modelo só pode ser gerado depois que você enviar uma imagem."
+                      : "Envie uma imagem para substituir o espaço previsto no modelo."}
+                </p>
+                {activeSlide.imageSha256 ? (
+                  <button
+                    type="button"
+                    className="text-action"
+                    onClick={() => updateSlide({ imageSha256: null })}
+                  >
+                    Remover imagem
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
           <section className="carousel-appearance" aria-labelledby="carousel-appearance-title">
             <div className="carousel-appearance-heading">
               <div>
                 <h3 id="carousel-appearance-title">Aparência deste slide</h3>
-                <p>Escolha um fundo da marca. A logo acompanha o contraste automaticamente.</p>
+                <p>Fundo, textos e logo podem mudar sem perder a paleta da marca.</p>
               </div>
               <span>{activeRole}</span>
             </div>
@@ -408,7 +826,8 @@ export function CarouselPage(): JSX.Element {
                       key={token}
                       type="button"
                       className="carousel-color-option"
-                      aria-label={`${humanizeToken(token, "color.")}, ${color.value}`}
+                      title={`${humanizeToken(token, "color.")} · ${color.value}`}
+                      aria-label={`Fundo: ${humanizeToken(token, "color.")}, ${color.value}`}
                       aria-pressed={activeSlide.backgroundColorToken === token}
                       data-active={activeSlide.backgroundColorToken === token || undefined}
                       onClick={() => updateSlide({ backgroundColorToken: token })}
@@ -435,6 +854,49 @@ export function CarouselPage(): JSX.Element {
                 </button>
               </div>
 
+              <div className="carousel-text-control">
+                <div className="carousel-control-heading">
+                  <strong>Cor dos textos</strong>
+                  <button
+                    type="button"
+                    className="text-action"
+                    disabled={!activeSlide.textColorToken}
+                    onClick={() => updateSlide({ textColorToken: null })}
+                  >
+                    Usar o modelo
+                  </button>
+                </div>
+                <div className="carousel-color-grid" role="group" aria-label="Cor dos textos deste slide">
+                  {Object.entries(brandIr.colors).map(([token, color]) => (
+                    <button
+                      key={token}
+                      type="button"
+                      className="carousel-color-option"
+                      title={`${humanizeToken(token, "color.")} · ${color.value}`}
+                      aria-label={`Textos: ${humanizeToken(token, "color.")}, ${color.value}`}
+                      aria-pressed={activeSlide.textColorToken === token}
+                      data-active={activeSlide.textColorToken === token || undefined}
+                      onClick={() => updateSlide({ textColorToken: token })}
+                    >
+                      <span style={{ backgroundColor: color.value }} />
+                      <span>
+                        <b>{humanizeToken(token, "color.")}</b>
+                        <small>{color.value}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="secondary-action carousel-apply-all"
+                  onClick={() =>
+                    applyAppearanceToAll("textColorToken", activeSlide.textColorToken ?? null)
+                  }
+                >
+                  Aplicar esta cor aos {slides.length} slides
+                </button>
+              </div>
+
               <div className="carousel-logo-control">
                 <label htmlFor="carousel-logo-asset">
                   <span>Versão da marca</span>
@@ -446,20 +908,22 @@ export function CarouselPage(): JSX.Element {
                     }
                   >
                     <option value="">Automática para o fundo</option>
-                    {Object.keys(brandIr.assets)
-                      .filter((token) => token.startsWith("logo."))
-                      .sort((left, right) => left.localeCompare(right))
-                      .map((token) => (
+                    {logoAssetTokens(brandIr).map((token) => (
                         <option key={token} value={token}>
-                          {humanizeToken(token, "logo.")}
+                          {logoAssetLabel(brandIr, token)}
                         </option>
                       ))}
                   </select>
                 </label>
-                {"logo.onLight" in brandIr.assets && "logo.onDark" in brandIr.assets ? (
+                {hasAutomaticLogoPair(brandIr) ? (
                   <p>
                     No automático, o Molda usa a versão clara ou escura adequada ao fundo deste
                     slide.
+                  </p>
+                ) : uniqueLogoCount(brandIr) > 1 ? (
+                  <p>
+                    As {uniqueLogoCount(brandIr)} versões carregadas estão disponíveis. O
+                    automático usa a principal; escolha outra quando necessário.
                   </p>
                 ) : (
                   <p className="carousel-appearance-warning">
@@ -572,7 +1036,12 @@ export function CarouselPage(): JSX.Element {
         >
           {pending ? "Gerando sequência…" : `Gerar ${slides.length} slides`}
         </button>
-        {!canGenerate ? <p>Preencha o nome do carrossel e o título de todos os slides.</p> : null}
+        {!canGenerate ? (
+          <p>
+            Preencha o nome, o título e o modelo de todos os slides. Modelos fotográficos também
+            precisam de uma imagem.
+          </p>
+        ) : null}
         {error ? <p role="alert">{error}</p> : null}
         {status ? <p role="status">{status}</p> : null}
       </div>
@@ -622,6 +1091,19 @@ export function CarouselPage(): JSX.Element {
                         : "Conteúdo"}
                   </strong>
                   <span>PNG {slide.layout.canvas.widthPx} × {slide.layout.canvas.heightPx}</span>
+                  <Link
+                    className="carousel-slide-edit"
+                    to={`/marcas/${encodeURIComponent(revisionId)}/editor/${encodeURIComponent(slide.layoutId)}?carouselId=${encodeURIComponent(carousel.id)}&slideId=${encodeURIComponent(slide.id)}`}
+                    aria-label={`Editar slide ${String(slide.position).padStart(2, "0")}, ${
+                      slide.role === "cover"
+                        ? "Capa"
+                        : slide.role === "closing"
+                          ? "Fechamento"
+                          : "Conteúdo"
+                    }`}
+                  >
+                    Editar slide <span aria-hidden="true">→</span>
+                  </Link>
                 </footer>
               </article>
             ))}

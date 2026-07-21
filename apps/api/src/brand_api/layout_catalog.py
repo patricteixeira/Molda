@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 
 from brand_api.models import BrandRevision
+from brand_api.revision_ir import revision_brand_ir
 from brand_runtime import (
-    BrandIR,
     LayoutSpec,
     generate_carousel_layouts,
     generate_template_layouts,
@@ -23,7 +23,7 @@ def public_kit(revision: BrandRevision) -> list[dict]:
         for item in persisted
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
-    ir = BrandIR.model_validate(revision.ir)
+    ir = revision_brand_ir(revision)
     additions = [
         layout.model_dump(mode="json", by_alias=True)
         for layout in generate_template_layouts(ir)
@@ -41,7 +41,7 @@ def resolve_layout(revision: BrandRevision, layout_id: str) -> LayoutSpec | None
     if raw_layout is not None:
         return LayoutSpec.model_validate(raw_layout)
 
-    ir = BrandIR.model_validate(revision.ir)
+    ir = revision_brand_ir(revision)
     template_layout = next(
         (layout for layout in generate_template_layouts(ir) if layout.id == layout_id),
         None,

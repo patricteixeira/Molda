@@ -14,7 +14,8 @@ from brand_api.db import new_id
 from brand_api.layout_catalog import resolve_layout
 from brand_api.models import BrandRevision, Document, Job
 from brand_api.native_templates import CURRENT_NATIVE_TEMPLATE_VERSION
-from brand_runtime import BrandIR, ContentSpec, LayoutSpec, run_static_checks
+from brand_api.revision_ir import revision_brand_ir
+from brand_runtime import ContentSpec, LayoutSpec, run_static_checks
 from brand_runtime.kit.models import ImageValue, ShapeLayer, Slot, SurfaceStyle
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
@@ -95,7 +96,7 @@ def create_document(body: DocumentBody, request: Request) -> dict[str, Any]:
 
         layout = _layout_from_revision(revision, body.layout_id)
         content = _validated_content(body, request)
-        ir = BrandIR.model_validate(revision.ir)
+        ir = revision_brand_ir(revision)
         checks = run_static_checks(
             ir,
             layout,
@@ -155,7 +156,7 @@ def enqueue_export(
                 detail="Exporte PPTX apenas para layouts sociais.",
             )
 
-        ir = BrandIR.model_validate(revision.ir)
+        ir = revision_brand_ir(revision)
         content = ContentSpec.model_validate(document.content)
         checks = run_static_checks(
             ir,

@@ -118,6 +118,11 @@ class DraftQuestion(CamelModel):
     # drafts sempre recebem a contagem explícita por ``_question``.
     recommended_count: int = 0
     required: bool
+    # Decisões visuais que o intake já consegue sustentar com evidência não
+    # devem virar trabalho de configuração para o usuário. Elas permanecem no
+    # draft para rastreabilidade e compatibilidade, mas a API só as expõe se o
+    # pacote não trouxer nenhum candidato utilizável.
+    automatic: bool = False
 
 
 class BrandDraft(CamelModel):
@@ -137,6 +142,7 @@ def _question(
     *,
     required: bool,
     recommended_count: int | None = None,
+    automatic: bool = False,
 ) -> DraftQuestion:
     """Monta uma pergunta e explicita o prefixo recomendado do ranking.
 
@@ -154,6 +160,7 @@ def _question(
         candidates=candidates,
         recommended_count=visible_recommendations,
         required=required,
+        automatic=automatic,
     )
 
 
@@ -171,7 +178,7 @@ def _logo_candidate_appearance(
     package_dir: Path,
     candidate: Candidate,
 ) -> Literal["dark", "light"] | None:
-    """Classifica uma variante apenas quando nome ou tinta vetorial são inequívocos."""
+    """Classifica uma variante quando nome ou tinta visível são inequívocos."""
     if not isinstance(candidate.value, str):
         return None
     relative = candidate.value
@@ -179,9 +186,13 @@ def _logo_candidate_appearance(
     if named is not None:
         return named
     path = package_dir / relative
-    if path.suffix.casefold() != ".svg":
+    suffix = path.suffix.casefold()
+    if suffix == ".svg":
+        colors = extract_svg_colors(path)
+    elif suffix == ".png":
+        colors = extract_raster_colors(path)
+    else:
         return None
-    colors = extract_svg_colors(path)
     total = sum(item.score for item in colors)
     if total <= 0:
         return None
@@ -659,14 +670,9 @@ def build_draft(
 
     Candidatos DTCG entram com o maior peso de fonte (5.0, acima do SVG) e
     ficam primeiros no ranking — garantido pela camada de autoridade, não pela
-    soma de pesos (que é aditiva por arquivo). Mas continuam passando pelo
-    wizard: a autoridade final permanece na confirmação (spec §5.3).
-
-    Perguntas obrigatórias: ``color.primary``, ``color.background``,
-    ``color.text``, ``font.heading``, ``font.body`` e ``logo.primary``;
-    ``color.secondary`` é opcional e aparece quando o pacote oferece mais de
-    uma cor. Toda pergunta de cor preserva a curadoria por papel no prefixo
-    recomendado e oferece, depois dele, a paleta completa extraída.
+    soma de pesos (que é aditiva por arquivo). Cores, fontes e logos são
+    compilados automaticamente a partir do primeiro candidato sustentado por
+    essa hierarquia. O editor continua oferecendo todas as alternativas.
     """
     pdfs = [
         *_files_with_suffixes(package_dir, {".pdf"}),
@@ -785,6 +791,7 @@ def build_draft(
             primary_candidates,
             required=True,
             recommended_count=len(primary_recommended),
+            automatic=True,
         ),
         _question(
             "color.background",
@@ -792,6 +799,7 @@ def build_draft(
             background_candidates,
             required=True,
             recommended_count=len(background_recommended),
+            automatic=True,
         ),
         _question(
             "color.text",
@@ -799,6 +807,7 @@ def build_draft(
             text_candidates,
             required=True,
             recommended_count=len(text_recommended),
+            automatic=True,
         ),
     ]
     if len(all_document_colors) > 1:
@@ -830,6 +839,7 @@ def build_draft(
                 secondary_candidates,
                 required=False,
                 recommended_count=len(secondary_recommended),
+                automatic=True,
             )
         )
     # Grupos de candidatos de fonte, do mais ao menos confiável (spec §5.3):
@@ -845,6 +855,7 @@ def build_draft(
                 heading_pdf_fallback,
             ),
             required=True,
+            automatic=True,
         )
     )
     questions.append(
@@ -858,9 +869,18 @@ def build_draft(
                 body_pdf_fallback,
             ),
             required=True,
+            automatic=True,
         )
     )
-    questions.append(_question("logo.primary", "confirm-logo", logo_candidates, required=True))
+    questions.append(
+        _question(
+            "logo.primary",
+            "confirm-logo",
+            logo_candidates,
+            required=True,
+            automatic=True,
+        )
+    )
     if len(logo_candidates) > 1:
         on_light, on_light_recommended = _variant_logo_candidates(
             package_dir,
@@ -880,6 +900,7 @@ def build_draft(
                     on_light,
                     required=False,
                     recommended_count=on_light_recommended,
+                    automatic=True,
                 ),
                 _question(
                     "logo.onDark",
@@ -887,6 +908,7 @@ def build_draft(
                     on_dark,
                     required=False,
                     recommended_count=on_dark_recommended,
+                    automatic=True,
                 ),
             )
         )
@@ -894,7 +916,11 @@ def build_draft(
     return BrandDraft(
         package_dir=str(package_dir),
         questions=questions,
-        palette_candidates=_unique_colors(dtcg_colors, declared_colors["all"])[:24],
+        palette_candidates=_unique_colors(
+            dtcg_colors,
+            declared_colors["all"],
+            all_document_colors,
+        )[:24],
         composition_declarations=(
             composition_declarations if composition_declarations.has_rules() else None
         ),

@@ -14,9 +14,10 @@ from brand_api.auth import require_token
 from brand_api.db import new_id
 from brand_api.layout_catalog import resolve_layout
 from brand_api.models import BrandRevision, Carousel, CarouselSlide, Document, Job
+from brand_api.revision_ir import revision_brand_ir
 from brand_api.routes.documents import DocumentBody, _validated_content
 from brand_runtime import BrandIR, generate_carousel_layouts, run_static_checks, suggested_surface
-from brand_runtime.kit.models import LayerOverride, LayoutSpec
+from brand_runtime.kit.models import LayerOverride, LayoutSpec, Slot
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 
@@ -24,6 +25,7 @@ CarouselProfile = Literal["post-1x1", "post-4x5"]
 VerticalPosition = Literal["top", "bottom"]
 HorizontalPosition = Literal["left", "center", "right"]
 SlideRole = Literal["cover", "content", "closing"]
+_ADDED_SIGNATURE_ID = "user-signature-1"
 
 
 class CarouselSignature(BaseModel):
@@ -45,7 +47,10 @@ class CarouselSlideInput(BaseModel):
     headline: str = Field(min_length=1, max_length=180)
     text_blocks: list[str] = Field(default_factory=list, max_length=6)
     cta: str = Field(default="", max_length=240)
+    layout_id: str | None = Field(default=None, min_length=1)
+    image_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     background_color_token: str | None = Field(default=None, min_length=1)
+    text_color_token: str | None = Field(default=None, min_length=1)
     logo_asset_token: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
@@ -89,10 +94,28 @@ def _slide_role(position: int, total: int) -> SlideRole:
 
 def _layout_for_position(
     layouts: dict[str, LayoutSpec],
+    revision: BrandRevision,
     profile: CarouselProfile,
+    slide: CarouselSlideInput,
     position: int,
     total: int,
 ) -> LayoutSpec:
+    if slide.layout_id is not None:
+        selected = resolve_layout(revision, slide.layout_id)
+        if selected is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="O modelo escolhido para um dos slides não pertence a esta marca.",
+            )
+        if selected.profile != profile:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"O modelo «{selected.name_pt}» usa o formato {selected.profile}, "
+                    f"mas o carrossel foi configurado como {profile}."
+                ),
+            )
+        return selected
     role = _slide_role(position, total)
     if role == "content":
         variant = "a" if position % 2 == 0 else "b"
@@ -123,9 +146,9 @@ def _content_overrides(
     slide: CarouselSlideInput,
     signature: CarouselSignature,
 ) -> dict[str, LayerOverride]:
-    overrides: dict[str, LayerOverride] = {
-        "signature": _signature_override(layout, signature),
-    }
+    overrides: dict[str, LayerOverride] = {}
+    if any(slot.id == "signature" for slot in layout.slots):
+        overrides["signature"] = _signature_override(layout, signature)
     logo = next((slot for slot in layout.slots if slot.id == "logo"), None)
     if (
         logo is not None
@@ -143,25 +166,189 @@ def _content_overrides(
         )
 
     body_slots = [slot for slot in layout.slots if slot.id.startswith("body-")]
-    if not body_slots or not slide.text_blocks:
-        return overrides
-    first = body_slots[0]
-    headline = next(slot for slot in layout.slots if slot.id == "headline")
-    top = max(first.area[1], headline.area[1] + headline.area[3] + 38)
-    bottom = layout.canvas.height_px - 168
-    gap = 18
-    count = len(slide.text_blocks)
-    block_height = max(46, round((bottom - top - gap * (count - 1)) / count))
-    role = ir.roles.get("body")
-    font_size = None
-    if role is not None and count >= 4:
-        font_size = max(role.min_size_px, round(role.max_size_px * (0.66 if count >= 6 else 0.78)))
-    for index in range(count):
-        overrides[f"body-{index + 1}"] = LayerOverride(
-            area=(first.area[0], top + index * (block_height + gap), first.area[2], block_height),
-            font_size_px=font_size,
-        )
+    if layout.id.startswith("carousel-content-") and body_slots and slide.text_blocks:
+        first = body_slots[0]
+        headline = next((slot for slot in layout.slots if slot.id == "headline"), None)
+        top = first.area[1]
+        if headline is not None:
+            top = max(top, headline.area[1] + headline.area[3] + 38)
+        bottom = layout.canvas.height_px - 168
+        gap = 18
+        count = len(slide.text_blocks)
+        block_height = max(46, round((bottom - top - gap * (count - 1)) / count))
+        role = ir.roles.get("body")
+        font_size = None
+        if role is not None and count >= 4:
+            font_size = max(
+                role.min_size_px,
+                round(role.max_size_px * (0.66 if count >= 6 else 0.78)),
+            )
+        for index in range(count):
+            overrides[f"body-{index + 1}"] = LayerOverride(
+                area=(
+                    first.area[0],
+                    top + index * (block_height + gap),
+                    first.area[2],
+                    block_height,
+                ),
+                font_size_px=font_size,
+            )
+    if slide.text_color_token is not None:
+        for slot in layout.slots:
+            if slot.kind != "text":
+                continue
+            current = overrides.get(slot.id, LayerOverride())
+            overrides[slot.id] = current.model_copy(update={"color_token": slide.text_color_token})
     return overrides
+
+
+_TEMPLATE_TEXT_DEFAULTS = {
+    "caption": "DETALHE DA SEQUÊNCIA",
+    "issue": "EDIÇÃO 01 · 2026",
+    "period": "PERÍODO · 2026",
+    "metric": "82%",
+    "delta": "+18 PONTOS",
+    "source": "FONTE: ADICIONE A ORIGEM DOS DADOS.",
+    "label-one": "RESULTADO ATUAL",
+    "label-two": "PERÍODO ANTERIOR",
+    "label-three": "PONTO DE PARTIDA",
+    "label-left": "ANTES",
+    "label-right": "DEPOIS",
+    "value-left": "34%",
+    "value-right": "71%",
+    "metric-one": "48",
+    "metric-two": "73%",
+    "metric-three": "2,4×",
+    "price": "R$ 189",
+    "url": "produto.exemplo/interface",
+    "stage-one": "01\nCONTEXTO",
+    "stage-two": "02\nIDEIA",
+    "stage-three": "03\nDESDOBRAMENTO",
+    "benefit-one": "01 · PRIMEIRO PONTO",
+    "benefit-two": "02 · SEGUNDO PONTO",
+    "benefit-three": "03 · TERCEIRO PONTO",
+    "note-one": "01 · CONTEXTO",
+    "note-two": "02 · DECISÃO",
+    "note-three": "03 · RESULTADO",
+    "coordinates": "X 041 · Y 028 · REV 03",
+    "signal-word": "AGORA",
+}
+
+
+def _logo_bindings(layout: LayoutSpec, token: str | None) -> dict[str, str]:
+    if token is None:
+        return {}
+    bindings = {slot.id: token for slot in layout.slots if slot.kind == "logo"}
+    bindings.update(
+        {
+            layer.id: token
+            for layer in layout.locked_layers
+            if getattr(layer, "kind", None) == "asset"
+        }
+    )
+    return bindings
+
+
+def _added_signature_slot(
+    layout: LayoutSpec,
+    signature: CarouselSignature,
+    color_token: str | None,
+) -> Slot | None:
+    if not signature.text.strip() or any(slot.id == "signature" for slot in layout.slots):
+        return None
+    override = _signature_override(layout, signature)
+    return Slot(
+        id=_ADDED_SIGNATURE_ID,
+        kind="text",
+        role="caption",
+        color_token=color_token or "color.text",
+        max_chars=80,
+        area=override.area or (80, layout.canvas.height_px - 112, 420, 32),
+        fit="fixed",
+        required=False,
+        z_index=20,
+        text_align=signature.horizontal,
+        text_transform="uppercase",
+        letter_spacing_em=0.12,
+    )
+
+
+def _template_values(
+    layout: LayoutSpec,
+    slide: CarouselSlideInput,
+    signature: CarouselSignature,
+    position: int,
+    total: int,
+) -> dict[str, Any]:
+    """Adapta o conteúdo simples do carrossel ao vocabulário de qualquer template."""
+    values: dict[str, Any] = {}
+    blocks = [block.strip() for block in slide.text_blocks if block.strip()]
+    block_index = 0
+    headline_ids = {
+        "headline",
+        "title",
+        "quote",
+        "headline-lead",
+        "echo-near",
+        "echo-far",
+    }
+    for slot in layout.slots:
+        if slot.kind == "logo":
+            continue
+        if slot.kind == "image":
+            if slide.image_sha256 is not None:
+                values[slot.id] = {
+                    "kind": "image",
+                    "path": "carousel-image",
+                    "sha256": slide.image_sha256,
+                }
+            continue
+
+        slot_id = slot.id
+        if slot_id == "index":
+            text = f"{position:02d} / {total:02d}"
+        elif slot_id == "signature":
+            text = signature.text.strip()
+        elif slot_id in headline_ids:
+            text = slide.headline.strip()
+        elif slot_id == "kicker":
+            text = slide.kicker.strip() or f"SLIDE {position:02d} · {total:02d}"
+        elif slot_id == "cta":
+            text = slide.cta.strip() or (blocks[-1] if blocks else "CONTINUE A CONVERSA")
+        elif slot_id.startswith("body") or slot.role == "body":
+            text = blocks[block_index % len(blocks)] if blocks else slide.headline.strip()
+            block_index += 1
+        else:
+            text = _TEMPLATE_TEXT_DEFAULTS.get(slot_id)
+            if text is None:
+                text = blocks[block_index % len(blocks)] if blocks else slide.headline.strip()
+                block_index += 1
+        if text:
+            values[slot_id] = {"kind": "text", "text": text}
+    if signature.text.strip() and not any(slot.id == "signature" for slot in layout.slots):
+        values[_ADDED_SIGNATURE_ID] = {"kind": "text", "text": signature.text.strip()}
+    return values
+
+
+def _validate_slide_assets(
+    layout: LayoutSpec,
+    slide: CarouselSlideInput,
+    request: Request,
+) -> None:
+    if slide.image_sha256 is not None and not request.app.state.storage.has(slide.image_sha256):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="A imagem de um dos slides não foi encontrada — envie-a novamente.",
+        )
+    if any(slot.kind == "image" and slot.required for slot in layout.slots):
+        if slide.image_sha256 is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"O modelo «{layout.name_pt}» precisa de uma imagem. "
+                    "Envie uma foto ou escolha outro modelo para este slide."
+                ),
+            )
 
 
 def _document_body(
@@ -173,6 +360,26 @@ def _document_body(
     position: int,
     total: int,
 ) -> DocumentBody:
+    if not layout.id.startswith("carousel-"):
+        added_signature = _added_signature_slot(
+            layout,
+            signature,
+            slide.text_color_token,
+        )
+        overrides = _content_overrides(ir, layout, slide, signature)
+        if added_signature is not None:
+            overrides[_ADDED_SIGNATURE_ID] = _signature_override(layout, signature)
+        return DocumentBody(
+            layout_id=layout.id,
+            brand_revision_id=revision_id,
+            values=_template_values(layout, slide, signature, position, total),
+            background_color_token=slide.background_color_token,
+            asset_bindings=_logo_bindings(layout, slide.logo_asset_token),
+            overrides=overrides,
+            added_slots=[added_signature] if added_signature is not None else [],
+            surface=None,
+        )
+
     values: dict[str, Any] = {
         "index": {"kind": "text", "text": f"{position:02d} / {total:02d}"},
         "headline": {"kind": "text", "text": slide.headline.strip()},
@@ -196,7 +403,7 @@ def _document_body(
         brand_revision_id=revision_id,
         values=values,
         background_color_token=slide.background_color_token,
-        asset_bindings={"logo": slide.logo_asset_token} if slide.logo_asset_token else {},
+        asset_bindings=_logo_bindings(layout, slide.logo_asset_token),
         overrides=_content_overrides(ir, layout, slide, signature),
         surface=suggested_surface(ir),
     )
@@ -271,6 +478,65 @@ def get_carousel(carousel_id: str, request: Request) -> dict[str, Any]:
         return _carousel_response(session, carousel)
 
 
+@router.patch("/carousels/{carousel_id}/slides/{slide_id}")
+def update_carousel_slide(
+    carousel_id: str,
+    slide_id: str,
+    body: DocumentBody,
+    request: Request,
+) -> dict[str, Any]:
+    """Persiste a edição completa de um slide sem alterar sua posição ou seu modelo."""
+    with request.app.state.session_factory() as session:
+        carousel = session.get(Carousel, carousel_id)
+        if carousel is None:
+            raise HTTPException(status_code=404, detail="Carrossel não encontrado.")
+        slide = session.scalar(
+            select(CarouselSlide).where(
+                CarouselSlide.id == slide_id,
+                CarouselSlide.carousel_id == carousel.id,
+            )
+        )
+        if slide is None:
+            raise HTTPException(status_code=404, detail="Slide não encontrado neste carrossel.")
+        document = session.get(Document, slide.document_id)
+        if document is None:  # pragma: no cover - garantido pela FK
+            raise RuntimeError("O slide perdeu seu documento.")
+        if body.brand_revision_id != carousel.brand_revision_id:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="A edição não pertence à revisão de marca deste carrossel.",
+            )
+        if body.layout_id != document.layout_id:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="O modelo do slide não pode ser trocado durante esta edição.",
+            )
+
+        revision = session.get(BrandRevision, carousel.brand_revision_id)
+        if revision is None:  # pragma: no cover - garantido pela FK
+            raise RuntimeError("O carrossel perdeu sua revisão de marca.")
+        layout = resolve_layout(revision, document.layout_id)
+        if layout is None:  # pragma: no cover - documento criado pelo próprio endpoint
+            raise RuntimeError("O slide perdeu seu layout interno.")
+        content = _validated_content(body, request)
+        checks = run_static_checks(
+            revision_brand_ir(revision),
+            layout,
+            content,
+            request.app.state.settings.storage_dir,
+        )
+        document.content = content.model_dump(mode="json", by_alias=True)
+        document.checks = [item.model_dump(mode="json", by_alias=True) for item in checks]
+        session.commit()
+
+        updated = next(
+            item
+            for item in _carousel_response(session, carousel)["slides"]
+            if item["id"] == slide.id
+        )
+        return updated
+
+
 @router.post("/carousels", status_code=status.HTTP_201_CREATED)
 def create_carousel(body: CarouselCreateBody, request: Request) -> dict[str, Any]:
     """Materializa capa, miolo e fechamento em uma única transação."""
@@ -278,7 +544,7 @@ def create_carousel(body: CarouselCreateBody, request: Request) -> dict[str, Any
         revision = session.get(BrandRevision, body.brand_revision_id)
         if revision is None:
             raise HTTPException(status_code=404, detail="Revisão de marca não encontrada.")
-        ir = BrandIR.model_validate(revision.ir)
+        ir = revision_brand_ir(revision)
         generated = generate_carousel_layouts(ir, body.profile)
         layouts = {layout.id: layout for layout in generated}
         carousel = Carousel(
@@ -292,7 +558,15 @@ def create_carousel(body: CarouselCreateBody, request: Request) -> dict[str, Any
         session.flush()
         total = len(body.slides)
         for position, source in enumerate(body.slides, start=1):
-            layout = _layout_for_position(layouts, body.profile, position, total)
+            layout = _layout_for_position(
+                layouts,
+                revision,
+                body.profile,
+                source,
+                position,
+                total,
+            )
+            _validate_slide_assets(layout, source, request)
             content = _validated_content(
                 _document_body(
                     revision.id,
@@ -354,7 +628,7 @@ def enqueue_carousel_export(
         revision = session.get(BrandRevision, carousel.brand_revision_id)
         if revision is None:  # pragma: no cover - garantido pela FK
             raise HTTPException(status_code=404, detail="Revisão de marca não encontrada.")
-        ir = BrandIR.model_validate(revision.ir)
+        ir = revision_brand_ir(revision)
         slides = list(
             session.scalars(
                 select(CarouselSlide)

@@ -147,6 +147,27 @@ it("round-trip envia o PPTX e usa os jobs persistidos para conferir e corrigir",
   expect(fetchFn.mock.calls[2][0]).toBe("/v1/jobs/job-analysis")
 })
 
+it("updateCarouselSlide persiste o ContentSpec no slide correto", async () => {
+  const response = {
+    id: "slide_2",
+    content: { layoutId: "statement-post-1x1", brandRevisionId: "brandrev_x", values: {} },
+  }
+  const fetchFn = vi.fn(async () => jsonResponse(response))
+  const client = createApiClient(fetchFn as unknown as typeof fetch)
+  const content = {
+    layoutId: "statement-post-1x1",
+    brandRevisionId: "brandrev_x",
+    values: { headline: { kind: "text" as const, text: "Texto editado" } },
+  }
+
+  await client.updateCarouselSlide("carousel x", "slide/2", content)
+
+  const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit]
+  expect(url).toBe("/v1/carousels/carousel%20x/slides/slide%2F2")
+  expect(init.method).toBe("PATCH")
+  expect(JSON.parse(init.body as string)).toEqual(content)
+})
+
 it("campanhas usam uma fonte compartilhada e atualização parcial da entidade", async () => {
   const fetchFn = vi
     .fn()

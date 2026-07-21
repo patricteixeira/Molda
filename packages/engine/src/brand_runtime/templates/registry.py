@@ -14,12 +14,24 @@ from brand_runtime.kit.models import (
     TemplateRef,
 )
 from brand_runtime.style.derive import derive_style_system
+from brand_runtime.templates.brutalist import typographic_brutalist_package
+from brand_runtime.templates.collage import editorial_collage_package
+from brand_runtime.templates.constructivist import constructivist_dynamics_package
+from brand_runtime.templates.data import data_evidence_package
+from brand_runtime.templates.device import device_mockup_package
+from brand_runtime.templates.fashion import fashion_editorial_package
+from brand_runtime.templates.geometric import geometric_modernism_package
+from brand_runtime.templates.kinetic import kinetic_typography_package
+from brand_runtime.templates.minimal import minimal_luxury_package
 from brand_runtime.templates.models import (
     ExportSupport,
     TemplateComposition,
     TemplateEvaluation,
     TemplatePackage,
 )
+from brand_runtime.templates.product import product_campaign_package
+from brand_runtime.templates.swiss import swiss_system_package
+from brand_runtime.templates.technical import technical_diagram_package
 
 _PACKAGE_ID = "typographic-editorial"
 _PACKAGE_VERSION = "1.0.0"
@@ -561,7 +573,96 @@ def typographic_editorial_package(ir: BrandIR) -> TemplatePackage:
     )
 
 
+def template_packages(ir: BrandIR) -> tuple[TemplatePackage, ...]:
+    """Compila o catálogo autoral numa ordem editorial estável."""
+    return (
+        typographic_editorial_package(ir),
+        typographic_brutalist_package(ir),
+        swiss_system_package(ir),
+        geometric_modernism_package(ir),
+        kinetic_typography_package(ir),
+        constructivist_dynamics_package(ir),
+        fashion_editorial_package(ir),
+        minimal_luxury_package(ir),
+        editorial_collage_package(ir),
+        technical_diagram_package(ir),
+        product_campaign_package(ir),
+        data_evidence_package(ir),
+        device_mockup_package(ir),
+    )
+
+
+def _materialize_package_layouts(ir: BrandIR, package: TemplatePackage) -> list[LayoutSpec]:
+    """Materializa um pacote em uma superfície principal e sua inversão."""
+    rules = ir.composition_rules
+    if rules is None or rules.modes.light is None or rules.modes.dark is None:
+        return [composition.layout.model_copy(deep=True) for composition in package.compositions]
+
+    light = rules.modes.light
+    dark = rules.modes.dark
+    alternatives: list[LayoutSpec] = []
+    for composition in package.compositions:
+        principal = composition.layout.model_copy(deep=True)
+        principal_background = (
+            principal.background.color_token
+            if principal.background.kind == "color"
+            else "color.background"
+        )
+        principal_mode_name = (
+            "dark" if principal_background == dark.background_color_token else "light"
+        )
+        principal_mode = dark if principal_mode_name == "dark" else light
+        principal.composition_mode = principal_mode_name
+        for slot in principal.slots:
+            if slot.kind == "logo" and principal_mode.logo_asset_token is not None:
+                slot.asset_token = principal_mode.logo_asset_token
+        alternatives.append(principal)
+
+        alternative_mode_name = "light" if principal_mode_name == "dark" else "dark"
+        alternative_mode = light if alternative_mode_name == "light" else dark
+        alternate = principal.model_copy(deep=True)
+        alternate.id = f"{principal.id}-alternative"
+        alternate.name_pt = f"{principal.name_pt} · Alternativa"
+        alternate.composition_mode = alternative_mode_name
+        alternate.background.color_token = alternative_mode.background_color_token
+        accent_token = (
+            "color.secondary"
+            if "color.secondary" in ir.colors
+            and "color.secondary" != alternative_mode.background_color_token
+            else alternative_mode.foreground_color_token
+        )
+        for slot in alternate.slots:
+            if slot.kind == "text":
+                if slot.color_token == "color.background":
+                    slot.color_token = alternative_mode.background_color_token
+                elif slot.role == "index" or slot.color_token in {
+                    "color.primary",
+                    "color.secondary",
+                }:
+                    slot.color_token = accent_token
+                else:
+                    slot.color_token = alternative_mode.foreground_color_token
+                if slot.stroke_color_token is not None:
+                    slot.stroke_color_token = accent_token
+            elif slot.kind == "logo" and alternative_mode.logo_asset_token is not None:
+                slot.asset_token = alternative_mode.logo_asset_token
+        for layer in alternate.locked_layers:
+            if not hasattr(layer, "color_token"):
+                continue
+            if layer.color_token in {"color.primary", "color.secondary"}:
+                layer.color_token = accent_token
+            elif layer.color_token == "color.background":
+                layer.color_token = alternative_mode.background_color_token
+            elif layer.color_token == "color.text":
+                layer.color_token = alternative_mode.foreground_color_token
+        alternatives.append(alternate)
+    return alternatives
+
+
 def generate_template_layouts(ir: BrandIR) -> list[LayoutSpec]:
-    """Devolve cópias dos layouts compilados para o catálogo público atual."""
-    package = typographic_editorial_package(ir)
-    return [composition.layout.model_copy(deep=True) for composition in package.compositions]
+    """Materializa todas as famílias publicadas numa ordem determinística."""
+    return [
+        layout
+        for package in template_packages(ir)
+        for layout in _materialize_package_layouts(ir, package)
+    ]

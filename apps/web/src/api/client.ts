@@ -3,6 +3,7 @@ import type {
   BrandIr,
   Campaign,
   Carousel,
+  CarouselSlide,
   ContentSpec,
   JobInfo,
   GuardCheck,
@@ -137,6 +138,15 @@ export function createApiClient(fetchFn: typeof fetch = fetch): ApiClient {
         method: "POST",
         body: JSON.stringify(input),
       })
+    },
+    updateCarouselSlide(carouselId, slideId, content) {
+      return json<CarouselSlide>(
+        `/v1/carousels/${encodeURIComponent(carouselId)}/slides/${encodeURIComponent(slideId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(content),
+        },
+      )
     },
     requestCarouselExport(carouselId) {
       return json(`/v1/carousels/${encodeURIComponent(carouselId)}/exports`, {

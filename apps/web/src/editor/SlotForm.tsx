@@ -9,6 +9,12 @@ import type {
   SlotValue,
   SurfaceStyle,
 } from "../api/types"
+import {
+  hasAutomaticLogoPair,
+  logoAssetLabel,
+  logoAssetTokens,
+  uniqueLogoCount,
+} from "../logoAssets"
 import { DirectionPanel } from "./DirectionPanel"
 import { exactOccurrenceCount } from "./emphasis"
 import { elementArea, elementLabel, elementOpacity, elementZIndex, findEditorElement } from "./layerModel"
@@ -54,8 +60,8 @@ function humanizeToken(token: string, prefix: string): string {
     "color.background": "Fundo",
     "color.text": "Texto",
     "logo.primary": "Principal",
-    "logo.onLight": "Para fundo claro",
-    "logo.onDark": "Para fundo escuro",
+    "logo.onLight": "Escura · para fundo claro",
+    "logo.onDark": "Clara · para fundo escuro",
   }
   const known = standardLabels[token]
   if (known) return known
@@ -110,41 +116,165 @@ export function SlotForm({
   const modelBackgroundToken =
     layout.background.kind === "color" ? (layout.background.colorToken ?? null) : null
   const activeBackgroundToken = backgroundColorToken ?? modelBackgroundToken
-  const backgroundPanel = (
+  const textSlots = layout.slots.filter((slot) => slot.kind === "text")
+  const logoSlots = layout.slots.filter((slot) => slot.kind === "logo")
+  const logoLayers = (layout.lockedLayers ?? []).filter(
+    (layer) => layer.kind === "asset" && layer.assetToken.startsWith("logo."),
+  )
+  const logoElements = [...logoSlots, ...logoLayers]
+  const availableLogoTokens = logoAssetTokens(brandIr)
+  const availableLogoCount = uniqueLogoCount(brandIr)
+  const automaticLogoPair = hasAutomaticLogoPair(brandIr)
+  const explicitTextTokens = Array.from(
+    new Set(
+      textSlots
+        .map((slot) => overrides[slot.id]?.colorToken)
+        .filter((token): token is string => typeof token === "string"),
+    ),
+  )
+  const activeTextToken =
+    explicitTextTokens.length === 1 &&
+    textSlots.every((slot) => overrides[slot.id]?.colorToken === explicitTextTokens[0])
+      ? explicitTextTokens[0]
+      : null
+  const hasTextColorOverride = textSlots.some(
+    (slot) => typeof overrides[slot.id]?.colorToken === "string",
+  )
+  const explicitLogoTokens = Array.from(
+    new Set(
+      logoElements
+        .map((element) => assetBindings[element.id])
+        .filter((token): token is string => typeof token === "string"),
+    ),
+  )
+  const activeLogoToken =
+    explicitLogoTokens.length === 1 &&
+    logoElements.every((element) => assetBindings[element.id] === explicitLogoTokens[0])
+      ? explicitLogoTokens[0]
+      : ""
+  const applyTextColor = (colorToken: string | null): void => {
+    for (const slot of textSlots) onPatch(slot.id, { colorToken })
+  }
+  const applyLogo = (assetToken: string | null): void => {
+    for (const element of logoElements) onAssetBindingChange(element.id, assetToken)
+  }
+  const logoPanel =
+    logoElements.length > 0 ? (
+      <section className="inspector-section canvas-logo-quick logo-binding-panel">
+        <div>
+          <h3>Logo da peça</h3>
+          <p className="field-guidance">Troque todas as ocorrências sem alterar o fundo.</p>
+        </div>
+        <label htmlFor="canvas-logo-binding">
+          <span>Versão da logo</span>
+          <select
+            id="canvas-logo-binding"
+            value={activeLogoToken}
+            disabled={disabled}
+            onChange={(event) => applyLogo(event.currentTarget.value || null)}
+          >
+            <option value="">Automática para o fundo</option>
+            {availableLogoTokens.map((token) => (
+                <option key={token} value={token}>
+                  {logoAssetLabel(brandIr, token)}
+                </option>
+              ))}
+          </select>
+        </label>
+        {automaticLogoPair ? (
+          <p className="field-guidance">
+            Escolha manualmente ou deixe o Molda usar a versão adequada ao fundo.
+          </p>
+        ) : availableLogoCount > 1 ? (
+          <p className="field-guidance">
+            As {availableLogoCount} versões carregadas estão disponíveis. Como esta revisão não
+            definiu um par claro/escuro, o automático usa a principal.
+          </p>
+        ) : (
+          <p className="field-guidance field-guidance-warning">
+            Esta revisão tem apenas uma versão da logo. Fundos de baixo contraste podem esconder
+            a marca.
+          </p>
+        )}
+      </section>
+    ) : null
+  const appearancePanel = (
     <section className="inspector-section canvas-background-panel">
       <div className="canvas-background-heading">
         <div>
-          <h3>Fundo da peça</h3>
-          <p className="field-guidance">A troca vale para toda a peça.</p>
+          <h3>Cores da peça</h3>
+          <p className="field-guidance">Fundo e textos continuam independentes.</p>
         </div>
-        <button
-          type="button"
-          className="canvas-background-reset"
-          disabled={disabled || backgroundColorToken === null}
-          onClick={() => onBackgroundColorChange(null)}
-        >
-          Usar o modelo
-        </button>
       </div>
-      <div className="canvas-color-grid" role="group" aria-label="Cor de fundo da peça">
-        {Object.entries(brandIr.colors).map(([token, color]) => (
+      <div className="canvas-appearance-group">
+        <div className="canvas-background-heading">
+          <strong>Fundo</strong>
           <button
-            key={token}
             type="button"
-            className="canvas-color-option"
-            aria-label={`${humanizeToken(token, "color.")}, ${color.value}`}
-            aria-pressed={activeBackgroundToken === token}
-            data-active={activeBackgroundToken === token || undefined}
-            disabled={disabled}
-            onClick={() => onBackgroundColorChange(token)}
+            className="canvas-background-reset"
+            aria-label="Usar o fundo do modelo"
+            disabled={disabled || backgroundColorToken === null}
+            onClick={() => onBackgroundColorChange(null)}
           >
-            <span className="canvas-color-swatch" style={{ backgroundColor: color.value }} />
-            <span>
-              <b>{humanizeToken(token, "color.")}</b>
-              <small>{color.value}</small>
-            </span>
+            Usar o modelo
           </button>
-        ))}
+        </div>
+        <div className="canvas-color-grid" role="group" aria-label="Cor de fundo da peça">
+          {Object.entries(brandIr.colors).map(([token, color]) => (
+            <button
+              key={token}
+              type="button"
+              className="canvas-color-option"
+              title={`${humanizeToken(token, "color.")} · ${color.value}`}
+              aria-label={`Fundo: ${humanizeToken(token, "color.")}, ${color.value}`}
+              aria-pressed={activeBackgroundToken === token}
+              data-active={activeBackgroundToken === token || undefined}
+              disabled={disabled}
+              onClick={() => onBackgroundColorChange(token)}
+            >
+              <span className="canvas-color-swatch" style={{ backgroundColor: color.value }} />
+              <span>
+                <b>{humanizeToken(token, "color.")}</b>
+                <small>{color.value}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="canvas-appearance-group">
+        <div className="canvas-background-heading">
+          <strong>Todos os textos</strong>
+          <button
+            type="button"
+            className="canvas-background-reset"
+            aria-label="Usar as cores de texto do modelo"
+            disabled={disabled || !hasTextColorOverride}
+            onClick={() => applyTextColor(null)}
+          >
+            Usar o modelo
+          </button>
+        </div>
+        <div className="canvas-color-grid" role="group" aria-label="Cor de todos os textos da peça">
+          {Object.entries(brandIr.colors).map(([token, color]) => (
+            <button
+              key={token}
+              type="button"
+              className="canvas-color-option"
+              title={`${humanizeToken(token, "color.")} · ${color.value}`}
+              aria-label={`Textos: ${humanizeToken(token, "color.")}, ${color.value}`}
+              aria-pressed={activeTextToken === token}
+              data-active={activeTextToken === token || undefined}
+              disabled={disabled || textSlots.length === 0}
+              onClick={() => applyTextColor(token)}
+            >
+              <span className="canvas-color-swatch" style={{ backgroundColor: color.value }} />
+              <span>
+                <b>{humanizeToken(token, "color.")}</b>
+                <small>{color.value}</small>
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   )
@@ -186,6 +316,8 @@ export function SlotForm({
   if (!element) {
     return (
       <aside className="slot-form layer-inspector">
+        {logoPanel}
+        {appearancePanel}
         <DirectionPanel
           brandIr={brandIr}
           surface={surface}
@@ -193,7 +325,6 @@ export function SlotForm({
           onSurfaceChange={onSurfaceChange}
           onApplyDirection={onApplyDirection}
         />
-        {backgroundPanel}
         <p className="inspector-empty">Escolha um item na peça ou na lista.</p>
       </aside>
     )
@@ -432,24 +563,25 @@ export function SlotForm({
   const uploadState = uploadStates[element.id] ?? IDLE_UPLOAD
   const canFit = ["image", "logo", "asset"].includes(element.kind)
   const canColor = ["text", "shape", "motif"].includes(element.kind)
+  const selectedAssetIsLogo =
+    element.kind === "logo" ||
+    (element.kind === "asset" && element.assetToken.startsWith("logo."))
+  const selectedAssetTokens = selectedAssetIsLogo
+    ? availableLogoTokens
+    : Object.keys(brandIr.assets).sort((left, right) => left.localeCompare(right))
 
   return (
     <form className="slot-form layer-inspector" onSubmit={(event) => event.preventDefault()}>
-      <DirectionPanel
-        brandIr={brandIr}
-        surface={surface}
-        disabled={disabled || layout.profile === "doc-a4"}
-        onSurfaceChange={onSurfaceChange}
-        onApplyDirection={onApplyDirection}
-      />
-      {backgroundPanel}
+      {selectedAssetIsLogo ? null : logoPanel}
       <div className="panel-heading inspector-heading">
         <div>
           <p className="panel-kicker">Ajustes</p>
           <h2>{elementLabel(element)}</h2>
         </div>
         <span className="element-kind">
-          {{ text: "Texto", image: "Imagem", logo: "Logo", asset: "Marca", motif: "Grafismo", shape: "Forma" }[element.kind] ?? "Item"}
+          {element.kind === "asset" && selectedAssetIsLogo
+            ? "Logo"
+            : ({ text: "Texto", image: "Imagem", logo: "Logo", asset: "Arquivo", motif: "Grafismo", shape: "Forma" }[element.kind] ?? "Item")}
         </span>
       </div>
 
@@ -472,11 +604,11 @@ export function SlotForm({
         </section>
       ) : null}
 
-      {element.kind === "logo" ? (
+      {element.kind === "logo" || element.kind === "asset" ? (
         <section className="inspector-section logo-binding-panel">
-          <h3>Versão da marca</h3>
+          <h3>{selectedAssetIsLogo ? "Versão da logo" : "Arquivo usado"}</h3>
           <label htmlFor={`slot-logo-binding-${element.id}`}>
-            <span>Logo usada neste item</span>
+            <span>{selectedAssetIsLogo ? "Logo usada neste item" : "Arquivo usado neste item"}</span>
             <select
               id={`slot-logo-binding-${element.id}`}
               data-testid={`slot-logo-binding-${element.id}`}
@@ -486,27 +618,33 @@ export function SlotForm({
                 onAssetBindingChange(element.id, event.currentTarget.value || null)
               }
             >
-              <option value="">Automático para o fundo</option>
-              {Object.keys(brandIr.assets)
-                .filter((token) => token.startsWith("logo."))
-                .sort((left, right) => left.localeCompare(right))
-                .map((token) => (
+              <option value="">
+                {selectedAssetIsLogo ? "Automática para o fundo" : "Usar o arquivo do modelo"}
+              </option>
+              {selectedAssetTokens.map((token) => (
                   <option key={token} value={token}>
-                    {humanizeToken(token, "logo.")}
+                    {selectedAssetIsLogo
+                      ? logoAssetLabel(brandIr, token)
+                      : humanizeToken(token, "")}
                   </option>
                 ))}
             </select>
           </label>
-          {"logo.onLight" in brandIr.assets && "logo.onDark" in brandIr.assets ? (
+          {selectedAssetIsLogo && automaticLogoPair ? (
             <p className="field-guidance">
-              No modo automático, o Molda escolhe a versão adequada à cor do fundo.
+              Em fundo claro, escolha “Escura”. Em fundo escuro, escolha “Clara”.
             </p>
-          ) : (
+          ) : selectedAssetIsLogo && availableLogoCount > 1 ? (
+            <p className="field-guidance">
+              Você carregou {availableLogoCount} versões. Escolha a adequada para este fundo; o
+              automático usa a principal.
+            </p>
+          ) : selectedAssetIsLogo ? (
             <p className="field-guidance field-guidance-warning">
-              Esta revisão tem apenas uma versão do logo. Para alternar com segurança, instale a
+              Esta revisão tem apenas uma versão da logo. Para alternar com segurança, instale a
               marca novamente com as versões para fundo claro e escuro.
             </p>
-          )}
+          ) : null}
         </section>
       ) : null}
 
@@ -651,6 +789,14 @@ export function SlotForm({
       >
         Desfazer ajustes deste item
       </button>
+      {appearancePanel}
+      <DirectionPanel
+        brandIr={brandIr}
+        surface={surface}
+        disabled={disabled || layout.profile === "doc-a4"}
+        onSurfaceChange={onSurfaceChange}
+        onApplyDirection={onApplyDirection}
+      />
     </form>
   )
 }

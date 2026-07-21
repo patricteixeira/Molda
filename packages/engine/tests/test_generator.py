@@ -13,10 +13,10 @@ def _ir(brand_package):
     return compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
 
 
-def test_kit_has_legacy_ten_plus_three_versioned_templates(brand_package):
+def test_kit_has_canonical_ten_plus_thirty_nine_paired_templates(brand_package):
     kit = generate_kit(_ir(brand_package))
-    assert len(kit) == 13
-    assert len({layout.id for layout in kit}) == 13
+    assert len(kit) == 88
+    assert len({layout.id for layout in kit}) == 88
     assert {layout.profile for layout in kit} == set(PROFILES)
 
 
@@ -73,14 +73,92 @@ def test_layout_ids_order_and_background_contract(brand_package):
         "announce-story-9x16",
         "one-pager-doc-a4",
         "typographic-ledger-post-4x5",
+        "typographic-ledger-post-4x5-alternative",
         "typographic-monument-post-4x5",
+        "typographic-monument-post-4x5-alternative",
         "typographic-diptych-post-4x5",
+        "typographic-diptych-post-4x5-alternative",
+        "brutalist-manifesto-post-4x5",
+        "brutalist-manifesto-post-4x5-alternative",
+        "brutalist-collision-post-4x5",
+        "brutalist-collision-post-4x5-alternative",
+        "brutalist-bands-post-4x5",
+        "brutalist-bands-post-4x5-alternative",
+        "swiss-rational-grid-post-4x5",
+        "swiss-rational-grid-post-4x5-alternative",
+        "swiss-quiet-axis-post-4x5",
+        "swiss-quiet-axis-post-4x5-alternative",
+        "swiss-modular-field-post-4x5",
+        "swiss-modular-field-post-4x5-alternative",
+        "geometric-orbit-post-4x5",
+        "geometric-orbit-post-4x5-alternative",
+        "geometric-staircase-post-4x5",
+        "geometric-staircase-post-4x5-alternative",
+        "geometric-signal-post-4x5",
+        "geometric-signal-post-4x5-alternative",
+        "kinetic-echo-post-4x5",
+        "kinetic-echo-post-4x5-alternative",
+        "kinetic-split-post-4x5",
+        "kinetic-split-post-4x5-alternative",
+        "kinetic-pulse-post-4x5",
+        "kinetic-pulse-post-4x5-alternative",
+        "constructivist-wedge-post-4x5",
+        "constructivist-wedge-post-4x5-alternative",
+        "constructivist-broadcast-post-4x5",
+        "constructivist-broadcast-post-4x5-alternative",
+        "constructivist-counterfield-post-4x5",
+        "constructivist-counterfield-post-4x5-alternative",
+        "fashion-cover-post-4x5",
+        "fashion-cover-post-4x5-alternative",
+        "fashion-spread-post-4x5",
+        "fashion-spread-post-4x5-alternative",
+        "fashion-portrait-post-4x5",
+        "fashion-portrait-post-4x5-alternative",
+        "luxury-whisper-post-4x5",
+        "luxury-whisper-post-4x5-alternative",
+        "luxury-gallery-post-4x5",
+        "luxury-gallery-post-4x5-alternative",
+        "luxury-column-post-4x5",
+        "luxury-column-post-4x5-alternative",
+        "collage-overlap-post-4x5",
+        "collage-overlap-post-4x5-alternative",
+        "collage-cutout-post-4x5",
+        "collage-cutout-post-4x5-alternative",
+        "collage-contact-sheet-post-4x5",
+        "collage-contact-sheet-post-4x5-alternative",
+        "technical-blueprint-post-4x5",
+        "technical-blueprint-post-4x5-alternative",
+        "technical-annotation-post-4x5",
+        "technical-annotation-post-4x5-alternative",
+        "technical-flow-post-4x5",
+        "technical-flow-post-4x5-alternative",
+        "product-hero-post-4x5",
+        "product-hero-post-4x5-alternative",
+        "product-benefit-post-4x5",
+        "product-benefit-post-4x5-alternative",
+        "product-launch-post-4x5",
+        "product-launch-post-4x5-alternative",
+        "evidence-hero-metric-post-4x5",
+        "evidence-hero-metric-post-4x5-alternative",
+        "evidence-comparison-post-4x5",
+        "evidence-comparison-post-4x5-alternative",
+        "evidence-dashboard-post-4x5",
+        "evidence-dashboard-post-4x5-alternative",
+        "device-phone-post-4x5",
+        "device-phone-post-4x5-alternative",
+        "device-browser-post-4x5",
+        "device-browser-post-4x5-alternative",
+        "device-ecosystem-post-4x5",
+        "device-ecosystem-post-4x5-alternative",
     ]
     for layout in kit:
         if layout.id.startswith("quote-"):
             assert layout.background.kind == "image-slot"
-        else:
+        elif not layout.id.endswith("-alternative"):
             assert layout.background.color_token == "color.background"
+        else:
+            assert layout.composition_mode in {"light", "dark"}
+            assert layout.background.color_token != "color.background"
 
 
 def test_golden_geometry_for_every_layout(brand_package):
@@ -172,7 +250,7 @@ def test_explicit_composition_adds_four_editorial_4x5_layouts_after_canonical_te
     kit = generate_kit(ir)
 
     editorial = kit[-4:]
-    assert len(kit) == 17
+    assert len(kit) == 92
     assert [layout.id for layout in editorial] == [
         "editorial-light-post-4x5",
         "editorial-dark-post-4x5",
@@ -239,19 +317,24 @@ def test_explicit_composition_adds_four_editorial_4x5_layouts_after_canonical_te
         assert slots["tagline"].emphasis_color_token == "color.secondary"
 
 
-def test_partial_composition_never_invents_editorial_layouts(brand_package):
+def test_inferred_modes_pair_templates_without_inventing_full_editorial_grammar(brand_package):
     ir = _ir(brand_package).model_copy(deep=True)
-    assert ir.composition_rules is None
-    assert len(generate_kit(ir)) == 13
+    assert ir.composition_rules is not None
+    assert ir.composition_rules.modes.light is not None
+    assert ir.composition_rules.modes.dark is not None
+    assert not ir.composition_rules.color_ratios
+    assert ir.composition_rules.accent is None
+    assert not any(layout.id.startswith("editorial-") for layout in generate_kit(ir))
+    assert len(generate_kit(ir)) == 88
 
     composition_ir = _composition_ir(brand_package)
     ir = composition_ir.model_copy(deep=True)
     ir.composition_rules.color_ratios = []
-    assert len(generate_kit(ir)) == 13
+    assert len(generate_kit(ir)) == 88
 
     ir = composition_ir.model_copy(deep=True)
     ir.assets["logo.onLight"].min_width_px = 96
-    assert len(generate_kit(ir)) == 13
+    assert len(generate_kit(ir)) == 88
 
 
 @pytest.mark.parametrize(
@@ -287,7 +370,7 @@ def test_declared_layout_style_adds_one_distinct_signature_layout(
     kit = generate_kit(ir)
     layout = kit[-1]
 
-    assert len(kit) == 14
+    assert len(kit) == 50
     assert layout.id == layout_id
     assert layout.profile == "post-4x5"
     assert [layer.id for layer in layout.locked_layers] == layer_ids

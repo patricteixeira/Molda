@@ -1,7 +1,7 @@
 # App web do brand-runtime
 
-Wizard de instalação, kit, editor por slots, Modo Campanha e aplicação de marca
-em Word. O chrome usa tipografia local do produto; as fontes da marca ficam
+Wizard de instalação, kit, editor por camadas, Modo Carrossel e aplicação de
+marca em Word. O chrome usa tipografia local do produto; as fontes da marca ficam
 contidas nas provas renderizadas.
 
 ```powershell
@@ -35,8 +35,9 @@ confirmada e mantém as 20 opções acessíveis por família. Escolher fora da
 recomendação não gera bloqueio. Todos os padrões são locais, procedurais e
 preservados nas exportações compatíveis.
 
-- `/marcas/{revisionId}/campanhas`: cria e reabre campanhas, edita a mensagem
-  central, mostra todas as prévias vinculadas e exporta cada documento.
+- `/marcas/{revisionId}/carrossel`: cria sequências de 3 a 20 slides, organiza
+  capa, conteúdo e fechamento, reabre carrosséis salvos e leva cada slide ao
+  editor completo sem quebrar a continuidade.
 - `/marcas/{revisionId}/word`: separa upload, plano e aplicação em três etapas;
   o download só aparece depois da prova de preservação do worker.
 

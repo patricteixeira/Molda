@@ -103,6 +103,13 @@ export const FAKE_IR: BrandIr = {
       minWidthPx: 24,
       clearSpaceRatio: 0.25,
     },
+    "logo.onDark": {
+      path: "assets/logos/logo-on-dark.svg",
+      sha256: "b".repeat(64),
+      format: "svg",
+      minWidthPx: 24,
+      clearSpaceRatio: 0.25,
+    },
   },
   compositionRules: {
     modes: {
@@ -461,7 +468,7 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
     })),
     compileDraft: vi.fn(async () => ({ brandRevisionId: FAKE_IR.revision.id })),
     getBrandRevision: vi.fn(async () => FAKE_IR),
-    getKit: vi.fn(async () => [fakeStatementLayout()]),
+    getKit: vi.fn(async () => [fakeStatementLayout(), fakeEditorialLayout()]),
     listCampaigns: vi.fn(async () => []),
     getCampaign: vi.fn(async () => fakeCampaign()),
     createCampaign: vi.fn(async (input) => ({
@@ -484,6 +491,11 @@ export function fakeClient(overrides: Partial<ApiClient> = {}): ApiClient {
       signature: input.signature,
       brandRevisionId: input.brandRevisionId,
     })),
+    updateCarouselSlide: vi.fn(async (carouselId, slideId, content) => {
+      const slide = fakeCarousel().slides.find((candidate) => candidate.id === slideId)
+      if (!slide) throw new Error(`Slide ${slideId} não encontrado em ${carouselId}.`)
+      return { ...slide, content }
+    }),
     requestCarouselExport: vi.fn(async () => ({ jobId: "job_carousel" })),
     uploadAsset: vi.fn(async (file) => ({ sha256, size: file.size })),
     createDocument: vi.fn(async () => ({ documentId: "doc_x", checks: [] })),

@@ -148,6 +148,34 @@ it("usa o fundo efetivo para escolher a variante de logo e respeita binding manu
   );
 });
 
+it("troca também a variante de uma logo estrutural editável", () => {
+  const payload = fixturePayload();
+  Object.assign(payload.brandIr.assets, {
+    "logo.onLight": { path: "assets/logos/logo-on-light.svg" },
+    "logo.onDark": { path: "assets/logos/logo-on-dark.svg" },
+  });
+  payload.layoutSpec.slots = payload.layoutSpec.slots.filter((slot) => slot.kind !== "logo");
+  payload.layoutSpec.lockedLayers = [
+    {
+      id: "brand-mark",
+      kind: "asset",
+      assetToken: "logo.onDark",
+      area: [902, 902, 130, 130],
+      fit: "contain",
+      opacity: 1,
+      zIndex: 3,
+    },
+  ];
+  payload.contentSpec.backgroundColorToken = "color.background";
+  payload.contentSpec.assetBindings = { "brand-mark": "logo.onDark" };
+
+  renderDocument(container, payload);
+
+  expect(
+    container.querySelector<HTMLImageElement>('[data-layer-id="brand-mark"] img')!.src,
+  ).toContain("logo-on-dark.svg");
+});
+
 it("fundo image-slot limpa uma cor de render anterior", () => {
   renderDocument(container, fixturePayload());
   const payload = fixturePayload();

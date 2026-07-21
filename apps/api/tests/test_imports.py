@@ -79,22 +79,17 @@ def _declared_package(package_zip: bytes, *, bad_hash: bool = False) -> bytes:
     return output.getvalue()
 
 
-def test_import_cria_draft_com_perguntas(client, package_zip):
+def test_import_expoe_apenas_a_leitura_editorial_que_pede_revisao(client, package_zip):
     response = _post_zip(client, package_zip)
     assert response.status_code == 201, response.text
     body = response.json()
     assert body["draftId"].startswith("draft_")
     assert set(body) == {"draftId", "questions", "diagnostics", "ignoredEntries"}
-    ids = [question["id"] for question in body["questions"]]
-    for required in [
-        "color.primary",
-        "color.background",
-        "color.text",
-        "font.heading",
-        "font.body",
-        "logo.primary",
-    ]:
-        assert required in ids
+    assert [question["id"] for question in body["questions"]] == ["identity.expression"]
+    assert all(
+        question["kind"] not in {"pick-color", "pick-font", "confirm-logo"}
+        for question in body["questions"]
+    )
     assert all(not question["required"] or question["candidates"] for question in body["questions"])
     assert body["ignoredEntries"] == []
 
@@ -386,6 +381,20 @@ def test_import_reconhece_extensoes_uppercase(client, package_zip):
     response = _post_zip(client, destination.getvalue())
 
     assert response.status_code == 201, response.text
-    questions = {item["id"]: item for item in response.json()["questions"]}
-    assert questions["font.heading"]["candidates"][0]["value"]["family"] == "Fixture Sans"
-    assert questions["logo.primary"]["candidates"][0]["value"].endswith("logo.SVG")
+    body = response.json()
+    identity = body["questions"][0]["candidates"][0]["value"]
+    identity = {
+        **identity,
+        "essence": identity["essence"].strip() or "Uma marca clara e autoral.",
+    }
+    compiled = client.post(
+        f"/v1/drafts/{body['draftId']}/compile",
+        json={
+            "answers": {"values": {"identity.expression": identity}},
+            "brandName": "ACME",
+        },
+    )
+    assert compiled.status_code == 201, compiled.text
+    ir = client.get(f"/v1/brand-revisions/{compiled.json()['brandRevisionId']}").json()
+    assert ir["fonts"]["font.heading"]["family"] == "Fixture Sans"
+    assert ir["assets"]["logo.primary"]["path"].endswith("logo.SVG")

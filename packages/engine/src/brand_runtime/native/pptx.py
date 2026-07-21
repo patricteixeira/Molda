@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import os
 import tempfile
+from contextlib import contextmanager
 from math import cos, pi, sin
 from dataclasses import dataclass
 from pathlib import Path
 
 from lxml import etree
+import fitz
 from PIL import Image, ImageColor, ImageDraw
 from pptx import Presentation
 from pptx.dml.color import RGBColor
@@ -21,6 +23,7 @@ from pptx.util import Emu, Pt
 from brand_runtime.ir.models import BrandIR, SemanticRole
 from brand_runtime.kit.models import (
     Area,
+    AssetLayer,
     ContentSpec,
     EditorArea,
     ImageValue,
@@ -191,6 +194,29 @@ def _resolve_asset(path: str, asset_root: Path | None) -> Path:
     return candidate
 
 
+@contextmanager
+def _picture_asset(path: str, asset_root: Path | None):
+    """Entrega um raster aceito pelo OOXML, convertendo SVG local sem alterar a fonte."""
+    candidate = Path(path)
+    if not candidate.is_absolute() and asset_root is not None:
+        candidate = asset_root / candidate
+    candidate = candidate.resolve()
+    if not candidate.is_file():
+        raise PptxRenderError(f"O asset «{path}» não foi encontrado.")
+    if candidate.suffix.lower() != ".svg":
+        yield _resolve_asset(path, asset_root)
+        return
+    with tempfile.TemporaryDirectory(prefix="brandrt-svg-") as directory:
+        output = Path(directory) / "asset.png"
+        try:
+            with fitz.open(candidate) as document:
+                pixmap = document[0].get_pixmap(matrix=fitz.Matrix(2, 2), alpha=True)
+                pixmap.save(output)
+        except (RuntimeError, ValueError) as error:
+            raise PptxRenderError(f"O SVG «{path}» não pôde ser rasterizado.") from error
+        yield output
+
+
 def _normalized_box(
     presentation: Presentation,
     layout: LayoutSpec,
@@ -305,6 +331,49 @@ def _render_shape_layers(
         )
 
 
+def _render_asset_layers(
+    slide,
+    presentation: Presentation,
+    ir: BrandIR,
+    layout: LayoutSpec,
+    content: ContentSpec,
+    asset_root: Path | None,
+    background_token: str | None,
+) -> None:
+    """Materializa assets estruturais como imagens nativas e editáveis no PPTX."""
+    layers = sorted(
+        (layer for layer in layout.locked_layers if isinstance(layer, AssetLayer)),
+        key=lambda layer: layer.z_index,
+    )
+    for layer in layers:
+        override = content.overrides.get(layer.id)
+        if override is not None and override.hidden:
+            continue
+        asset_token = (
+            content.asset_bindings.get(layer.id)
+            or (
+                _automatic_logo_token(ir, background_token)
+                if layer.asset_token.startswith("logo.")
+                else None
+            )
+            or layer.asset_token
+        )
+        area = override.area if override and override.area else layer.area
+        left, top, width, height = _normalized_box(presentation, layout, area)
+        with _picture_asset(ir.assets[asset_token].path, asset_root) as asset:
+            picture = slide.shapes.add_picture(str(asset), left, top, width=width, height=height)
+        _apply_opacity(
+            picture,
+            override.opacity if override and override.opacity is not None else layer.opacity,
+        )
+        _tag_shape(
+            picture,
+            role="logo" if asset_token.startswith("logo.") else "asset",
+            revision_id=ir.revision.id,
+            slot_id=layer.id,
+        )
+
+
 def _text_slots(layout: LayoutSpec, content: ContentSpec) -> list[tuple[Slot, TextValue]]:
     values: list[tuple[Slot, TextValue]] = []
     for slot in layout.slots:
@@ -324,11 +393,12 @@ def _validate_contracts(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -
         and content.background_color_token not in ir.colors
     ):
         raise PptxRenderError("O fundo da peça referencia uma cor ausente do Brand IR.")
-    slots = {slot.id: slot for slot in layout.slots}
-    for slot_id, asset_token in content.asset_bindings.items():
-        slot = slots.get(slot_id)
-        if slot is None or slot.kind != "logo":
-            raise PptxRenderError("Asset bindings só podem referenciar slots de logo.")
+    bindable_assets = {slot.id for slot in layout.slots if slot.kind == "logo"} | {
+        layer.id for layer in layout.locked_layers if isinstance(layer, AssetLayer)
+    }
+    for element_id, asset_token in content.asset_bindings.items():
+        if element_id not in bindable_assets:
+            raise PptxRenderError("Asset bindings só podem referenciar logos ou assets conhecidos.")
         if asset_token not in ir.assets:
             raise PptxRenderError("O logo vinculado à peça não existe no Brand IR.")
     for slot, value in _text_slots(layout, content):
@@ -587,6 +657,15 @@ def render_pptx(
             picture.name = "br:surface"
             _send_to_back(picture)
     _render_shape_layers(slide, presentation, ir, layout, content)
+    _render_asset_layers(
+        slide,
+        presentation,
+        ir,
+        layout,
+        content,
+        asset_root,
+        background_color_token,
+    )
     text_values = _text_slots(layout, content)
     if not text_values:
         raise PptxRenderError("O slide precisa de ao menos um slot de texto preenchido.")
@@ -715,10 +794,10 @@ def render_pptx(
             raise PptxRenderError(
                 "O layout exige logo, mas o Brand IR não possui asset compatível."
             )
-        asset = _resolve_asset(ir.assets[asset_token].path, asset_root)
         area = logo_override.area if logo_override and logo_override.area else logo_slot.area
         left, top, width, height = _normalized_box(presentation, layout, area)
-        picture = slide.shapes.add_picture(str(asset), left, top, width=width, height=height)
+        with _picture_asset(ir.assets[asset_token].path, asset_root) as asset:
+            picture = slide.shapes.add_picture(str(asset), left, top, width=width, height=height)
         _apply_opacity(
             picture,
             logo_override.opacity

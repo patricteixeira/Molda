@@ -6,7 +6,7 @@ from brand_runtime.artifacts import (
 from brand_runtime.intake.compile import compile_ir
 from brand_runtime.intake.draft import build_draft
 from brand_runtime.kit.generator import generate_kit
-from brand_runtime.kit.models import ContentSpec, LayerOverride, TextValue
+from brand_runtime.kit.models import AssetLayer, ContentSpec, LayerOverride, TextValue
 from tests.test_compile import FIXED, _answers
 
 
@@ -41,3 +41,28 @@ def test_content_spec_artifact_roundtrip_is_lossless(brand_package):
 def test_missing_content_never_carries_a_value():
     missing = ArtifactValue(status="missing")
     assert missing.value is None
+
+
+def test_artifact_accepts_binding_for_structural_asset(brand_package):
+    ir = _ir(brand_package)
+    layout = next(item for item in generate_kit(ir) if item.id == "typographic-ledger-post-4x5")
+    layout.locked_layers.append(
+        AssetLayer(
+            id="brand-mark",
+            asset_token="logo.primary",
+            area=(900, 80, 96, 96),
+            fit="contain",
+            z_index=12,
+        )
+    )
+    content = ContentSpec(
+        layout_id=layout.id,
+        brand_revision_id=ir.revision.id,
+        values={"headline": TextValue(text="Forma é argumento.")},
+        asset_bindings={"brand-mark": "logo.primary"},
+    )
+
+    artifact = artifact_from_content_spec(content, layout, artifact_id="artifact-asset")
+
+    assert artifact.asset_bindings == {"brand-mark": "logo.primary"}
+    assert artifact_to_content_spec(artifact) == content

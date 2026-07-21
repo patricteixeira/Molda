@@ -1247,15 +1247,22 @@ function validateContent(raw: unknown, layout: LayoutSpec, ir: BrandIr): Content
   }
   if (content.assetBindings !== undefined) {
     const bindings = record(content.assetBindings, "contentSpec.assetBindings");
-    for (const slotId of Object.keys(bindings).sort()) {
-      const slot = slots.get(slotId);
-      if (!slot) {
-        invalid(`contentSpec.assetBindings.${slotId} referencia slot desconhecido.`);
+    const bindableAssets = new Map<string, Slot | LockedLayer>([
+      ...layout.slots
+        .filter((slot) => slot.kind === "logo")
+        .map((slot) => [slot.id, slot] as const),
+      ...(layout.lockedLayers ?? [])
+        .filter((layer) => layer.kind === "asset")
+        .map((layer) => [layer.id, layer] as const),
+    ]);
+    for (const elementId of Object.keys(bindings).sort()) {
+      const element = bindableAssets.get(elementId);
+      if (!element) {
+        invalid(
+          `contentSpec.assetBindings.${elementId} referencia elemento de asset desconhecido.`,
+        );
       }
-      if (slot.kind !== "logo") {
-        invalid(`contentSpec.assetBindings.${slotId} só pode vincular um slot de logo.`);
-      }
-      knownKey(bindings[slotId], `contentSpec.assetBindings.${slotId}`, ir.assets, "asset");
+      knownKey(bindings[elementId], `contentSpec.assetBindings.${elementId}`, ir.assets, "asset");
     }
   }
   for (const [field, expectedKind] of [

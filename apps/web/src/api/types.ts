@@ -493,7 +493,10 @@ export interface CarouselSlideInput {
   headline: string
   textBlocks: string[]
   cta: string
+  layoutId?: string | null
+  imageSha256?: string | null
   backgroundColorToken?: string | null
+  textColorToken?: string | null
   logoAssetToken?: string | null
 }
 
@@ -614,6 +617,11 @@ export interface ApiClient {
     signature: CarouselSignature
     slides: CarouselSlideInput[]
   }): Promise<Carousel>
+  updateCarouselSlide(
+    carouselId: string,
+    slideId: string,
+    content: ContentSpec,
+  ): Promise<CarouselSlide>
   requestCarouselExport(carouselId: string): Promise<{ jobId: string }>
   createDocument(content: ContentSpec): Promise<DocumentResult>
   requestExport(documentId: string, format: ExportFormat): Promise<{ jobId: string }>

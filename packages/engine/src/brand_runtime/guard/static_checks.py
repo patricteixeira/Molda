@@ -138,15 +138,16 @@ def _contract_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> l
                 detail={"colorToken": content.background_color_token},
             )
         )
-    slots = {slot.id: slot for slot in layout.slots}
-    for slot_id, asset_token in sorted(content.asset_bindings.items()):
-        slot = slots.get(slot_id)
-        if slot is None or slot.kind != "logo":
+    bindable_assets = {slot.id for slot in layout.slots if slot.kind == "logo"} | {
+        layer.id for layer in layout.locked_layers if layer.kind == "asset"
+    }
+    for element_id, asset_token in sorted(content.asset_bindings.items()):
+        if element_id not in bindable_assets:
             checks.append(
                 _blocked(
                     "asset-binding",
-                    "Um asset só pode ser vinculado a um slot de logo conhecido.",
-                    slot_id=slot_id,
+                    "Um asset só pode ser vinculado a uma logo ou camada de asset conhecida.",
+                    slot_id=element_id,
                     detail={"assetToken": asset_token},
                 )
             )
@@ -155,8 +156,8 @@ def _contract_checks(ir: BrandIR, layout: LayoutSpec, content: ContentSpec) -> l
             checks.append(
                 _blocked(
                     "asset-binding",
-                    "O logo escolhido não pertence aos assets confirmados desta marca.",
-                    slot_id=slot_id,
+                    "O arquivo escolhido não pertence aos assets confirmados desta marca.",
+                    slot_id=element_id,
                     detail={"assetToken": asset_token},
                 )
             )

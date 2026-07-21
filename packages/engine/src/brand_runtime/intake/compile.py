@@ -9,11 +9,12 @@ from typing import Any, Literal
 
 from pydantic import ValidationError
 
-from brand_runtime.colors import lightness, normalize_color
+from brand_runtime.colors import lightness, normalize_color, wcag_contrast
 from brand_runtime.intake.base import Candidate
 from brand_runtime.intake.direction import derive_creative_direction
 from brand_runtime.intake.draft import BrandDraft, DraftQuestion
 from brand_runtime.intake.identity import IdentityDraftValue
+from brand_runtime.intake.raster_logo import extract_raster_colors
 from brand_runtime.intake.svg_logo import (
     SvgInvalid,
     extract_svg_colors,
@@ -54,7 +55,7 @@ _IDENTITY_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 # A revisão persiste IR e kit como um único bundle write-once. Mudanças
 # semânticas no gerador precisam trocar este domínio para não ressuscitar um
 # kit antigo sob o mesmo id depois de um upgrade.
-_REVISION_BUNDLE_DOMAIN = b"brand-ir-0.4-kit-v6\0"
+_REVISION_BUNDLE_DOMAIN = b"brand-ir-0.4-kit-v7\0"
 
 
 class Answers(CamelModel):
@@ -70,6 +71,24 @@ class CompileError(Exception):
 def _question(draft: BrandDraft, question_id: str) -> DraftQuestion | None:
     """Localiza uma pergunta sem pressupor que as opcionais existam."""
     return next((item for item in draft.questions if item.id == question_id), None)
+
+
+def _resolved_answers(draft: BrandDraft, answers: Answers) -> Answers:
+    """Completa decisões visuais automáticas sem sobrescrever revisões legadas."""
+    values = dict(answers.values)
+    for question in draft.questions:
+        if not question.automatic or question.id in values or not question.candidates:
+            continue
+        if question.id == "color.secondary" and any(
+            token in answers.values for token in ("color.primary", "color.background", "color.text")
+        ):
+            # Em drafts já iniciados antes da automação, ausência da secundária
+            # significava uma decisão explícita de pular a pergunta.
+            continue
+        if not question.required and question.recommended_count < 1:
+            continue
+        values[question.id] = question.candidates[0].value
+    return Answers(values=values)
 
 
 def _compile_identity(
@@ -413,9 +432,15 @@ def _compile_logo(
     )
 
 
-def _logo_appearance(svg_path: Path) -> Literal["dark", "light"] | None:
-    """Classifica a tinta visível de um SVG sem alterar ou renderizar o arquivo."""
-    colors = extract_svg_colors(svg_path)
+def _logo_appearance(logo_path: Path) -> Literal["dark", "light"] | None:
+    """Classifica a tinta visível de SVG ou PNG sem alterar o arquivo."""
+    suffix = logo_path.suffix.casefold()
+    if suffix == ".svg":
+        colors = extract_svg_colors(logo_path)
+    elif suffix == ".png":
+        colors = extract_raster_colors(logo_path)
+    else:
+        return None
     total = sum(candidate.score for candidate in colors)
     if total <= 0:
         return None
@@ -443,17 +468,24 @@ def _compile_logo_variants(
     draft: BrandDraft,
     answers: Answers,
     created_at: datetime,
+    *,
+    confirmed_answers: Answers | None = None,
 ) -> dict[str, LogoAsset]:
     """Prioriza variantes confirmadas e usa inferência inequívoca como compatibilidade."""
     explicit: dict[str, LogoAsset] = {}
     for token in ("logo.onLight", "logo.onDark"):
-        if token not in answers.values or _question(draft, token) is None:
+        variant_question = _question(draft, token)
+        if token not in answers.values or variant_question is None:
             continue
         explicit[token] = _compile_logo(
             draft,
             answers.values[token],
             created_at,
             question_id=token,
+            confirmed=(
+                not variant_question.automatic
+                or (confirmed_answers is not None and token in confirmed_answers.values)
+            ),
         )
 
     question = _question(draft, "logo.primary")
@@ -464,8 +496,6 @@ def _compile_logo_variants(
         if not isinstance(candidate.value, str):
             continue
         relative = _portable_relative_path(candidate.value)
-        if Path(relative).suffix.casefold() != ".svg":
-            continue
         path = _package_file(Path(draft.package_dir), relative)
         appearance = _logo_appearance(path) or _logo_name_appearance(relative)
         if appearance is not None:
@@ -488,6 +518,28 @@ def _compile_logo_variants(
     return {**inferred, **explicit}
 
 
+def _compile_logo_catalog(
+    draft: BrandDraft,
+    created_at: datetime,
+    existing: dict[str, LogoAsset],
+) -> dict[str, LogoAsset]:
+    """Preserva cada arquivo de logo enviado, além dos papéis semânticos."""
+    question = _question(draft, "logo.primary")
+    if question is None:
+        return {}
+    known_hashes = {asset.sha256 for asset in existing.values()}
+    catalog: dict[str, LogoAsset] = {}
+    for candidate in question.candidates:
+        if not isinstance(candidate.value, str):
+            continue
+        asset = _compile_logo(draft, candidate.value, created_at, confirmed=False)
+        if asset.sha256 in known_hashes:
+            continue
+        catalog[f"logo.variant.{asset.sha256}"] = asset
+        known_hashes.add(asset.sha256)
+    return catalog
+
+
 def _portable_evidence_list(items: list[Evidence], package_dir: Path) -> list[Evidence]:
     return [_portable_evidence(item, package_dir) for item in items]
 
@@ -497,18 +549,16 @@ def _compile_composition_rules(
     colors: dict[str, ColorToken],
     assets: dict[str, LogoAsset],
     diagnostics: list[Diagnostic],
-) -> CompositionRules | None:
-    """Liga declarações explícitas a tokens sem completar lacunas por inferência."""
+) -> CompositionRules:
+    """Preserva declarações e sempre deriva um par de superfícies utilizável."""
     declarations = draft.composition_declarations
-    if declarations is None:
-        return None
     package_dir = Path(draft.package_dir)
     role_tokens = {
         "primary": "color.primary",
         "background": "color.background",
         "accent": "color.secondary",
     }
-    for declaration in declarations.color_ratios:
+    for declaration in declarations.color_ratios if declarations is not None else []:
         if declaration.color_value is None:
             continue
         matching = [
@@ -527,7 +577,11 @@ def _compile_composition_rules(
     # continua soberana.
     light_foreground_token = role_tokens["primary"]
     primary_declaration = next(
-        (item for item in declarations.color_ratios if item.role == "primary"),
+        (
+            item
+            for item in (declarations.color_ratios if declarations is not None else [])
+            if item.role == "primary"
+        ),
         None,
     )
     if (
@@ -538,21 +592,84 @@ def _compile_composition_rules(
     ):
         light_foreground_token = "color.text"
 
-    modes = CompositionModes()
-    if declarations.light_mode_evidence:
-        modes.light = CompositionMode(
-            background_color_token=role_tokens["background"],
-            foreground_color_token=light_foreground_token,
-            logo_asset_token="logo.onLight" if "logo.onLight" in assets else None,
-            evidence=_portable_evidence_list(declarations.light_mode_evidence, package_dir),
+    semantic_order = [
+        token
+        for token in ("color.background", "color.text", "color.primary", "color.secondary")
+        if token in colors
+    ]
+    semantic_order.extend(token for token in colors if token not in semantic_order)
+
+    def most_contrasting(background_token: str) -> str:
+        return max(
+            (token for token in semantic_order if token != background_token),
+            key=lambda token: wcag_contrast(
+                colors[token].value,
+                colors[background_token].value,
+            ),
+            default=background_token,
         )
-    if declarations.dark_mode_evidence:
-        modes.dark = CompositionMode(
-            background_color_token=role_tokens["primary"],
-            foreground_color_token=role_tokens["background"],
-            logo_asset_token="logo.onDark" if "logo.onDark" in assets else None,
-            evidence=_portable_evidence_list(declarations.dark_mode_evidence, package_dir),
+
+    principal_background = role_tokens["background"]
+    principal_foreground = (
+        light_foreground_token
+        if wcag_contrast(
+            colors[light_foreground_token].value,
+            colors[principal_background].value,
         )
+        >= 4.5
+        else most_contrasting(principal_background)
+    )
+    alternative_background = most_contrasting(principal_background)
+    alternative_foreground = (
+        principal_background
+        if wcag_contrast(
+            colors[principal_background].value,
+            colors[alternative_background].value,
+        )
+        >= 4.5
+        else most_contrasting(alternative_background)
+    )
+
+    surfaces = sorted(
+        (
+            (principal_background, principal_foreground),
+            (alternative_background, alternative_foreground),
+        ),
+        key=lambda pair: lightness(colors[pair[0]].value),
+        reverse=True,
+    )
+    light_background, light_foreground = surfaces[0]
+    dark_background, dark_foreground = surfaces[1]
+    if declarations is not None and declarations.light_mode_evidence:
+        light_background = role_tokens["background"]
+        light_foreground = light_foreground_token
+    if declarations is not None and declarations.dark_mode_evidence:
+        dark_background = role_tokens["primary"]
+        dark_foreground = role_tokens["background"]
+    light_evidence = (
+        _portable_evidence_list(declarations.light_mode_evidence, package_dir)
+        if declarations is not None
+        else []
+    )
+    dark_evidence = (
+        _portable_evidence_list(declarations.dark_mode_evidence, package_dir)
+        if declarations is not None
+        else []
+    )
+    modes = CompositionModes(
+        light=CompositionMode(
+            background_color_token=light_background,
+            foreground_color_token=light_foreground,
+            logo_asset_token=("logo.onLight" if "logo.onLight" in assets else "logo.primary"),
+            evidence=light_evidence,
+        ),
+        dark=CompositionMode(
+            background_color_token=dark_background,
+            foreground_color_token=dark_foreground,
+            logo_asset_token="logo.onDark" if "logo.onDark" in assets else "logo.primary",
+            evidence=dark_evidence,
+        ),
+    )
 
     # Uma escolha legítima do wizard pode fazer dois papéis declarados apontarem
     # para o mesmo token (por exemplo, a tinta de acento confirmada como fundo).
@@ -562,7 +679,7 @@ def _compile_composition_rules(
     ratio_values: dict[str, float] = {}
     ratio_evidence: dict[str, list[Evidence]] = {}
     ratio_roles: dict[str, list[str]] = {}
-    for item in declarations.color_ratios:
+    for item in declarations.color_ratios if declarations is not None else []:
         token = role_tokens[item.role]
         if token not in colors:
             continue
@@ -599,7 +716,11 @@ def _compile_composition_rules(
     ]
     accent = None
     accent_ratio = next(
-        (item for item in declarations.color_ratios if item.role == "accent"),
+        (
+            item
+            for item in (declarations.color_ratios if declarations is not None else [])
+            if item.role == "accent"
+        ),
         None,
     )
     accent_token = role_tokens["accent"]
@@ -610,14 +731,19 @@ def _compile_composition_rules(
     if (
         accent_token in colors
         and accent_is_distinct
-        and (declarations.accent is not None or accent_ratio is not None)
+        and (
+            (declarations is not None and declarations.accent is not None)
+            or accent_ratio is not None
+        )
     ):
         max_ratio = (
-            declarations.accent.max_ratio if declarations.accent is not None else accent_ratio.ratio
+            declarations.accent.max_ratio
+            if declarations is not None and declarations.accent is not None
+            else accent_ratio.ratio
         )
         accent_evidence = (
             declarations.accent.evidence
-            if declarations.accent is not None
+            if declarations is not None and declarations.accent is not None
             else accent_ratio.evidence
         )
         accent = AccentRule(
@@ -630,14 +756,14 @@ def _compile_composition_rules(
             kind=item.kind,
             evidence=_portable_evidence_list(item.evidence, package_dir),
         )
-        for item in declarations.motifs
+        for item in (declarations.motifs if declarations is not None else [])
     ]
     layout_style = (
         LayoutStyleRule(
             kind=declarations.layout_style.kind,
             evidence=_portable_evidence_list(declarations.layout_style.evidence, package_dir),
         )
-        if declarations.layout_style is not None
+        if declarations is not None and declarations.layout_style is not None
         else None
     )
     numbering = (
@@ -646,7 +772,7 @@ def _compile_composition_rules(
             min_digits=2,
             evidence=_portable_evidence_list(declarations.numbering_evidence, package_dir),
         )
-        if declarations.numbering_evidence
+        if declarations is not None and declarations.numbering_evidence
         else None
     )
     return CompositionRules(
@@ -698,11 +824,14 @@ def compile_ir(
     created_at: datetime | None = None,
 ) -> BrandIR:
     """Transforma um draft confirmado em uma revisão determinística do Brand IR."""
+    resolved_answers = _resolved_answers(draft, answers)
     required_answers = {
         *_REQUIRED_ANSWERS,
         *(question.id for question in draft.questions if question.required),
     }
-    missing = sorted(answer_id for answer_id in required_answers if answer_id not in answers.values)
+    missing = sorted(
+        answer_id for answer_id in required_answers if answer_id not in resolved_answers.values
+    )
     if missing:
         raise CompileError("Responda às perguntas obrigatórias: " + ", ".join(missing) + ".")
 
@@ -710,7 +839,7 @@ def compile_ir(
     diagnostics = [item.model_copy(deep=True) for item in draft.diagnostics]
     identity_question = _question(draft, "identity.expression")
     identity = (
-        _compile_identity(draft, answers.values["identity.expression"], timestamp)
+        _compile_identity(draft, resolved_answers.values["identity.expression"], timestamp)
         if identity_question is not None
         else None
     )
@@ -729,14 +858,14 @@ def compile_ir(
         )
 
     colors = {
-        token_id: _compile_color(draft, token_id, answers.values[token_id], timestamp)
+        token_id: _compile_color(draft, token_id, resolved_answers.values[token_id], timestamp)
         for token_id in ("color.primary", "color.background", "color.text")
     }
-    if "color.secondary" in answers.values:
+    if "color.secondary" in resolved_answers.values:
         colors["color.secondary"] = _compile_color(
             draft,
             "color.secondary",
-            answers.values["color.secondary"],
+            resolved_answers.values["color.secondary"],
             timestamp,
         )
     else:
@@ -753,20 +882,26 @@ def compile_ir(
         token_id: _compile_font(
             draft,
             token_id,
-            answers.values[token_id],
+            resolved_answers.values[token_id],
             timestamp,
             diagnostics,
         )
         for token_id in ("font.heading", "font.body")
     }
-    assets = {
+    assets: dict[str, LogoAsset] = {
         "logo.primary": _compile_logo(
             draft,
-            answers.values["logo.primary"],
+            resolved_answers.values["logo.primary"],
             timestamp,
         ),
-        **_compile_logo_variants(draft, answers, timestamp),
+        **_compile_logo_variants(
+            draft,
+            resolved_answers,
+            timestamp,
+            confirmed_answers=answers,
+        ),
     }
+    assets.update(_compile_logo_catalog(draft, timestamp, assets))
     composition_rules = _compile_composition_rules(draft, colors, assets, diagnostics)
 
     roles = {

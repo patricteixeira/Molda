@@ -57,6 +57,7 @@ def test_resized_locked_brand_mark_warns_about_minimum_use(brand_package):
     layout = _layout(ir, "editorial-light-post-4x5")
     content = _editorial_content(ir, layout)
     content.overrides = {"brand-mark": LayerOverride(area=(918, 116, 12, 12))}
+    content.asset_bindings = {"brand-mark": "logo.primary"}
 
     warnings = [
         check
@@ -65,6 +66,11 @@ def test_resized_locked_brand_mark_warns_about_minimum_use(brand_package):
     ]
 
     assert any(check.id == "asset-size" and check.slot_id == "brand-mark" for check in warnings)
+    assert not [
+        check
+        for check in run_static_checks(ir, layout, content, brand_package)
+        if check.status == "blocked"
+    ]
 
 
 def test_text_color_override_is_included_in_contrast_validation(brand_package):

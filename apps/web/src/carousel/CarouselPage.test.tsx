@@ -1,16 +1,16 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { expect, it, vi } from "vitest"
 import { ApiProvider } from "../api/context"
 import type { ApiClient } from "../api/types"
-import { FAKE_IR, fakeCarousel, fakeClient } from "../test/fakeApi"
+import { FAKE_IR, fakeCarousel, fakeClient, fakeEditorialLayout } from "../test/fakeApi"
 import { CarouselPage } from "./CarouselPage"
 
-function renderCarousel(client: ApiClient) {
+function renderCarousel(client: ApiClient, initialPath = "/marcas/brandrev_x/carrossel") {
   render(
     <ApiProvider client={client}>
-      <MemoryRouter initialEntries={["/marcas/brandrev_x/carrossel"]}>
+      <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route path="/marcas/:revisionId/carrossel" element={<CarouselPage />} />
         </Routes>
@@ -18,6 +18,24 @@ function renderCarousel(client: ApiClient) {
     </ApiProvider>,
   )
 }
+
+it("reabre uma sequência salva pela URL e mantém cada slide ligado ao editor", async () => {
+  const carousel = fakeCarousel()
+  const getCarousel = vi.fn(async () => carousel)
+  renderCarousel(
+    fakeClient({ getCarousel }),
+    `/marcas/${FAKE_IR.revision.id}/carrossel?carouselId=${carousel.id}`,
+  )
+
+  expect(await screen.findByRole("heading", { name: carousel.name })).toBeInTheDocument()
+  expect(getCarousel).toHaveBeenCalledWith(carousel.id)
+  const editLinks = screen.getAllByRole("link", { name: /Editar slide/i })
+  expect(editLinks).toHaveLength(3)
+  expect(editLinks[0]).toHaveAttribute(
+    "href",
+    `/marcas/${FAKE_IR.revision.id}/editor/statement-post-1x1?carouselId=${carousel.id}&slideId=slide_1`,
+  )
+})
 
 it("explica capa, conteúdo e fechamento e permite escolher até 20 slides", async () => {
   const user = userEvent.setup()
@@ -47,7 +65,62 @@ it("adiciona e remove blocos de texto no miolo", async () => {
   expect(screen.queryByLabelText("Bloco 2")).not.toBeInTheDocument()
 })
 
-it("configura fundo e logo por slide e permite repetir a escolha na sequência", async () => {
+it("mostra os modelos individuais compatíveis e permite escolher um por slide", async () => {
+  const user = userEvent.setup()
+  const first = {
+    ...fakeEditorialLayout(),
+    id: "typographic-ledger-post-4x5",
+    namePt: "Registro editorial",
+    templateRef: {
+      packageId: "typographic-editorial",
+      version: "1.0.0",
+      compositionId: "ledger",
+      sceneSchemaVersion: "2.0.0" as const,
+    },
+  }
+  const second = {
+    ...fakeEditorialLayout(),
+    id: "typographic-monument-post-4x5",
+    namePt: "Monumento tipográfico",
+    templateRef: {
+      packageId: "typographic-editorial",
+      version: "1.0.0",
+      compositionId: "monument",
+      sceneSchemaVersion: "2.0.0" as const,
+    },
+  }
+  renderCarousel(fakeClient({ getKit: vi.fn(async () => [first, second]) }))
+
+  await screen.findByRole("heading", { name: "Escolha qualquer modelo do kit" })
+  expect(screen.getByText(/2 modelos compatíveis com este formato/)).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Usar Registro editorial" })).toBeInTheDocument()
+  const secondChoice = screen.getByRole("button", { name: "Usar Monumento tipográfico" })
+  await user.click(secondChoice)
+  expect(secondChoice).toHaveAttribute("aria-pressed", "true")
+  expect(screen.getAllByText("Tipográfico editorial").length).toBeGreaterThan(0)
+})
+
+it("mostra o modelo completo ao passar o mouse ou focar o cartão", async () => {
+  const user = userEvent.setup()
+  renderCarousel(fakeClient())
+
+  const choice = await screen.findByRole("button", { name: "Usar Editorial claro" })
+  await user.hover(choice)
+
+  expect(
+    screen.getByRole("complementary", { name: "Prévia ampliada de Editorial claro" }),
+  ).toBeInTheDocument()
+
+  await user.unhover(choice)
+  expect(screen.queryByTestId("carousel-template-hover-preview")).not.toBeInTheDocument()
+
+  fireEvent.focus(choice)
+  expect(screen.getByTestId("carousel-template-hover-preview")).toBeInTheDocument()
+  fireEvent.blur(choice)
+  expect(screen.queryByTestId("carousel-template-hover-preview")).not.toBeInTheDocument()
+})
+
+it("configura fundo, textos e logo por slide e permite repetir na sequência", async () => {
   const user = userEvent.setup()
   const brandIr = {
     ...FAKE_IR,
@@ -64,17 +137,52 @@ it("configura fundo e logo por slide e permite repetir a escolha na sequência",
   await screen.findByRole("heading", { name: "Modo Carrossel" })
   expect(screen.getByText(/versão clara ou escura adequada/)).toBeInTheDocument()
 
-  await user.click(screen.getByRole("button", { name: /Principal, #/ }))
+  await user.click(screen.getByRole("button", { name: /Fundo: Principal, #/ }))
+  await user.click(screen.getByRole("button", { name: /Textos: Principal, #/ }))
   await user.selectOptions(screen.getByLabelText("Versão da marca"), "logo.onDark")
   await user.click(screen.getByRole("button", { name: "Aplicar este fundo aos 5 slides" }))
+  await user.click(screen.getByRole("button", { name: "Aplicar esta cor aos 5 slides" }))
   await user.click(screen.getByRole("button", { name: "Aplicar esta escolha aos 5 slides" }))
   await user.click(screen.getByRole("button", { name: /02 Conteúdo/ }))
 
-  expect(screen.getByRole("button", { name: /Principal, #/ })).toHaveAttribute(
+  expect(screen.getByRole("button", { name: /Fundo: Principal, #/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  )
+  expect(screen.getByRole("button", { name: /Textos: Principal, #/ })).toHaveAttribute(
     "aria-pressed",
     "true",
   )
   expect(screen.getByLabelText("Versão da marca")).toHaveValue("logo.onDark")
+})
+
+it("oferece no carrossel todas as logos preservadas no pacote", async () => {
+  const brandIr = {
+    ...FAKE_IR,
+    assets: {
+      "logo.primary": FAKE_IR.assets["logo.primary"],
+      "logo.variant.creme": {
+        ...FAKE_IR.assets["logo.primary"],
+        path: "assets/logos/marca-creme.png",
+        sha256: "c".repeat(64),
+        format: "png" as const,
+      },
+      "logo.variant.verde": {
+        ...FAKE_IR.assets["logo.primary"],
+        path: "assets/logos/marca-verde.png",
+        sha256: "d".repeat(64),
+        format: "png" as const,
+      },
+    },
+  }
+  renderCarousel(fakeClient({ getBrandRevision: vi.fn(async () => brandIr) }))
+
+  await screen.findByRole("heading", { name: "Modo Carrossel" })
+  const selector = screen.getByLabelText("Versão da marca")
+  expect(screen.getByText(/As 3 versões carregadas estão disponíveis/)).toBeInTheDocument()
+  expect(within(selector).getByRole("option", { name: "Marca creme" })).toBeInTheDocument()
+  expect(within(selector).getByRole("option", { name: "Marca verde" })).toBeInTheDocument()
+  expect(screen.queryByText(/Esta revisão tem apenas uma versão/)).not.toBeInTheDocument()
 })
 
 it("envia quantidade, conteúdo e uma das seis posições de assinatura", async () => {
@@ -111,6 +219,7 @@ it("envia quantidade, conteúdo e uma das seis posições de assinatura", async 
         expect.objectContaining({
           headline: "Abertura",
           backgroundColorToken: null,
+          textColorToken: null,
           logoAssetToken: null,
         }),
         expect.objectContaining({ headline: "Argumento" }),
@@ -119,4 +228,5 @@ it("envia quantidade, conteúdo e uma das seis posições de assinatura", async 
     }),
   )
   expect(await screen.findByText(/3 slides gerados/)).toBeInTheDocument()
+  expect(screen.getAllByRole("link", { name: /Editar slide/i })).toHaveLength(3)
 })

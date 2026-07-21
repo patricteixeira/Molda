@@ -132,22 +132,23 @@ esconder nenhuma alternativa. Sua portabilidade e seus limites estão no
 Além da edição de uma peça por vez, o kit oferece dois fluxos pensados para o
 trabalho semanal:
 
-- **Modo Campanha:** título, mensagem, data, CTA e imagem formam uma fonte única.
-  Post, story, apresentação e documento permanecem vinculados; salvar a fonte
-  recalcula todos os documentos na mesma transação e reexecuta o Guard.
+- **Modo Carrossel:** a pessoa escolhe de 3 a 20 slides e constrói uma sequência
+  com capa, conteúdo e fechamento. Cada slide pode usar qualquer composição
+  compatível, ser editado por inteiro e voltar à sequência sem perder ajustes.
 - **Aplicar marca ao Word:** um `.docx` existente é analisado antes de qualquer
   mudança. Depois do consentimento, o worker cria uma nova cópia editável com
   estilos, hierarquia, margens, tabelas e logo da marca, preservando texto e
   mídias originais.
 
-As decisões e limites estão registrados nas
-[`ADR 0012`](docs/adr/0012-campanhas-com-fonte-compartilhada.md) e
+O Modo Campanha continua implementado no core como experimento, mas foi retirado
+temporariamente da navegação pública enquanto sua experiência é reavaliada. A
+aplicação não destrutiva em Word está registrada na
 [`ADR 0013`](docs/adr/0013-aplicacao-nao-destrutiva-de-marca-em-docx.md).
 
 ## Interface web
 
-O app organiza a jornada em instalação da marca, kit de composições, editor por
-slots, campanhas e aplicação de marca em Word. A linguagem **Mesa de Provas**
+O app organiza a jornada em instalação da marca, kit de composições, carrossel,
+editor por camadas e aplicação de marca em Word. A linguagem **Mesa de Provas**
 usa um chrome monocromático de papel, tinta e grafite; cores da identidade ficam
 restritas às provas, amostras, canvas e arquivos exportados. Hierarquia, regras e
 espaço sustentam a composição sem accent, cards de SaaS ou sinais de devtool. A
@@ -177,8 +178,8 @@ packages/engine/   Motor Python: intake (extração + confirmação), Brand IR,
 packages/adapter-sdk-python/
                    SDK MIT sem dependências + adapter DTCG de referência
 packages/render/   Biblioteca TypeScript única de preview/export, DOM 1:1 px
-apps/api/          API FastAPI, campanhas e worker transacional
-apps/web/          Wizard, kit, editor, campanhas e fluxo Word em React
+apps/api/          API FastAPI, documentos, carrosséis e worker transacional
+apps/web/          Wizard, kit, carrossel, editor e fluxo Word em React
 infra/docker/      Imagens e proxy da instância self-hosted
 schemas/           JSON Schemas públicos do motor (licença MIT)
 examples/          Fixtures portáteis para adapters e SDKs (licença MIT)

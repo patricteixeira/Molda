@@ -6,6 +6,35 @@ release pública.
 
 ## [Não lançado]
 
+### Adicionado
+
+- Catálogo autoral de templates com treze famílias visuais, composições
+  estruturalmente distintas e versões principal/alternativa derivadas dos modos
+  claro e escuro confirmados da marca.
+- Modo Carrossel de 3 a 20 slides, com papéis explícitos de capa, conteúdo e
+  fechamento, escolha de composição por slide, edição completa no mesmo editor,
+  navegação anterior/próximo e exportação final ou editável.
+- Guias de alinhamento no canvas e controles para editar tipografia, cor,
+  geometria, ordem, visibilidade, logos, imagens, formas e superfícies.
+- OCR local para PDFs achatados ou digitalizados e tradução local de manuais em
+  inglês para PT-BR, preservando o texto original e sem API externa paga.
+
+### Alterado
+
+- O Kit prioriza Carrossel e aplicação de marca ao Word; o Modo Campanha deixa
+  temporariamente a navegação pública enquanto sua experiência é reavaliada.
+- Cores, logos e direção visual passam a ser inferidas dos arquivos da marca; a
+  interface pergunta somente o que não pôde ser sustentado pelos materiais.
+- O carrossel e as peças individuais usam a paleta completa e todas as variantes
+  de logo preservadas no Brand IR, com escolha manual disponível na edição.
+
+### Corrigido
+
+- Rascunhos de slides com o mesmo layout permanecem isolados por carrossel e
+  posição, sem transportar conteúdo durante a navegação.
+- A seleção de templates oferece uma prova ampliada completa por mouse ou foco,
+  evitando decisões baseadas em miniaturas recortadas.
+
 ## [0.1.0] - 2026-07-19
 
 ### Alterado

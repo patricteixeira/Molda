@@ -51,8 +51,9 @@ function emptyDraft(): EditorDraftState {
   }
 }
 
-function storageKey(revisionId: string, layoutId: string): string {
-  return `${STORAGE_PREFIX}:${encodeURIComponent(revisionId)}:${encodeURIComponent(layoutId)}`
+function storageKey(revisionId: string, layoutId: string, scopeId?: string | null): string {
+  const base = `${STORAGE_PREFIX}:${encodeURIComponent(revisionId)}:${encodeURIComponent(layoutId)}`
+  return scopeId ? `${base}:scope:${encodeURIComponent(scopeId)}` : base
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -119,9 +120,13 @@ function validAddedLayer(value: unknown): value is ShapeLayer {
   )
 }
 
-export function loadEditorDraft(revisionId: string, layout: LayoutSpec): EditorDraftState {
+export function loadEditorDraft(
+  revisionId: string,
+  layout: LayoutSpec,
+  scopeId?: string | null,
+): EditorDraftState {
   try {
-    const serialized = window.localStorage.getItem(storageKey(revisionId, layout.id))
+    const serialized = window.localStorage.getItem(storageKey(revisionId, layout.id, scopeId))
     if (!serialized) {
       return emptyDraft()
     }
@@ -180,15 +185,16 @@ export function loadEditorDraft(revisionId: string, layout: LayoutSpec): EditorD
           parsed.backgroundColorToken.trim().length > 0))
         ? parsed.backgroundColorToken
         : null
-    const logoSlotIds = new Set(
-      [...layout.slots, ...addedSlots]
-        .filter((slot) => slot.kind === "logo")
-        .map((slot) => slot.id),
+    const assetElementIds = new Set(
+      [
+        ...[...layout.slots, ...addedSlots].filter((slot) => slot.kind === "logo"),
+        ...(layout.lockedLayers ?? []).filter((layer) => layer.kind === "asset"),
+      ].map((element) => element.id),
     )
     const assetBindings: Record<string, string> = {}
     if (parsed.version === 5 && isRecord(parsed.assetBindings)) {
       for (const [slotId, token] of Object.entries(parsed.assetBindings)) {
-        if (logoSlotIds.has(slotId) && typeof token === "string" && token.startsWith("logo.")) {
+        if (assetElementIds.has(slotId) && typeof token === "string" && token.trim().length > 0) {
           assetBindings[slotId] = token
         }
       }
@@ -217,9 +223,10 @@ export function saveEditorDraft(
   addedLayers: ShapeLayer[] = [],
   backgroundColorToken: string | null = null,
   assetBindings: Record<string, string> = {},
+  scopeId?: string | null,
 ): boolean {
   try {
-    const key = storageKey(revisionId, layoutId)
+    const key = storageKey(revisionId, layoutId, scopeId)
     if (
       Object.keys(values).length === 0 &&
       Object.keys(overrides).length === 0 &&
@@ -250,9 +257,13 @@ export function saveEditorDraft(
   }
 }
 
-export function clearEditorDraft(revisionId: string, layoutId: string): boolean {
+export function clearEditorDraft(
+  revisionId: string,
+  layoutId: string,
+  scopeId?: string | null,
+): boolean {
   try {
-    window.localStorage.removeItem(storageKey(revisionId, layoutId))
+    window.localStorage.removeItem(storageKey(revisionId, layoutId, scopeId))
     return true
   } catch {
     return false

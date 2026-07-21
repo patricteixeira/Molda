@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { ApiError } from "../api/client"
 import { useApi } from "../api/context"
 import type {
@@ -31,7 +31,27 @@ interface EditorPageProps {
 interface EditorData {
   brandIr: BrandIr
   layouts: LayoutSpec[]
+  carousel: {
+    id: string
+    name: string
+    slideId: string
+    position: number
+    total: number
+    previous: CarouselSlideTarget | null
+    next: CarouselSlideTarget | null
+    content: ContentSpec
+  } | null
 }
+
+interface CarouselSlideTarget {
+  layoutId: string
+  slideId: string
+  position: number
+}
+
+type CarouselSaveState = "idle" | "pending" | "saving" | "saved" | "error"
+
+class EditorContextError extends Error {}
 
 export type AddedElementKind = "text" | "signature" | "image" | "logo" | "shape"
 
@@ -57,7 +77,17 @@ function overrideSignature(override: LayerOverride | undefined): string {
 
 export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Element {
   const api = useApi()
+  const navigate = useNavigate()
   const { revisionId, layoutId } = useParams()
+  const [searchParams] = useSearchParams()
+  const carouselId = searchParams.get("carouselId")
+  const carouselSlideId = searchParams.get("slideId")
+  const carouselDraftScope =
+    carouselId && carouselSlideId ? `${carouselId}:${carouselSlideId}` : null
+  const draftContextKey =
+    revisionId && layoutId
+      ? `${revisionId}:${layoutId}:${carouselDraftScope ?? "individual"}`
+      : null
   const [data, setData] = useState<EditorData | null>(null)
   const [values, setValues] = useState<Record<string, SlotValue>>({})
   const [overrides, setOverrides] = useState<Record<string, LayerOverride>>({})
@@ -71,8 +101,10 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [draftReady, setDraftReady] = useState(false)
+  const [readyDraftContextKey, setReadyDraftContextKey] = useState<string | null>(null)
   const [draftSaved, setDraftSaved] = useState(true)
+  const [carouselSaveState, setCarouselSaveState] = useState<CarouselSaveState>("idle")
+  const [carouselSaveError, setCarouselSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -88,8 +120,10 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
     setSelectedLayerId(null)
     setUploading(false)
     setExporting(false)
-    setDraftReady(false)
+    setReadyDraftContextKey(null)
     setDraftSaved(true)
+    setCarouselSaveState("idle")
+    setCarouselSaveError(null)
 
     if (!revisionId) {
       setError("Revisão de marca não encontrada.")
@@ -98,14 +132,71 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
       }
     }
 
-    void Promise.all([api.getBrandRevision(revisionId), api.getKit(revisionId)])
-      .then(([brandIr, layouts]) => {
+    if (Boolean(carouselId) !== Boolean(carouselSlideId)) {
+      setError("A referência do slide está incompleta. Volte ao carrossel e abra o slide novamente.")
+      return () => {
+        active = false
+      }
+    }
+
+    void Promise.all([
+      api.getBrandRevision(revisionId),
+      api.getKit(revisionId),
+      carouselId ? api.getCarousel(carouselId) : Promise.resolve(null),
+    ])
+      .then(([brandIr, kitLayouts, carousel]) => {
         if (!active) return
+        if (carousel && carousel.brandRevisionId !== revisionId) {
+          throw new EditorContextError("O slide não pertence a esta revisão de marca.")
+        }
+        const carouselSlide = carousel?.slides.find((candidate) => candidate.id === carouselSlideId)
+        const carouselSlideIndex = carouselSlide
+          ? (carousel?.slides.findIndex((candidate) => candidate.id === carouselSlide.id) ?? -1)
+          : -1
+        const slideTarget = (index: number): CarouselSlideTarget | null => {
+          const candidate = carousel?.slides[index]
+          return candidate
+            ? {
+                layoutId: candidate.layoutId,
+                slideId: candidate.id,
+                position: candidate.position,
+              }
+            : null
+        }
+        if (carousel && !carouselSlide) {
+          throw new EditorContextError("O slide não foi encontrado neste carrossel.")
+        }
+        if (carouselSlide && carouselSlide.layoutId !== layoutId) {
+          throw new EditorContextError("O endereço do editor não corresponde ao modelo deste slide.")
+        }
+        const layouts = carouselSlide
+          ? [
+              ...kitLayouts.filter((candidate) => candidate.id !== carouselSlide.layoutId),
+              carouselSlide.layout,
+            ]
+          : kitLayouts
         const activeLayout = layouts.find((candidate) => candidate.id === layoutId)
-        setData({ brandIr, layouts })
+        setData({
+          brandIr,
+          layouts,
+          carousel:
+            carousel && carouselSlide
+              ? {
+                  id: carousel.id,
+                  name: carousel.name,
+                  slideId: carouselSlide.id,
+                  position: carouselSlide.position,
+                  total: carousel.slides.length,
+                  previous: slideTarget(carouselSlideIndex - 1),
+                  next: slideTarget(carouselSlideIndex + 1),
+                  content: carouselSlide.content,
+                }
+              : null,
+        })
         if (activeLayout) {
-          const stored = loadEditorDraft(revisionId, activeLayout)
-          const sample = placeholderContent(activeLayout, revisionId, brandIr)
+          const stored = loadEditorDraft(revisionId, activeLayout, carouselDraftScope)
+          const sample =
+            carouselSlide?.content ?? placeholderContent(activeLayout, revisionId, brandIr)
           const hasStoredDraft =
             Object.keys(stored.values).length > 0 ||
             Object.keys(stored.overrides).length > 0 ||
@@ -116,11 +207,13 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
             Object.keys(stored.assetBindings).length > 0
           setValues(hasStoredDraft ? stored.values : sample.values)
           setOverrides(hasStoredDraft ? stored.overrides : (sample.overrides ?? {}))
-          setSurface(hasStoredDraft ? stored.surface : null)
+          setSurface(hasStoredDraft ? stored.surface : (sample.surface ?? null))
           setAddedSlots(hasStoredDraft ? stored.addedSlots : (sample.addedSlots ?? []))
           setAddedLayers(hasStoredDraft ? stored.addedLayers : (sample.addedLayers ?? []))
-          setBackgroundColorToken(hasStoredDraft ? stored.backgroundColorToken : null)
-          setAssetBindings(hasStoredDraft ? stored.assetBindings : {})
+          setBackgroundColorToken(
+            hasStoredDraft ? stored.backgroundColorToken : (sample.backgroundColorToken ?? null),
+          )
+          setAssetBindings(hasStoredDraft ? stored.assetBindings : (sample.assetBindings ?? {}))
           setSelectedLayerId(
             initialSelection(
               materializeContentLayout(activeLayout, {
@@ -130,21 +223,23 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
             ),
           )
         }
-        setDraftReady(true)
+        setReadyDraftContextKey(draftContextKey)
       })
       .catch((caught: unknown) => {
         if (!active) return
         setError(
           caught instanceof ApiError
             ? caught.messagePt
-            : "Não foi possível abrir o editor.",
+            : caught instanceof EditorContextError
+              ? caught.message
+              : "Não foi possível abrir o editor.",
         )
       })
 
     return () => {
       active = false
     }
-  }, [api, layoutId, revisionId])
+  }, [api, carouselDraftScope, carouselId, carouselSlideId, draftContextKey, layoutId, revisionId])
 
   const layout = useMemo(
     () => data?.layouts.find((candidate) => candidate.id === layoutId) ?? null,
@@ -202,7 +297,7 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
   }, [contentSpec])
 
   useEffect(() => {
-    if (!draftReady || !revisionId || !layout) return
+    if (!draftContextKey || readyDraftContextKey !== draftContextKey || !revisionId || !layout) return
     setDraftSaved(
       saveEditorDraft(
         revisionId,
@@ -214,16 +309,23 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
         addedLayers,
         backgroundColorToken,
         assetBindings,
+        carouselDraftScope,
       ),
     )
+    if (data?.carousel) {
+      setCarouselSaveState((current) => (current === "saved" ? "pending" : current))
+    }
   }, [
     addedLayers,
     addedSlots,
     assetBindings,
     backgroundColorToken,
-    draftReady,
+    carouselDraftScope,
+    data?.carousel?.id,
+    draftContextKey,
     layout,
     overrides,
+    readyDraftContextKey,
     revisionId,
     surface,
     values,
@@ -294,15 +396,15 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
   }
 
   const restoreComposition = (): void => {
-    const sample = placeholderContent(layout, revisionId, data.brandIr)
-    clearEditorDraft(revisionId, layout.id)
+    const sample = data.carousel?.content ?? placeholderContent(layout, revisionId, data.brandIr)
+    clearEditorDraft(revisionId, layout.id, carouselDraftScope)
     setValues(sample.values)
     setOverrides(sample.overrides ?? {})
-    setSurface(null)
+    setSurface(sample.surface ?? null)
     setAddedSlots(sample.addedSlots ?? [])
     setAddedLayers(sample.addedLayers ?? [])
-    setBackgroundColorToken(null)
-    setAssetBindings({})
+    setBackgroundColorToken(sample.backgroundColorToken ?? null)
+    setAssetBindings(sample.assetBindings ?? {})
     setSelectedLayerId(initialSelection(materializeContentLayout(layout, sample)))
     setDraftSaved(true)
   }
@@ -462,11 +564,58 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
     setSelectedLayerId(id)
   }
 
+  const persistCarouselSlide = async (): Promise<boolean> => {
+    if (!data.carousel) return false
+    setCarouselSaveState("saving")
+    setCarouselSaveError(null)
+    try {
+      const updated = await api.updateCarouselSlide(
+        data.carousel.id,
+        data.carousel.slideId,
+        contentSpec,
+      )
+      setData((current) =>
+        current?.carousel
+          ? {
+              ...current,
+              carousel: { ...current.carousel, content: updated.content },
+            }
+          : current,
+      )
+      setCarouselSaveState("saved")
+      return true
+    } catch (caught: unknown) {
+      setCarouselSaveState("error")
+      setCarouselSaveError(
+        caught instanceof ApiError
+          ? caught.messagePt
+          : "Não foi possível salvar este slide no carrossel.",
+      )
+      return false
+    }
+  }
+
+  const saveCarouselSlide = async (): Promise<void> => {
+    await persistCarouselSlide()
+  }
+
+  const openCarouselSlide = async (target: CarouselSlideTarget | null): Promise<void> => {
+    if (!data.carousel || !target || carouselSaveState === "saving") return
+    const saved = await persistCarouselSlide()
+    if (!saved) return
+    navigate(
+      `/marcas/${encodeURIComponent(revisionId)}/editor/${encodeURIComponent(target.layoutId)}?carouselId=${encodeURIComponent(data.carousel.id)}&slideId=${encodeURIComponent(target.slideId)}`,
+    )
+  }
+
   const selectedElement = findEditorElement(activeLayout, selectedLayerId)
   const selectedArea = selectedElement
     ? elementArea(selectedElement, overrides[selectedElement.id])
     : null
-  const sampleOverrides = placeholderContent(layout, revisionId, data.brandIr).overrides ?? {}
+  const sampleOverrides =
+    data.carousel?.content.overrides ??
+    placeholderContent(layout, revisionId, data.brandIr).overrides ??
+    {}
   const changedLayerCount = [
     ...new Set([...Object.keys(sampleOverrides), ...Object.keys(overrides)]),
   ].filter(
@@ -480,15 +629,52 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
       style={brandThemeStyle(data.brandIr)}
     >
       <header className="editor-toolbar">
-        <div className="editor-toolbar-context">
-          <Link className="editor-back" to={`/marcas/${encodeURIComponent(revisionId)}/kit`}>
+        <div
+          className="editor-toolbar-context"
+          data-carousel={data.carousel ? "true" : undefined}
+        >
+          <Link
+            className="editor-back"
+            to={
+              data.carousel
+                ? `/marcas/${encodeURIComponent(revisionId)}/carrossel?carouselId=${encodeURIComponent(data.carousel.id)}`
+                : `/marcas/${encodeURIComponent(revisionId)}/kit`
+            }
+          >
             <span aria-hidden="true">←</span>
-            Kit
+            {data.carousel ? "Carrossel" : "Kit"}
           </Link>
           <span className="editor-toolbar-rule" aria-hidden="true" />
+          {data.carousel ? (
+            <nav className="editor-slide-navigation" aria-label="Navegação entre slides">
+              <button
+                type="button"
+                aria-label="Slide anterior"
+                disabled={!data.carousel.previous || carouselSaveState === "saving"}
+                onClick={() => void openCarouselSlide(data.carousel?.previous ?? null)}
+              >
+                <span aria-hidden="true">←</span>
+              </button>
+              <span aria-label={`Slide ${data.carousel.position} de ${data.carousel.total}`}>
+                {String(data.carousel.position).padStart(2, "0")} / {String(data.carousel.total).padStart(2, "0")}
+              </span>
+              <button
+                type="button"
+                aria-label="Próximo slide"
+                disabled={!data.carousel.next || carouselSaveState === "saving"}
+                onClick={() => void openCarouselSlide(data.carousel?.next ?? null)}
+              >
+                <span aria-hidden="true">→</span>
+              </button>
+            </nav>
+          ) : null}
           <div>
             <strong>{data.brandIr.brand.name}</strong>
-            <span>{layout.namePt}</span>
+            <span>
+              {data.carousel
+                ? `${data.carousel.name} · slide ${String(data.carousel.position).padStart(2, "0")}`
+                : layout.namePt}
+            </span>
           </div>
         </div>
         <div className="editor-toolbar-status" role="status" aria-live="polite">
@@ -497,6 +683,22 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
           {changedLayerCount > 0 ? <b>{changedLayerCount} ajustes</b> : null}
         </div>
         <div className="editor-toolbar-actions">
+          {data.carousel ? (
+            <button
+              type="button"
+              className="editor-carousel-save"
+              disabled={carouselSaveState === "saving"}
+              onClick={() => void saveCarouselSlide()}
+            >
+              {carouselSaveState === "saving"
+                ? "Salvando…"
+                : carouselSaveState === "saved"
+                  ? "Salvo no carrossel"
+                  : carouselSaveState === "pending"
+                    ? "Salvar alterações"
+                    : "Salvar no carrossel"}
+            </button>
+          ) : null}
           <label className="zoom-control">
             <span>Zoom</span>
             <input
@@ -510,6 +712,11 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
             <output>{zoom}%</output>
           </label>
           <a className="editor-export-jump" href="#export-panel">Exportar</a>
+          {carouselSaveError ? (
+            <span className="editor-carousel-save-error" role="alert">
+              {carouselSaveError}
+            </span>
+          ) : null}
         </div>
       </header>
 
@@ -517,7 +724,9 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
         <section className="editor-preview" aria-label="Área da peça">
           <div className="canvas-ruler canvas-ruler-horizontal" aria-hidden="true" />
           <div className="canvas-ruler canvas-ruler-vertical" aria-hidden="true" />
-          <p className="canvas-instruction">Escolha um item. Depois, arraste ou mude o tamanho.</p>
+          <p className="canvas-instruction">
+            Arraste para alinhar. Segure Alt para mover livremente.
+          </p>
           <Preview
             brandIr={data.brandIr}
             layoutSpec={activeLayout}

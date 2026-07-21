@@ -27,6 +27,7 @@ from brand_runtime.ir.models import (
     SemanticRole,
 )
 from brand_runtime.kit.models import (
+    AssetLayer,
     Background,
     Canvas,
     ContentSpec,
@@ -320,6 +321,54 @@ def test_pptx_uses_instance_background_and_logo_binding(
     assert str(slide.background.fill.fore_color.rgb) == "173F2C"
     logo = next(shape for shape in slide.shapes if shape.name == "br:logo:logo")
     assert hashlib.sha256(logo.image.blob).hexdigest() == secondary_digest
+
+
+def test_pptx_exports_edited_structural_logo_as_native_picture(
+    tmp_path,
+    pptx_template,
+    native_brand,
+    slide_contracts,
+):
+    alternate_path = tmp_path / "logo-structural.png"
+    Image.new("RGBA", (180, 180), "#D4A72C").save(alternate_path, compress_level=0)
+    alternate_digest = hashlib.sha256(alternate_path.read_bytes()).hexdigest()
+    branded = native_brand.model_copy(deep=True)
+    branded.assets["logo.onLight"] = LogoAsset(
+        path=str(alternate_path),
+        sha256=alternate_digest,
+        format="png",
+        evidence=branded.assets["logo.primary"].evidence,
+    )
+    layout, content = slide_contracts
+    authored_layout = layout.model_copy(deep=True)
+    authored_layout.locked_layers.append(
+        AssetLayer(
+            id="brand-mark",
+            asset_token="logo.primary",
+            area=(84, 84, 120, 120),
+            fit="contain",
+            z_index=4,
+        )
+    )
+    instance = content.model_copy(deep=True)
+    instance.asset_bindings = {"brand-mark": "logo.onLight"}
+    instance.overrides = {"brand-mark": LayerOverride(area=(120, 96, 180, 180), opacity=0.7)}
+
+    output = _render_pptx(
+        tmp_path,
+        pptx_template,
+        branded,
+        (authored_layout, instance),
+        "structural-logo.pptx",
+    )
+
+    presentation = Presentation(output)
+    logo = next(
+        shape for shape in presentation.slides[0].shapes if shape.name == "br:logo:brand-mark"
+    )
+    assert hashlib.sha256(logo.image.blob).hexdigest() == alternate_digest
+    assert logo.left == round(presentation.slide_width * 120 / 1080)
+    assert logo._element.xpath(".//a:alphaModFix")[0].get("amt") == "70000"
 
 
 def test_pptx_selects_logo_variant_from_effective_background(

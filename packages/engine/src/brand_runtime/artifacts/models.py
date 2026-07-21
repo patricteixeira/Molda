@@ -8,6 +8,7 @@ from pydantic import Field, model_validator
 
 from brand_runtime.ir.models import CamelModel
 from brand_runtime.kit.models import (
+    AssetLayer,
     ContentSpec,
     ImageValue,
     LayerOverride,
@@ -69,15 +70,19 @@ class ArtifactInstance(CamelModel):
             self.scene_snapshot.template_ref != self.template_ref
         ):
             raise ValueError("templateRef e sceneSnapshot.templateRef divergem.")
-        slots = {slot.id: slot for slot in [*self.scene_snapshot.slots, *self.added_slots]}
+        bindable_assets = {
+            slot.id
+            for slot in [*self.scene_snapshot.slots, *self.added_slots]
+            if slot.kind == "logo"
+        } | {
+            layer.id for layer in self.scene_snapshot.locked_layers if isinstance(layer, AssetLayer)
+        }
         invalid_bindings = [
-            slot_id
-            for slot_id in self.asset_bindings
-            if slot_id not in slots or slots[slot_id].kind != "logo"
+            element_id for element_id in self.asset_bindings if element_id not in bindable_assets
         ]
         if invalid_bindings:
             raise ValueError(
-                "assetBindings só pode referenciar slots de logo conhecidos: "
+                "assetBindings só pode referenciar logos ou assets conhecidos: "
                 + ", ".join(sorted(invalid_bindings))
                 + "."
             )

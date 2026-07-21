@@ -48,7 +48,7 @@ def test_compile_faltando_obrigatorios_422(client, imported):
         json={"answers": {"values": {}}, "brandName": "ACME"},
     )
     assert response.status_code == 422
-    assert "color.primary" in response.json()["detail"]
+    assert "identity.expression" in response.json()["detail"]
 
 
 def test_compile_draft_inexistente_404(client):

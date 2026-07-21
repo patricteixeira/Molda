@@ -7,6 +7,7 @@ import { ApiError } from "../api/client"
 import type { ApiClient, BrandIr, ContentSpec } from "../api/types"
 import {
   FAKE_IR,
+  fakeCarousel,
   fakeClient,
   fakeEditorialLayout,
   fakeOnePagerLayout,
@@ -16,10 +17,14 @@ import {
 import { mounts } from "../test/renderStub"
 import { EditorPage } from "./EditorPage"
 
-function renderEditor(client: ApiClient, layoutId = "statement-post-1x1") {
+function renderEditor(
+  client: ApiClient,
+  layoutId = "statement-post-1x1",
+  initialPath = `/marcas/brandrev_test/editor/${layoutId}`,
+) {
   render(
     <ApiProvider client={client}>
-      <MemoryRouter initialEntries={[`/marcas/brandrev_test/editor/${layoutId}`]}>
+      <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route
             path="/marcas/:revisionId/editor/:layoutId"
@@ -406,21 +411,133 @@ it("troca o fundo por qualquer cor da marca e permite voltar ao modelo", async (
   expect(within(colorChoices).getAllByRole("button")).toHaveLength(
     Object.keys(FAKE_IR.colors).length,
   )
-  await userEvent.click(within(colorChoices).getByRole("button", { name: "Principal, #1A4D8F" }))
+  await userEvent.click(
+    within(colorChoices).getByRole("button", { name: "Fundo: Principal, #1A4D8F" }),
+  )
   await waitFor(() =>
     expect(lastPayload().contentSpec.backgroundColorToken).toBe("color.primary"),
   )
-  expect(within(colorChoices).getByRole("button", { name: "Principal, #1A4D8F" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
+  expect(
+    within(colorChoices).getByRole("button", { name: "Fundo: Principal, #1A4D8F" }),
+  ).toHaveAttribute("aria-pressed", "true")
+
+  await userEvent.click(screen.getByRole("button", { name: "Usar o fundo do modelo" }))
+  await waitFor(() => expect(lastPayload().contentSpec.backgroundColorToken).toBeNull())
+  expect(
+    within(colorChoices).getByRole("button", { name: "Fundo: Fundo, #FFFFFF" }),
+  ).toHaveAttribute("aria-pressed", "true")
+})
+
+it("abre o conteúdo gerado de um slide e salva a edição de volta no carrossel", async () => {
+  const carousel = fakeCarousel()
+  const slide = carousel.slides[0]
+  const updateCarouselSlide = vi.fn(async (_carouselId, _slideId, content: ContentSpec) => ({
+    ...slide,
+    content,
+  }))
+  renderEditor(
+    kitClient({
+      getCarousel: vi.fn(async () => carousel),
+      updateCarouselSlide,
+    }),
+    slide.layoutId,
+    `/marcas/${FAKE_IR.revision.id}/editor/${slide.layoutId}?carouselId=${carousel.id}&slideId=${slide.id}`,
   )
 
-  await userEvent.click(screen.getByRole("button", { name: "Usar o modelo" }))
-  await waitFor(() => expect(lastPayload().contentSpec.backgroundColorToken).toBeNull())
-  expect(within(colorChoices).getByRole("button", { name: "Fundo, #FFFFFF" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
+  const headline = await screen.findByTestId("slot-input-headline")
+  expect(headline).toHaveValue("Capa")
+  expect(screen.getByRole("link", { name: /Carrossel/ })).toHaveAttribute(
+    "href",
+    `/marcas/${FAKE_IR.revision.id}/carrossel?carouselId=${carousel.id}`,
   )
+
+  await userEvent.clear(headline)
+  await userEvent.type(headline, "Capa refinada")
+  await userEvent.click(screen.getByRole("button", { name: "Salvar no carrossel" }))
+
+  await waitFor(() =>
+    expect(updateCarouselSlide).toHaveBeenCalledWith(
+      carousel.id,
+      slide.id,
+      expect.objectContaining({
+        values: expect.objectContaining({
+          headline: { kind: "text", text: "Capa refinada" },
+        }),
+      }),
+    ),
+  )
+  expect(await screen.findByRole("button", { name: "Salvo no carrossel" })).toBeInTheDocument()
+})
+
+it("salva o slide atual e navega para o próximo ou o anterior dentro do editor", async () => {
+  const user = userEvent.setup()
+  const carousel = fakeCarousel()
+  const updateCarouselSlide = vi.fn(async (_carouselId, slideId, content: ContentSpec) => {
+    const slide = carousel.slides.find((candidate) => candidate.id === slideId)
+    if (!slide) throw new Error("Slide ausente")
+    return { ...slide, content }
+  })
+  renderEditor(
+    kitClient({
+      getCarousel: vi.fn(async () => carousel),
+      updateCarouselSlide,
+    }),
+    carousel.slides[0].layoutId,
+    `/marcas/${FAKE_IR.revision.id}/editor/${carousel.slides[0].layoutId}?carouselId=${carousel.id}&slideId=${carousel.slides[0].id}`,
+  )
+
+  expect(await screen.findByTestId("slot-input-headline")).toHaveValue("Capa")
+  expect(screen.getByLabelText("Slide 1 de 3")).toBeInTheDocument()
+  expect(screen.getByRole("button", { name: "Slide anterior" })).toBeDisabled()
+
+  await user.click(screen.getByRole("button", { name: "Próximo slide" }))
+
+  await waitFor(() =>
+    expect(updateCarouselSlide).toHaveBeenCalledWith(
+      carousel.id,
+      carousel.slides[0].id,
+      expect.any(Object),
+    ),
+  )
+  await waitFor(() =>
+    expect(screen.getByTestId("slot-input-headline")).toHaveValue("Conteúdo"),
+  )
+  expect(screen.getByLabelText("Slide 2 de 3")).toBeInTheDocument()
+
+  await user.click(screen.getByRole("button", { name: "Slide anterior" }))
+  await waitFor(() => expect(screen.getByTestId("slot-input-headline")).toHaveValue("Capa"))
+  expect(updateCarouselSlide).toHaveBeenCalledWith(
+    carousel.id,
+    carousel.slides[1].id,
+    expect.any(Object),
+  )
+})
+
+it("troca todos os textos e todas as logos sem selecionar item por item", async () => {
+  renderEditor(kitClient())
+  await screen.findByTestId("slot-input-headline")
+
+  const textChoices = screen.getByRole("group", { name: "Cor de todos os textos da peça" })
+  await userEvent.click(
+    within(textChoices).getByRole("button", { name: "Textos: Principal, #1A4D8F" }),
+  )
+  await waitFor(() => {
+    const overrides = lastPayload().contentSpec.overrides ?? {}
+    expect(overrides.headline?.colorToken).toBe("color.primary")
+  })
+
+  await userEvent.selectOptions(screen.getByLabelText("Versão da logo"), "logo.onLight")
+  await waitFor(() =>
+    expect(lastPayload().contentSpec.assetBindings).toEqual({ logo: "logo.onLight" }),
+  )
+
+  await userEvent.click(
+    screen.getByRole("button", { name: "Usar as cores de texto do modelo" }),
+  )
+  await waitFor(() => {
+    const overrides = lastPayload().contentSpec.overrides ?? {}
+    expect(overrides.headline?.colorToken).toBeNull()
+  })
 })
 
 it("permite escolher uma variante de logo por slot e restaurar o automático", async () => {
@@ -431,10 +548,15 @@ it("permite escolher uma variante de logo por slot e restaurar o automático", a
   const selector = screen.getByRole("combobox", { name: "Logo usada neste item" })
   expect(selector).toHaveValue("")
   expect(
-    within(selector).getByRole("option", { name: "Automático para o fundo" }),
+    within(selector).getByRole("option", { name: "Automática para o fundo" }),
   ).toBeInTheDocument()
   expect(within(selector).getByRole("option", { name: "Principal" })).toBeInTheDocument()
-  expect(within(selector).getByRole("option", { name: "Para fundo claro" })).toBeInTheDocument()
+  expect(
+    within(selector).getByRole("option", { name: "Escura · para fundo claro" }),
+  ).toBeInTheDocument()
+  expect(
+    within(selector).getByRole("option", { name: "Clara · para fundo escuro" }),
+  ).toBeInTheDocument()
 
   await userEvent.selectOptions(selector, "logo.onLight")
   await waitFor(() =>
@@ -442,6 +564,89 @@ it("permite escolher uma variante de logo por slot e restaurar o automático", a
   )
   await userEvent.selectOptions(selector, "")
   await waitFor(() => expect(lastPayload().contentSpec.assetBindings).toEqual({}))
+})
+
+it("mostra todas as logos carregadas mesmo sem um par semântico claro e escuro", async () => {
+  const brandIr: BrandIr = {
+    ...FAKE_IR,
+    assets: {
+      "logo.primary": FAKE_IR.assets["logo.primary"],
+      "logo.variant.creme": {
+        ...FAKE_IR.assets["logo.primary"],
+        path: "assets/logos/vetor_v3_creme_geo_grossa_4096.png",
+        sha256: "c".repeat(64),
+        format: "png",
+      },
+      "logo.variant.verde": {
+        ...FAKE_IR.assets["logo.primary"],
+        path: "assets/logos/vetor_v3_verde_geo_grossa_4096.png",
+        sha256: "d".repeat(64),
+        format: "png",
+      },
+    },
+  }
+  renderEditor(kitClient({ getBrandRevision: vi.fn(async () => brandIr) }))
+  await screen.findByTestId("slot-input-headline")
+  await userEvent.click(screen.getByRole("button", { name: "Logo" }))
+
+  const selector = screen.getByRole("combobox", { name: "Logo usada neste item" })
+  expect(within(selector).getByRole("option", { name: "Principal" })).toBeInTheDocument()
+  expect(
+    within(selector).getByRole("option", { name: "Vetor v3 creme geo grossa 4096" }),
+  ).toBeInTheDocument()
+  expect(
+    within(selector).getByRole("option", { name: "Vetor v3 verde geo grossa 4096" }),
+  ).toBeInTheDocument()
+  expect(screen.getByText(/Você carregou 3 versões/)).toBeInTheDocument()
+  expect(screen.queryByText(/Esta revisão tem apenas uma versão/)).not.toBeInTheDocument()
+
+  await userEvent.selectOptions(selector, "logo.variant.verde")
+  await waitFor(() =>
+    expect(lastPayload().contentSpec.assetBindings).toEqual({ logo: "logo.variant.verde" }),
+  )
+})
+
+it("edita a logo estrutural de um template como qualquer outra camada", async () => {
+  renderEditor(
+    fakeClient({ getKit: vi.fn(async () => [fakeEditorialLayout()]) }),
+    "editorial-light-post-4x5",
+  )
+  await screen.findByRole("textbox", { name: "Frase principal" })
+
+  await userEvent.click(screen.getByRole("button", { name: "Logo" }))
+  const selector = screen.getByRole("combobox", { name: "Logo usada neste item" })
+  expect(selector).toHaveValue("")
+  expect(
+    within(selector).getByRole("option", { name: "Escura · para fundo claro" }),
+  ).toBeInTheDocument()
+  expect(screen.getByLabelText("X")).toBeInTheDocument()
+  expect(screen.getByLabelText("Opacidade")).toBeInTheDocument()
+  expect(screen.getByLabelText("Visível")).toBeInTheDocument()
+
+  await userEvent.selectOptions(selector, "logo.onDark")
+  await waitFor(() =>
+    expect(lastPayload().contentSpec.assetBindings).toEqual({ "brand-mark": "logo.onDark" }),
+  )
+})
+
+it("oferece edição para textos, formas, grafismos e assets estruturais", async () => {
+  renderEditor(
+    fakeClient({ getKit: vi.fn(async () => [fakeEditorialLayout()]) }),
+    "editorial-light-post-4x5",
+  )
+  await screen.findByRole("textbox", { name: "Frase principal" })
+
+  await userEvent.click(screen.getByRole("button", { name: "Linha de destaque" }))
+  expect(screen.getByLabelText("Cor")).toBeInTheDocument()
+  expect(screen.getByLabelText("L")).toBeInTheDocument()
+
+  await userEvent.click(screen.getByRole("button", { name: "Campo diagonal" }))
+  expect(screen.getByLabelText("Traço")).toBeInTheDocument()
+  expect(screen.getByLabelText("Intervalo")).toBeInTheDocument()
+
+  await userEvent.click(screen.getByRole("button", { name: "Frase principal" }))
+  expect(screen.getByRole("textbox", { name: "Frase principal" })).toBeInTheDocument()
+  expect(screen.getByLabelText("Fonte")).toBeInTheDocument()
 })
 
 it("expõe os controles gráficos completos pedidos para a camada de texto", async () => {
@@ -594,22 +799,87 @@ it("arrasta com o ponteiro a camada de texto que já está selecionada", async (
   }))
   fireEvent(selection, new MouseEvent("pointermove", {
     bubbles: true,
-    clientX: 140,
-    clientY: 250,
+    clientX: 155,
+    clientY: 260,
   }))
 
-  expect(selection).toHaveStyle({ left: "88px", top: "344px" })
+  expect(selection).toHaveStyle({ left: "118px", top: "367px" })
   expect(screen.getByTestId("preview-canvas")).toHaveAttribute("data-dragging", "true")
 
   fireEvent(selection, new MouseEvent("pointerup", {
     bubbles: true,
-    clientX: 140,
-    clientY: 250,
+    clientX: 155,
+    clientY: 260,
   }))
 
   await waitFor(() =>
-    expect(lastPayload().contentSpec.overrides?.headline?.area).toEqual([88, 344, 984, 432]),
+    expect(lastPayload().contentSpec.overrides?.headline?.area).toEqual([118, 367, 984, 432]),
   )
   expect(screen.getByTestId("canvas-selection")).toHaveAttribute("data-layer", "headline")
   expect(screen.getByTestId("preview-canvas")).not.toHaveAttribute("data-dragging")
+})
+
+it("encaixa e mostra uma referência quando a camada alinha com a peça", async () => {
+  renderEditor(kitClient())
+  await screen.findByTestId("slot-input-headline")
+
+  const selection = screen.getByTestId("canvas-selection")
+  fireEvent(selection, new MouseEvent("pointerdown", {
+    bubbles: true,
+    button: 0,
+    clientX: 120,
+    clientY: 240,
+  }))
+  fireEvent(selection, new MouseEvent("pointermove", {
+    bubbles: true,
+    clientX: 145,
+    clientY: 240,
+  }))
+
+  expect(selection).toHaveStyle({ left: "96px" })
+  expect(screen.getByTestId("alignment-guide-x")).toHaveAttribute("data-target", "canvas")
+  expect(screen.getByTestId("preview-canvas")).toHaveAttribute("data-aligning", "true")
+  expect(within(screen.getByTestId("preview-canvas")).getByRole("status")).toHaveTextContent(
+    "Direita · peça",
+  )
+
+  fireEvent(selection, new MouseEvent("pointerup", {
+    bubbles: true,
+    clientX: 145,
+    clientY: 240,
+  }))
+
+  await waitFor(() =>
+    expect(lastPayload().contentSpec.overrides?.headline?.area).toEqual([96, 324, 984, 432]),
+  )
+  expect(screen.queryByTestId("alignment-guide-x")).not.toBeInTheDocument()
+  expect(screen.getByTestId("preview-canvas")).not.toHaveAttribute("data-aligning")
+})
+
+it("mantém movimento livre quando Alt está pressionado", async () => {
+  renderEditor(kitClient())
+  await screen.findByTestId("slot-input-headline")
+
+  const selection = screen.getByTestId("canvas-selection")
+  fireEvent(selection, new MouseEvent("pointerdown", {
+    bubbles: true,
+    button: 0,
+    clientX: 120,
+    clientY: 240,
+  }))
+  fireEvent(selection, new MouseEvent("pointermove", {
+    bubbles: true,
+    altKey: true,
+    clientX: 145,
+    clientY: 240,
+  }))
+
+  expect(selection).toHaveStyle({ left: "98px" })
+  expect(screen.queryByTestId("alignment-guide-x")).not.toBeInTheDocument()
+
+  fireEvent(selection, new MouseEvent("pointercancel", {
+    bubbles: true,
+    clientX: 145,
+    clientY: 240,
+  }))
 })

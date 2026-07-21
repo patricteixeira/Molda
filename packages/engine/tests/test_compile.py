@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pymupdf
 import pytest
+from PIL import Image
 
 from brand_runtime.intake.compile import Answers, CompileError, compile_ir
 from brand_runtime.intake.base import Candidate
@@ -127,11 +128,12 @@ def _composition_ir(brand_package):
     return compile_ir(draft, answers, "Digital Artisan", created_at=FIXED)
 
 
-def test_missing_required_raises(brand_package):
+def test_visual_roles_are_automatic_but_identity_still_requires_review(brand_package):
     draft = build_draft(brand_package)
     with pytest.raises(CompileError) as exc:
         compile_ir(draft, Answers(values={}), "ACME")
-    assert "color.primary" in str(exc.value)
+    assert "identity.expression" in str(exc.value)
+    assert "color.primary" not in str(exc.value)
 
 
 def test_confirmed_identity_drives_an_explainable_brand_specific_direction(brand_package):
@@ -213,7 +215,7 @@ def test_explicit_manual_palette_remains_available_beyond_semantic_roles(brand_p
 
     ir = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
 
-    palette = ir.colors["color.palette.01"]
+    palette = next(token for token in ir.colors.values() if token.value == "#7B4AE2")
     assert palette.value == "#7B4AE2"
     assert palette.evidence[0].path == "manual.pdf"
     assert all(item.source_type != "wizard-confirmation" for item in palette.evidence)
@@ -285,6 +287,28 @@ def test_confirmed_logo_variants_override_automatic_inference(brand_package):
 
     for token in ("logo.onLight", "logo.onDark"):
         assert any(item.source_type == "wizard-confirmation" for item in ir.assets[token].evidence)
+
+
+def test_png_logo_variants_are_classified_and_all_uploaded_files_are_preserved(brand_package):
+    logos = brand_package / "assets" / "logos"
+    Image.new("RGBA", (256, 256), (24, 72, 54, 255)).save(logos / "marca-verde.png")
+    Image.new("RGBA", (512, 512), (244, 238, 218, 255)).save(logos / "marca-creme.png")
+
+    draft = build_draft(brand_package)
+    on_light = next(question for question in draft.questions if question.id == "logo.onLight")
+    on_dark = next(question for question in draft.questions if question.id == "logo.onDark")
+
+    assert on_light.recommended_count >= 1
+    assert on_dark.recommended_count >= 1
+
+    ir = compile_ir(draft, _answers(draft), "ACME", created_at=FIXED)
+    paths = {asset.path for asset in ir.assets.values()}
+
+    assert ir.assets["logo.onLight"].path.endswith(("logo.svg", "marca-verde.png"))
+    assert ir.assets["logo.onDark"].path.endswith("marca-creme.png")
+    assert "assets/logos/marca-verde.png" in paths
+    assert "assets/logos/marca-creme.png" in paths
+    assert len({asset.sha256 for asset in ir.assets.values()}) == 3
 
 
 def test_composition_binds_by_declared_color_value_not_misleading_token_name(brand_package):
@@ -418,20 +442,41 @@ def test_unanswered_secondary_yields_diagnostic(brand_package):
     assert any(d.code == "UNDETERMINED" and d.target == "color.secondary" for d in ir.diagnostics)
 
 
-def test_missing_error_lists_every_required_answer(brand_package):
+def test_missing_error_does_not_turn_visual_inference_into_questions(brand_package):
     draft = build_draft(brand_package)
     with pytest.raises(CompileError) as exc:
         compile_ir(draft, Answers(values={}), "ACME")
     message = str(exc.value)
-    for question_id in (
-        "color.primary",
-        "color.background",
-        "color.text",
-        "font.heading",
-        "font.body",
-        "logo.primary",
-    ):
-        assert question_id in message
+    assert "identity.expression" in message
+    for question_id in ("color.primary", "font.heading", "logo.primary"):
+        assert question_id not in message
+
+
+def test_compile_uses_automatic_visual_roles_when_user_only_reviews_identity(brand_package):
+    draft = build_draft(brand_package)
+    identity = next(
+        question.candidates[0].value
+        for question in draft.questions
+        if question.id == "identity.expression"
+    )
+    identity = {
+        **identity,
+        "essence": identity["essence"].strip() or "Uma marca clara e autoral.",
+    }
+
+    ir = compile_ir(
+        draft,
+        Answers(values={"identity.expression": identity}),
+        "ACME",
+        created_at=FIXED,
+    )
+
+    assert set(ir.colors) >= {"color.primary", "color.background", "color.text"}
+    assert set(ir.fonts) == {"font.heading", "font.body"}
+    assert "logo.primary" in ir.assets
+    assert ir.composition_rules is not None
+    assert ir.composition_rules.modes.light is not None
+    assert ir.composition_rules.modes.dark is not None
 
 
 def test_equivalent_css_color_inherits_evidence_and_revision(brand_package):

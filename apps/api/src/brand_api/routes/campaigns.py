@@ -13,6 +13,7 @@ from sqlalchemy import select
 from brand_api.auth import require_token
 from brand_api.db import new_id
 from brand_api.models import BrandRevision, Campaign, CampaignPiece, Document
+from brand_api.revision_ir import revision_brand_ir
 from brand_api.routes.documents import DocumentBody, _layout_from_revision, _validated_content
 from brand_runtime import BrandIR, LayoutSpec, apply_creative_direction, run_static_checks
 from brand_runtime.kit.models import Slot
@@ -278,7 +279,7 @@ def create_campaign(body: CampaignCreateBody, request: Request) -> dict[str, Any
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Revisão de marca não encontrada.",
             )
-        ir = BrandIR.model_validate(revision.ir)
+        ir = revision_brand_ir(revision)
         campaign = Campaign(
             id=new_id("campaign"),
             brand_revision_id=revision.id,
@@ -340,7 +341,7 @@ def update_campaign(
         revision = session.get(BrandRevision, campaign.brand_revision_id)
         if revision is None:  # pragma: no cover - garantido pela FK
             raise RuntimeError("A campanha perdeu sua revisão de marca.")
-        ir = BrandIR.model_validate(revision.ir)
+        ir = revision_brand_ir(revision)
         pieces = list(
             session.scalars(select(CampaignPiece).where(CampaignPiece.campaign_id == campaign.id))
         )

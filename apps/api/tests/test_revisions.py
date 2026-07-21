@@ -1,4 +1,7 @@
-def test_get_ir_verbatim(client, compiled):
+from tests.conftest import _png_bytes
+
+
+def test_get_ir_publico(client, compiled):
     response = client.get(f"/v1/brand-revisions/{compiled['brandRevisionId']}")
     assert response.status_code == 200
     ir = response.json()
@@ -8,12 +11,52 @@ def test_get_ir_verbatim(client, compiled):
     assert "color.primary" in ir["colors"]
 
 
-def test_get_kit_treze_layouts(client, compiled):
+def test_revision_legada_expoe_todas_as_logos_preservadas_no_manifest(client, compiled):
+    from brand_api.models import BrandRevision
+
+    revision_id = compiled["brandRevisionId"]
+    cream_sha = client.app.state.storage.put(_png_bytes(color=(244, 238, 218)))
+    green_sha = client.app.state.storage.put(_png_bytes(color=(24, 72, 54)))
+    with client.app.state.session_factory() as session:
+        revision = session.get(BrandRevision, revision_id)
+        revision.manifest = {
+            **revision.manifest,
+            "assets/logos/marca-creme.png": cream_sha,
+            "assets/logos/marca-verde.png": green_sha,
+        }
+        session.commit()
+
+    response = client.get(f"/v1/brand-revisions/{revision_id}")
+    assert response.status_code == 200
+    assets = response.json()["assets"]
+    cream_token = f"logo.variant.{cream_sha}"
+    green_token = f"logo.variant.{green_sha}"
+    assert assets[cream_token]["path"] == "assets/logos/marca-creme.png"
+    assert assets[green_token]["path"] == "assets/logos/marca-verde.png"
+
+    document = client.post(
+        "/v1/documents",
+        json={
+            "layoutId": "statement-post-1x1",
+            "brandRevisionId": revision_id,
+            "values": {"headline": {"kind": "text", "text": "A marca continua visível."}},
+            "assetBindings": {"logo": green_token},
+        },
+    )
+    assert document.status_code == 201, document.text
+    assert not [
+        check
+        for check in document.json()["checks"]
+        if check["id"] == "asset-binding" and check["status"] == "blocked"
+    ]
+
+
+def test_get_kit_com_templates_principais_e_alternativos(client, compiled):
     response = client.get(f"/v1/brand-revisions/{compiled['brandRevisionId']}/kit")
     assert response.status_code == 200
     kit = response.json()
-    assert len(kit) == 13
-    assert len({layout["id"] for layout in kit}) == 13
+    assert len(kit) == 88
+    assert len({layout["id"] for layout in kit}) == 88
     assert all("canvas" in layout and "slots" in layout for layout in kit)
 
 
@@ -23,15 +66,13 @@ def test_catalogo_versionado_aparece_em_revisao_legada_sem_mudar_snapshot(client
     revision_id = compiled["brandRevisionId"]
     with client.app.state.session_factory() as session:
         revision = session.get(BrandRevision, revision_id)
-        revision.kit = [
-            layout for layout in revision.kit if not layout["id"].startswith("typographic-")
-        ]
+        revision.kit = [layout for layout in revision.kit if layout.get("templateRef") is None]
         session.commit()
         assert len(revision.kit) == 10
 
     response = client.get(f"/v1/brand-revisions/{revision_id}/kit")
     assert response.status_code == 200
-    assert len(response.json()) == 13
+    assert len(response.json()) == 88
     assert response.json()[10]["templateRef"] == {
         "packageId": "typographic-editorial",
         "version": "1.0.0",

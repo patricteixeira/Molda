@@ -69,7 +69,7 @@ def test_engine_walking_skeleton(brand_package, tmp_path):
     kit_dir = tmp_path / "kit"
     result = runner.invoke(app, ["kit", str(ir_p), "--out-dir", str(kit_dir)])
     assert result.exit_code == 0, result.output
-    assert len(list(kit_dir.glob("*.json"))) == 13
+    assert len(list(kit_dir.glob("*.json"))) == 88
     for layout_path in kit_dir.glob("*.json"):
         LayoutSpec.model_validate_json(layout_path.read_text(encoding="utf-8"))
 
@@ -146,7 +146,7 @@ def test_missing_required_exits_2(brand_package, tmp_path):
     )
     assert result.exit_code == 2
     assert result.stdout == ""
-    assert "color.primary" in result.stderr
+    assert "identity.expression" in result.stderr
 
 
 def test_schemas_exports_all_published_contracts(tmp_path):

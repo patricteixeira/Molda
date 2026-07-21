@@ -11,6 +11,7 @@ from brand_api.auth import require_token
 from brand_api.layout_catalog import public_kit
 from brand_api.media import asset_response, content_type_for, sniff_content_type
 from brand_api.models import BrandRevision
+from brand_api.revision_ir import revision_ir_payload
 
 router = APIRouter(prefix="/v1", dependencies=[Depends(require_token)])
 
@@ -44,8 +45,8 @@ def _storage_bytes(request: Request, sha256: str) -> bytes:
 
 @router.get("/brand-revisions/{revision_id}")
 def get_revision(revision_id: str, request: Request) -> dict[str, Any]:
-    """Devolve o Brand IR persistido verbatim em camelCase."""
-    return _revision_or_404(request, revision_id).ir
+    """Devolve o Brand IR e preserva logos legados ainda presentes no pacote."""
+    return revision_ir_payload(_revision_or_404(request, revision_id))
 
 
 @router.get("/brand-revisions/{revision_id}/kit")

@@ -9,6 +9,13 @@ import {
 import type { JSX } from "react"
 import type { BrandIr, ContentSpec, LayoutSpec } from "../api/types"
 import { elementArea, elementLabel, findEditorElement } from "../editor/layerModel"
+import {
+  alignmentGuideLabel,
+  buildAlignmentTargets,
+  snapEditorArea,
+  type AlignmentGuide,
+  type AlignmentTarget,
+} from "./alignmentGuides"
 import { mountRender, type RenderHandle } from "./mount"
 
 interface PreviewProps {
@@ -29,11 +36,13 @@ interface PointerSession {
   startClientX: number
   startClientY: number
   startArea: [number, number, number, number]
+  alignmentTargets: AlignmentTarget[]
   layerElement: HTMLElement | null
   hasMoved: boolean
 }
 
 const DRAG_START_THRESHOLD_PX = 3
+const ALIGNMENT_SNAP_THRESHOLD_SCREEN_PX = 7
 const MAX_EDITOR_AREA_PX = 32_768
 
 function normalizeEditorArea(
@@ -65,6 +74,7 @@ export function Preview({
   const liveAreaRef = useRef<[number, number, number, number] | null>(null)
   const selectionRef = useRef<HTMLDivElement>(null)
   const scaleRef = useRef(1)
+  const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([])
   const maximumWidth = Math.max(1, Math.min(maxWidthPx, layoutSpec.canvas.widthPx))
   const [visibleWidth, setVisibleWidth] = useState(maximumWidth)
   const payload = useMemo(
@@ -157,6 +167,7 @@ export function Preview({
       startClientX: event.clientX,
       startClientY: event.clientY,
       startArea,
+      alignmentTargets: buildAlignmentTargets(layoutSpec, contentSpec, id),
       layerElement: Array.from(
         renderRootRef.current?.querySelectorAll<HTMLElement>(
           "[data-slot-id], [data-layer-id]",
@@ -206,10 +217,20 @@ export function Preview({
     const dx = clientDx / scaleRef.current
     const dy = clientDy / scaleRef.current
     const [x, y, width, height] = session.startArea
-    const next =
+    const rawArea =
       session.action === "move"
         ? normalizeEditorArea([x + dx, y + dy, width, height])
         : normalizeEditorArea([x, y, width + dx, height + dy])
+    const snapped = event.altKey
+      ? { area: rawArea, guides: [] }
+      : snapEditorArea(
+          rawArea,
+          session.action,
+          session.alignmentTargets,
+          ALIGNMENT_SNAP_THRESHOLD_SCREEN_PX / scaleRef.current,
+        )
+    const next = normalizeEditorArea(snapped.area)
+    setAlignmentGuides(snapped.guides)
     liveAreaRef.current = next
     applyLiveArea(session, next)
   }
@@ -218,6 +239,7 @@ export function Preview({
     const session = pointerSessionRef.current
     pointerSessionRef.current = null
     wrapperRef.current?.removeAttribute("data-dragging")
+    setAlignmentGuides([])
     if (!session) return
     const finalArea = liveAreaRef.current
     liveAreaRef.current = null
@@ -258,12 +280,39 @@ export function Preview({
       ref={wrapperRef}
       className="preview-canvas preview-canvas-editable"
       data-testid="preview-canvas"
+      data-aligning={alignmentGuides.length > 0 || undefined}
       style={{
         width: "100%",
         maxWidth: `${maximumWidth}px`,
         aspectRatio: `${layoutSpec.canvas.widthPx} / ${layoutSpec.canvas.heightPx}`,
       }}
     >
+      {alignmentGuides.map((guide) => {
+        const canvasLength =
+          guide.axis === "x" ? layoutSpec.canvas.widthPx : layoutSpec.canvas.heightPx
+        return (
+          <div
+            key={guide.axis}
+            className={`canvas-alignment-guide canvas-alignment-guide-${guide.axis}`}
+            data-testid={`alignment-guide-${guide.axis}`}
+            data-target={guide.targetId}
+            data-side={guide.position > canvasLength / 2 ? "end" : "start"}
+            aria-hidden="true"
+            style={
+              guide.axis === "x"
+                ? { left: `${(guide.position / canvasLength) * 100}%` }
+                : { top: `${(guide.position / canvasLength) * 100}%` }
+            }
+          >
+            <span>{alignmentGuideLabel(guide)}</span>
+          </div>
+        )
+      })}
+      {alignmentGuides.length > 0 ? (
+        <span className="visually-hidden" role="status" aria-live="polite">
+          {alignmentGuides.map(alignmentGuideLabel).join(". ")}
+        </span>
+      ) : null}
       <div
         className="preview-native"
         style={{

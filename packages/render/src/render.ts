@@ -132,6 +132,7 @@ function appendLockedLayer(
   payload: Payload,
   layer: LockedLayer,
   index: number,
+  backgroundToken: string | null,
 ): void {
   const override = payload.contentSpec.overrides?.[layer.id];
   const element = document.createElement("div");
@@ -163,7 +164,13 @@ function appendLockedLayer(
       `transparent ${spacing}px)`,
     ].join(", ");
   } else {
-    const asset = payload.brandIr.assets[layer.assetToken];
+    const assetToken =
+      payload.contentSpec.assetBindings?.[layer.id] ??
+      (layer.assetToken.startsWith("logo.")
+        ? automaticLogoToken(payload, backgroundToken)
+        : null) ??
+      layer.assetToken;
+    const asset = payload.brandIr.assets[assetToken];
     element.appendChild(
       createImage(
         joinUrl(payload.assetsBaseUrl, asset.path),
@@ -234,7 +241,7 @@ export function renderDocument(
   appendSurface(container, payload);
 
   for (const [index, layer] of (layout.lockedLayers ?? []).entries()) {
-    appendLockedLayer(container, payload, layer, index);
+    appendLockedLayer(container, payload, layer, index, backgroundToken);
   }
 
   const report: GuardReport = { overflows: [], fontFallbacks: [] };

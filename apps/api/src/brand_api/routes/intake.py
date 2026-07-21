@@ -71,7 +71,7 @@ class CompileBody(BaseModel):
 
 
 class ImportResponse(BaseModel):
-    """Draft extraído e lacunas que precisam de ação antes do wizard."""
+    """Leitura extraída e apenas as decisões que realmente pedem revisão humana."""
 
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="forbid")
 
@@ -333,7 +333,11 @@ async def import_brand(
 
     return ImportResponse(
         draft_id=draft_id,
-        questions=draft.questions,
+        questions=[
+            question
+            for question in draft.questions
+            if not question.automatic or (question.required and not question.candidates)
+        ],
         diagnostics=draft.diagnostics,
         ignored_entries=list(unpacked.ignored),
     )

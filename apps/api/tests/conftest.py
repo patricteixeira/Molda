@@ -228,12 +228,6 @@ def _answers(draft_body: dict) -> dict:
     return {
         "values": {
             "identity.expression": identity,
-            "color.primary": first("color.primary"),
-            "color.background": "#FFFFFF",
-            "color.text": "#1A1A1A",
-            "font.heading": first("font.heading"),
-            "font.body": first("font.body"),
-            "logo.primary": first("logo.primary"),
         }
     }
 

@@ -78,7 +78,7 @@ it("aceita payload válido e devolve a mesma referência", () => {
   expect(parsePayload(payload)).toBe(payload);
 });
 
-it("valida fundo da instância e bindings manuais somente para slots de logo", () => {
+it("valida fundo da instância e bindings manuais para logos e assets estruturais", () => {
   const payload = fixturePayload();
   payload.brandIr.colors["color.night"] = { value: "#101820" };
   payload.brandIr.assets["logo.onDark"] = { path: "assets/logos/logo-on-dark.svg" };
@@ -86,17 +86,32 @@ it("valida fundo da instância e bindings manuais somente para slots de logo", (
   payload.contentSpec.assetBindings = { logo: "logo.onDark" };
   expect(parsePayload(payload)).toBe(payload);
 
+  const lockedAsset = fixturePayload();
+  lockedAsset.layoutSpec.lockedLayers = [
+    {
+      id: "brand-mark",
+      kind: "asset",
+      assetToken: "logo.primary",
+      area: [48, 48, 96, 96],
+      fit: "contain",
+      opacity: 1,
+      zIndex: 3,
+    },
+  ];
+  lockedAsset.contentSpec.assetBindings = { "brand-mark": "logo.primary" };
+  expect(parsePayload(lockedAsset)).toBe(lockedAsset);
+
   const unknownColor = fixturePayload();
   unknownColor.contentSpec.backgroundColorToken = "color.missing";
   expect(() => parsePayload(unknownColor)).toThrow(/backgroundColorToken.*desconhecido/i);
 
   const unknownSlot = fixturePayload();
   unknownSlot.contentSpec.assetBindings = { absent: "logo.primary" };
-  expect(() => parsePayload(unknownSlot)).toThrow(/assetBindings\.absent.*slot desconhecido/i);
+  expect(() => parsePayload(unknownSlot)).toThrow(/assetBindings\.absent.*asset desconhecido/i);
 
   const textSlot = fixturePayload();
   textSlot.contentSpec.assetBindings = { headline: "logo.primary" };
-  expect(() => parsePayload(textSlot)).toThrow(/headline.*slot de logo/i);
+  expect(() => parsePayload(textSlot)).toThrow(/headline.*asset desconhecido/i);
 
   const unknownAsset = fixturePayload();
   unknownAsset.contentSpec.assetBindings = { logo: "logo.missing" };

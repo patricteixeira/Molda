@@ -4,6 +4,8 @@ import json
 import zipfile
 
 from brand_api.fonts.models import FontRequest, FontResolutionUnavailable, ResolvedFont
+from brand_api.models import Draft
+from brand_runtime.intake.draft import BrandDraft
 from brand_runtime.ir.models import FontResource
 from tests.conftest import _answers
 
@@ -96,6 +98,14 @@ class _CapacityResolver:
         )
 
 
+def _draft_question(client, draft_id: str, question_id: str):
+    """Inspeciona decisões visuais automáticas sem reexpô-las no contrato público."""
+    with client.app.state.session_factory() as session:
+        row = session.get(Draft, draft_id)
+        draft = BrandDraft.model_validate(row.draft)
+    return next(question for question in draft.questions if question.id == question_id)
+
+
 def _package_without_font(
     package_zip: bytes,
     *,
@@ -137,8 +147,7 @@ def test_import_resolve_fonte_aberta_sem_upload_manual(
 
     assert response.status_code == 201, response.text
     body = response.json()
-    heading = next(question for question in body["questions"] if question["id"] == "font.heading")
-    candidate = heading["candidates"][0]["value"]
+    candidate = _draft_question(client, body["draftId"], "font.heading").candidates[0].value
     assert candidate["family"] == "Fixture Sans"
     assert candidate["path"].startswith("resolved-fonts/")
     assert candidate["resource"]["provider"] == "google-fonts"
@@ -198,12 +207,19 @@ def test_fontshare_vira_previa_oficial_externa_sem_armazenar_bytes(make_client, 
     )
 
     assert response.status_code == 201, response.text
-    questions = {item["id"]: item for item in response.json()["questions"]}
     for question_id, family, code in (
         ("font.heading", "Clash Display", 700),
         ("font.body", "General Sans", 400),
     ):
-        value = questions[question_id]["candidates"][0]["value"]
+        value = (
+            _draft_question(
+                client,
+                response.json()["draftId"],
+                question_id,
+            )
+            .candidates[0]
+            .value
+        )
         assert value["family"] == family
         assert "path" not in value
         assert value["resource"]["provider"] == "fontshare-external"

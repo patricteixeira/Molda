@@ -30,6 +30,7 @@ from brand_api.exporters import (
 )
 from brand_api.layout_catalog import resolve_layout
 from brand_api.models import BrandRevision, Carousel, CarouselSlide, Document, Job
+from brand_api.revision_ir import revision_brand_ir
 from brand_api.storage import Storage
 from brand_runtime import (
     BrandIR,
@@ -372,7 +373,7 @@ def _load_export_contract(session_factory, lease: _JobLease):
                 raise RuntimeError("O job nativo não informa a versão do template.")
         elif native_template_version is not None:
             raise RuntimeError("Um job web não pode informar template nativo.")
-        ir = BrandIR.model_validate(revision.ir)
+        ir = revision_brand_ir(revision)
         content = ContentSpec.model_validate(document.content)
         layout = resolve_layout(revision, document.layout_id)
         if layout is None:
@@ -434,7 +435,7 @@ def _load_carousel_export_contract(
             )
         return (
             carousel.id,
-            BrandIR.model_validate(revision.ir),
+            revision_brand_ir(revision),
             dict(revision.manifest),
             contracts,
         )
@@ -482,7 +483,7 @@ def _load_roundtrip_contract(
                 raise RuntimeError("O plano persistido não corresponde aos blobs do job.")
         return (
             document.id,
-            BrandIR.model_validate(revision.ir),
+            revision_brand_ir(revision),
             baseline_sha256,
             edited_sha256,
             plan,
@@ -520,7 +521,7 @@ def _load_docx_brand_contract(
             if plan.source.sha256 != source_sha256 or plan.brand_revision_id != revision_id:
                 raise RuntimeError("O plano do Word não corresponde ao blob e à revisão.")
         return (
-            BrandIR.model_validate(revision.ir),
+            revision_brand_ir(revision),
             dict(revision.manifest),
             source_sha256,
             source_filename,

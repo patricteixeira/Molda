@@ -8,6 +8,7 @@ import { brandThemeStyle } from "../brandTheme"
 import { materializeContentLayout } from "../editor/contentLayout"
 import { Preview } from "../render/Preview"
 import { placeholderContent } from "./placeholder"
+import { templateFamilyLabel } from "./templateFamilies"
 
 interface KitState {
   brandIr: BrandIr
@@ -130,6 +131,34 @@ export function KitPage(): JSX.Element {
           </Link>
         </header>
 
+        <section className="kit-workflows" aria-labelledby="kit-workflows-title">
+          <div className="kit-workflows-heading">
+            <h2 id="kit-workflows-title">Quando uma peça precisa virar sequência.</h2>
+          </div>
+          <div className="kit-workflow-grid">
+            <Link
+              className="kit-workflow-card kit-workflow-card-primary"
+              to={`/marcas/${encodeURIComponent(revisionId)}/carrossel`}
+            >
+              <span>
+                <strong>Modo Carrossel</strong>
+                <small>Escolha a quantidade e construa capa, conteúdo e fechamento.</small>
+              </span>
+              <span className="kit-workflow-action">Criar carrossel →</span>
+            </Link>
+            <Link
+              className="kit-workflow-card"
+              to={`/marcas/${encodeURIComponent(revisionId)}/word`}
+            >
+              <span>
+                <strong>Aplicar marca ao Word</strong>
+                <small>Transforme um `.docx` existente sem perder conteúdo nem edição.</small>
+              </span>
+              <span className="kit-workflow-action">Enviar Word →</span>
+            </Link>
+          </div>
+        </section>
+
         <section className="kit-library-heading" aria-labelledby="kit-library-title">
           <p className="panel-kicker">Peças individuais</p>
           <h2 id="kit-library-title">Escolha uma composição. Depois faça dela a sua peça.</h2>
@@ -167,7 +196,8 @@ export function KitPage(): JSX.Element {
                 <span>
                   {layout.templateRef ? (
                     <span className="kit-card-family">
-                      Tipográfico editorial · v{layout.templateRef.version}
+                      {templateFamilyLabel(layout.templateRef.packageId)} · v
+                      {layout.templateRef.version}
                     </span>
                   ) : null}
                   <span>{layout.namePt}</span>
@@ -182,33 +212,6 @@ export function KitPage(): JSX.Element {
           })}
         </div>
 
-        <section className="kit-workflows" aria-labelledby="kit-workflows-title">
-          <div className="kit-workflows-heading">
-            <h2 id="kit-workflows-title">Quando uma peça precisa virar sequência.</h2>
-          </div>
-          <div className="kit-workflow-grid">
-            <Link
-              className="kit-workflow-card kit-workflow-card-primary"
-              to={`/marcas/${encodeURIComponent(revisionId)}/carrossel`}
-            >
-              <span>
-                <strong>Modo Carrossel</strong>
-                <small>Escolha a quantidade e construa capa, conteúdo e fechamento.</small>
-              </span>
-              <span className="kit-workflow-action">Criar carrossel →</span>
-            </Link>
-            <Link
-              className="kit-workflow-card"
-              to={`/marcas/${encodeURIComponent(revisionId)}/word`}
-            >
-              <span>
-                <strong>Aplicar marca ao Word</strong>
-                <small>Transforme um `.docx` existente sem perder conteúdo nem edição.</small>
-              </span>
-              <span className="kit-workflow-action">Enviar Word →</span>
-            </Link>
-          </div>
-        </section>
       </div>
     </main>
   )
