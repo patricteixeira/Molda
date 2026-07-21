@@ -6,6 +6,8 @@ release pública.
 
 ## [Não lançado]
 
+## [0.2.0] - 2026-07-21
+
 ### Adicionado
 
 - Catálogo autoral de templates com treze famílias visuais, composições

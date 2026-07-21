@@ -54,6 +54,17 @@ def _python_version(path: Path) -> str:
     return match.group(1)
 
 
+def _typescript_version(path: Path) -> str:
+    match = re.search(
+        r'^export const VERSION\s*=\s*["\']([^"\']+)["\']',
+        path.read_text(encoding="utf-8"),
+        flags=re.MULTILINE,
+    )
+    if match is None:
+        raise ValueError(f"{path} não declara VERSION.")
+    return match.group(1)
+
+
 def declared_versions(root: Path) -> dict[str, str]:
     """Lê todas as versões públicas que devem avançar juntas."""
     return {
@@ -66,6 +77,9 @@ def declared_versions(root: Path) -> dict[str, str]:
         ),
         "packages/render/package.json": _json_version(
             root / "packages/render/package.json"
+        ),
+        "packages/render/src/index.ts": _typescript_version(
+            root / "packages/render/src/index.ts"
         ),
         "apps/web/package.json": _json_version(root / "apps/web/package.json"),
         "packages/engine/src/brand_runtime/__init__.py": _python_version(

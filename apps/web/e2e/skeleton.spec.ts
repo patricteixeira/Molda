@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import JSZip from "jszip"
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const FIX = path.join(here, ".fixtures")
@@ -27,7 +28,7 @@ function validateOutput(kind: "png" | "pdf" | "pptx" | "docx", file: string): vo
   )
 }
 
-test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard → exportar", async ({
+test("walking skeleton v0.2: instalar → kit → editar → carrossel → exportar", async ({
   page,
 }) => {
   await page.goto("/")
@@ -57,9 +58,6 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
     .fill("Urgência artificial, exagero e promessas vazias.")
   await page.getByTestId("wizard-confirmar").click()
 
-  await expect(page.getByTestId("wizard-question")).toContainText(
-    "Qual destas é a cor principal da marca?",
-  )
   for (let index = 0; index < 8; index += 1) {
     const visible = await page
       .getByTestId("wizard-question")
@@ -75,8 +73,11 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   await page.getByTestId("wizard-publicar").click()
 
   await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/kit/)
-  await expect(page.getByTestId("kit-card")).toHaveCount(13)
+  await expect(page.getByTestId("kit-card")).toHaveCount(8)
   const kitUrl = page.url()
+
+  await page.getByRole("button", { name: /Todos os modelos/ }).click()
+  await expect.poll(async () => page.getByTestId("kit-card").count()).toBeGreaterThan(13)
 
   await page.locator('[data-testid="kit-card"][data-layout-id="quote-post-1x1"]').click()
   await expect(page.getByRole("heading", { name: "Escala sem contenção" })).toBeVisible()
@@ -169,6 +170,7 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   })
 
   await page.goto(kitUrl)
+  await page.getByRole("button", { name: /Todos os modelos/ }).click()
   await page.locator('[data-testid="kit-card"][data-layout-id="one-pager-doc-a4"]').click()
   await page.getByTestId("slot-input-title").fill("Relatório do mês")
   await page.getByRole("button", { name: "Texto", exact: true }).click()
@@ -195,4 +197,65 @@ test("walking skeleton M1/M2: instalar → confirmar → kit → slots → guard
   const docxPath = path.join(FIX, "out-doc.docx")
   await (await docxDownload).saveAs(docxPath)
   validateOutput("docx", docxPath)
+
+  await page.goto(kitUrl)
+  await page.getByRole("link", { name: /Modo Carrossel/ }).click()
+  await expect(page.getByRole("heading", { name: "Modo Carrossel" })).toBeVisible()
+  await page.getByLabel("Nome do carrossel").fill("Autonomia em três atos")
+  await page.getByRole("combobox", { name: /Quantidade de slides/ }).selectOption("3")
+  await page.getByLabel("Texto da assinatura").fill("@acme")
+
+  await page.getByLabel("Título principal").fill("Sistemas que devolvem autonomia")
+  await page.getByRole("button", { name: /02 Conteúdo/ }).click()
+  await page.getByLabel("Título principal").fill("Clareza antes da ferramenta")
+  await page.getByRole("button", { name: "+ Adicionar bloco" }).click()
+  await page
+    .getByLabel("Bloco 1")
+    .fill("A marca organiza decisões para que cada peça continue reconhecível.")
+  await page.getByRole("button", { name: /03 Fechamento/ }).click()
+  await page.getByLabel("Mensagem final").fill("Construa com intenção")
+
+  await page.getByRole("button", { name: "Gerar 3 slides" }).click()
+  await expect(page.getByRole("heading", { name: "Autonomia em três atos" })).toBeVisible()
+  await expect(page.getByRole("link", { name: /Editar slide/ })).toHaveCount(3)
+  await expect(page.getByText("Escolha inteligente")).toHaveCount(3)
+  const carouselUrl = page.url()
+
+  await page.getByRole("link", { name: /Editar slide 01/ }).click()
+  await expect(page.getByLabel("Slide 1 de 3")).toBeVisible()
+  const editorTextareas = page.locator('textarea[data-testid^="slot-input-"]')
+  const editorTextareaCount = await editorTextareas.count()
+  expect(editorTextareaCount).toBeGreaterThan(0)
+  const firstEditorTextarea = editorTextareas.first()
+  const originalSlideText = await firstEditorTextarea.inputValue()
+  await firstEditorTextarea.fill(`${originalSlideText} — revisada`)
+  await page.locator(".editor-carousel-save").click()
+  await expect(page.locator(".editor-carousel-save")).toHaveText("Salvo no carrossel")
+
+  await page.goto(carouselUrl)
+  await expect(page.getByRole("heading", { name: "Autonomia em três atos" })).toBeVisible()
+  await page.getByRole("link", { name: /Editar slide 01/ }).click()
+  await expect(page.locator('textarea[data-testid^="slot-input-"]').first()).toHaveValue(
+    /— revisada/,
+  )
+
+  await page.goto(carouselUrl)
+  await page.getByRole("button", { name: "Exportar todos em PNG" }).click()
+  const zipLink = page.getByRole("link", { name: /Baixar .*\.zip/ })
+  await expect(zipLink).toBeVisible({ timeout: 120_000 })
+  const zipDownload = page.waitForEvent("download")
+  await zipLink.click()
+  const zipPath = path.join(FIX, "out-carousel.zip")
+  await (await zipDownload).saveAs(zipPath)
+
+  const archive = await JSZip.loadAsync(fs.readFileSync(zipPath))
+  const slideNames = Object.keys(archive.files)
+    .filter((name) => /^\d{2}-.*\.png$/.test(name))
+    .sort()
+  expect(slideNames).toHaveLength(3)
+  for (const [index, name] of slideNames.entries()) {
+    const slidePath = path.join(FIX, `out-carousel-${index + 1}.png`)
+    fs.writeFileSync(slidePath, await archive.file(name)!.async("nodebuffer"))
+    validateOutput("png", slidePath)
+  }
 })

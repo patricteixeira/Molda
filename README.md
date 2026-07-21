@@ -18,7 +18,7 @@ continuam salváveis e exportáveis. Apenas falhas de segurança, integridade ou
 contrato técnico impedem a produção do arquivo. Veja o
 [ADR 0014](docs/adr/0014-guard-orienta-sem-policiar.md).
 
-**Status: candidata a v0.1.0** — motor, renderer, API, worker e app web compõem
+**Status: v0.2.0** — motor, renderer, API, worker e app web compõem
 fluxos executáveis de ponta a ponta, cobertos por testes de contrato, integração,
 interface e smoke test da distribuição Docker. A linha `0.x` ainda não promete
 estabilidade de todos os contratos internos.
@@ -57,7 +57,7 @@ docker compose down -v
 `down -v` apaga os volumes locais desta stack. Para apenas parar os serviços e
 preservar os dados, use `docker compose down`.
 
-### Escopo conhecido da v0.1
+### Escopo conhecido da v0.2
 
 - a distribuição suportada é self-hosted e single-tenant, sem login por pessoa;
 - a porta fica restrita a localhost; exposição pública exige TLS e controle de
@@ -67,7 +67,7 @@ preservar os dados, use `docker compose down`.
 - o SDK e o contrato de adapters estão disponíveis, mas o importador Figma e a
   instância pública multi-tenant não fazem parte deste corte.
 
-Veja as [notas completas da v0.1.0](docs/releases/v0.1.0.md) e a
+Veja as [notas completas da v0.2.0](docs/releases/v0.2.0.md) e a
 [política de segurança](SECURITY.md).
 
 | Serviço | Responsabilidade | Porta publicada |

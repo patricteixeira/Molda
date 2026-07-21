@@ -11,7 +11,7 @@ body:
     id: version
     attributes:
       label: Versão ou commit
-      placeholder: v0.1.0 ou SHA do commit
+      placeholder: v0.2.0 ou SHA do commit
     validations:
       required: true
   - type: dropdown

@@ -40,7 +40,7 @@ Em POSIX, use `packages/engine/.venv/bin/python` e `.venv/bin/pip`.
 
 ```powershell
 # Contrato público e ferramentas
-python tools/release_check.py --version 0.1.0
+python tools/release_check.py --version 0.2.0
 python -m unittest discover -s tools/tests -p "test_*.py"
 
 # Engine

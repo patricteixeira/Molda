@@ -2,7 +2,7 @@
 
 ## Versões suportadas
 
-Enquanto o Molda estiver na linha `0.1.x`, somente a versão mais recente recebe
+Enquanto o Molda estiver na linha `0.2.x`, somente a versão mais recente recebe
 correções de segurança. Versões `0.x` podem mudar contratos ainda não declarados
 estáveis; mudanças incompatíveis serão registradas no changelog.
 
@@ -23,7 +23,7 @@ correção e divulgação será combinado conforme severidade, possibilidade de
 exploração e disponibilidade de mitigação. Esse prazo é uma meta operacional,
 não um SLA comercial.
 
-## Fronteira operacional da v0.1
+## Fronteira operacional da v0.2
 
 A distribuição padrão é self-hosted, single-tenant e ligada a
 `127.0.0.1:8080`. O convite injetado pelo proxy identifica a instância, não
