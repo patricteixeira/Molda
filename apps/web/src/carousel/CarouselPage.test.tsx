@@ -91,6 +91,7 @@ it("mostra os modelos individuais compatíveis e permite escolher um por slide",
   }
   renderCarousel(fakeClient({ getKit: vi.fn(async () => [first, second]) }))
 
+  await user.click(await screen.findByRole("button", { name: /Todos/ }))
   await screen.findByRole("heading", { name: "Escolha qualquer modelo do kit" })
   expect(screen.getByText(/2 modelos compatíveis com este formato/)).toBeInTheDocument()
   expect(screen.getByRole("button", { name: "Usar Registro editorial" })).toBeInTheDocument()

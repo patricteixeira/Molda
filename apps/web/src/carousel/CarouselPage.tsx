@@ -22,6 +22,11 @@ import {
 import { Preview } from "../render/Preview"
 import { placeholderContent } from "../kit/placeholder"
 import { templateFamilyKey, templateFamilyLabel } from "../kit/templateFamilies"
+import {
+  recommendationIsBrandLed,
+  recommendedTemplateLayouts,
+  type TemplateCatalogMode,
+} from "../kit/templateRecommendations"
 
 const MIN_SLIDES = 3
 const MAX_SLIDES = 20
@@ -98,7 +103,9 @@ function withDefaultLayouts(
 ): CarouselSlideInput[] {
   const compatible = compatibleLayouts(layouts, profile)
   if (compatible.length === 0) return slides
-  const firstTemplateFamily = compatible.find((layout) => layout.templateRef)?.templateRef?.packageId
+  const recommended = recommendedTemplateLayouts(compatible)
+  const firstTemplateFamily = recommended.find((layout) => layout.templateRef)?.templateRef
+    ?.packageId
   const preferred = firstTemplateFamily
     ? compatible.filter((layout) => layout.templateRef?.packageId === firstTemplateFamily)
     : compatible
@@ -251,6 +258,7 @@ export function CarouselPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [familyFilter, setFamilyFilter] = useState("all")
+  const [catalogMode, setCatalogMode] = useState<TemplateCatalogMode>("recommended")
   const [uploadingImage, setUploadingImage] = useState(false)
   const [templateHoverPreview, setTemplateHoverPreview] =
     useState<TemplateHoverPreview | null>(null)
@@ -305,12 +313,19 @@ export function CarouselPage(): JSX.Element {
     () => compatibleLayouts(layouts, profile),
     [layouts, profile],
   )
+  const recommendedFormatLayouts = useMemo(
+    () => recommendedTemplateLayouts(formatLayouts),
+    [formatLayouts],
+  )
+  const brandLedRecommendations = recommendationIsBrandLed(recommendedFormatLayouts)
   const visibleLayouts = useMemo(
-    () =>
-      familyFilter === "all"
+    () => {
+      if (catalogMode === "recommended") return recommendedFormatLayouts
+      return familyFilter === "all"
         ? formatLayouts
-        : formatLayouts.filter((layout) => templateFamilyKey(layout) === familyFilter),
-    [familyFilter, formatLayouts],
+        : formatLayouts.filter((layout) => templateFamilyKey(layout) === familyFilter)
+    },
+    [catalogMode, familyFilter, formatLayouts, recommendedFormatLayouts],
   )
   const templateFamilies = useMemo(
     () =>
@@ -663,27 +678,56 @@ export function CarouselPage(): JSX.Element {
             <div className="carousel-template-heading">
               <div>
                 <p className="product-kicker">Composição do slide</p>
-                <h3 id="carousel-template-title">Escolha qualquer modelo do kit</h3>
+                <h3 id="carousel-template-title">
+                  {catalogMode === "recommended"
+                    ? "Comece pelos modelos que combinam com a marca"
+                    : "Escolha qualquer modelo do kit"}
+                </h3>
                 <p>
-                  {formatLayouts.length} modelos compatíveis com este formato. A escolha vale para
-                  o slide atual; você também pode aplicar a família inteira à sequência.
+                  {catalogMode === "recommended"
+                    ? brandLedRecommendations
+                      ? "Estas sugestões cruzam a linguagem encontrada no manual com a estrutura de cada modelo."
+                      : "Como o manual ainda traz poucos sinais, começamos por direções variadas."
+                    : `${formatLayouts.length} modelos compatíveis com este formato. A escolha vale para o slide atual; você também pode aplicar a família inteira à sequência.`}
                 </p>
               </div>
-              <label>
-                <span>Família</span>
-                <select
-                  aria-label="Família de templates"
-                  value={familyFilter}
-                  onChange={(event) => setFamilyFilter(event.currentTarget.value)}
-                >
-                  <option value="all">Todas as famílias</option>
-                  {templateFamilies.map((family) => (
-                    <option key={family} value={family}>
-                      {templateFamilyLabel(family)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="carousel-template-controls">
+                <div className="template-catalog-switch" aria-label="Abrangência do catálogo">
+                  <button
+                    type="button"
+                    aria-pressed={catalogMode === "recommended"}
+                    onClick={() => setCatalogMode("recommended")}
+                  >
+                    Sugestões
+                    <span>{recommendedFormatLayouts.length}</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={catalogMode === "all"}
+                    onClick={() => setCatalogMode("all")}
+                  >
+                    Todos
+                    <span>{formatLayouts.length}</span>
+                  </button>
+                </div>
+                {catalogMode === "all" ? (
+                  <label>
+                    <span>Família</span>
+                    <select
+                      aria-label="Família de templates"
+                      value={familyFilter}
+                      onChange={(event) => setFamilyFilter(event.currentTarget.value)}
+                    >
+                      <option value="all">Todas as famílias</option>
+                      {templateFamilies.map((family) => (
+                        <option key={family} value={family}>
+                          {templateFamilyLabel(family)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
             </div>
             <div className="carousel-template-grid" aria-label="Modelos disponíveis">
               {visibleLayouts.map((layout) => {
@@ -721,6 +765,11 @@ export function CarouselPage(): JSX.Element {
                     <span className="carousel-template-caption">
                       <strong>{layout.namePt}</strong>
                       <small>{templateFamilyLabel(templateFamilyKey(layout))}</small>
+                      {catalogMode === "recommended" && layout.recommendationReasonPt ? (
+                        <small className="carousel-template-reason">
+                          {layout.recommendationReasonPt}
+                        </small>
+                      ) : null}
                     </span>
                   </button>
                 )
@@ -750,6 +799,9 @@ export function CarouselPage(): JSX.Element {
                   <small>
                     {templateFamilyLabel(templateFamilyKey(templateHoverPreview.layout))}
                   </small>
+                  {templateHoverPreview.layout.recommendationReasonPt ? (
+                    <small>{templateHoverPreview.layout.recommendationReasonPt}</small>
+                  ) : null}
                 </span>
               </aside>
             ) : null}

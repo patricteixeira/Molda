@@ -43,7 +43,7 @@ it("mantém os fluxos de carrossel e Word antes da biblioteca de peças", async 
     name: "Quando uma peça precisa virar sequência.",
   })
   const libraryHeading = screen.getByRole("heading", {
-    name: "Escolha uma composição. Depois faça dela a sua peça.",
+    name: "Comece pelas composições que conversam com esta marca.",
   })
 
   expect(
@@ -199,6 +199,7 @@ it("coloca famílias versionadas primeiro e identifica sua versão", async () =>
     }),
   )
 
+  await userEvent.click(await screen.findByRole("button", { name: /Todos os modelos/ }))
   const cards = await screen.findAllByTestId("kit-card")
   expect(cards[0]).toHaveAttribute("data-layout-id", editorial.id)
   expect(screen.getByText("Tipográfico editorial · v1.0.0")).toBeInTheDocument()
@@ -214,6 +215,24 @@ it("coloca famílias versionadas primeiro e identifica sua versão", async () =>
   expect(screen.getByText("Produto e campanha · v1.0.0")).toBeInTheDocument()
   expect(screen.getByText("Dados e evidências · v1.0.0")).toBeInTheDocument()
   expect(screen.getByText("Mockup de dispositivo · v1.0.0")).toBeInTheDocument()
+})
+
+it("prioriza sugestões explicadas e mantém o catálogo inteiro disponível", async () => {
+  const recommended = fakeStatementLayout()
+  recommended.recommendationRank = 1
+  recommended.recommendationBasis = "brand"
+  recommended.recommendationReasonPt =
+    "Organiza a informação com precisão. A leitura do manual aponta para uma expressão geométrica."
+  const other = fakeQuoteLayout()
+  renderKit(fakeClient({ getKit: vi.fn(async () => [other, recommended]) }))
+
+  const cards = await screen.findAllByTestId("kit-card")
+  expect(cards).toHaveLength(1)
+  expect(cards[0]).toHaveAttribute("data-layout-id", recommended.id)
+  expect(screen.getByText(/A leitura do manual aponta/)).toBeInTheDocument()
+
+  await userEvent.click(screen.getByRole("button", { name: /Todos os modelos/ }))
+  expect(await screen.findAllByTestId("kit-card")).toHaveLength(2)
 })
 
 it("clicar num layout abre o editor daquele layout", async () => {

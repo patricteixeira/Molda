@@ -35,6 +35,11 @@ confirmada e mantém as 20 opções acessíveis por família. Escolher fora da
 recomendação não gera bloqueio. Todos os padrões são locais, procedurais e
 preservados nas exportações compatíveis.
 
+Kit e Carrossel aplicam a mesma regra ao catálogo de composições: mostram oito
+sugestões explicadas pela direção confirmada e deixam o catálogo completo a um
+clique. Sem direção suficiente, a interface assume explicitamente uma seleção
+exploratória em vez de fingir personalização.
+
 - `/marcas/{revisionId}/carrossel`: cria sequências de 3 a 20 slides, organiza
   capa, conteúdo e fechamento, reabre carrosséis salvos e leva cada slide ao
   editor completo sem quebrar a continuidade.

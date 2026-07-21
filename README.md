@@ -127,6 +127,12 @@ O catálogo de vinte texturas recomenda opções pela direção confirmada sem
 esconder nenhuma alternativa. Sua portabilidade e seus limites estão no
 [`ADR 0016`](docs/adr/0016-catalogo-aberto-de-texturas-procedurais.md).
 
+O mesmo princípio organiza o catálogo autoral de composições. Kit e Carrossel
+abrem com oito sugestões explicadas, escolhidas localmente a partir de energia,
+formalidade, densidade, geometria, superfície e contraste confirmados da marca.
+A pessoa pode alternar para todos os modelos a qualquer momento; recomendação é
+um ponto de partida, não uma restrição.
+
 ## Fluxos recorrentes
 
 Além da edição de uma peça por vez, o kit oferece dois fluxos pensados para o
@@ -135,6 +141,8 @@ trabalho semanal:
 - **Modo Carrossel:** a pessoa escolhe de 3 a 20 slides e constrói uma sequência
   com capa, conteúdo e fechamento. Cada slide pode usar qualquer composição
   compatível, ser editado por inteiro e voltar à sequência sem perder ajustes.
+  As mesmas oito sugestões do Kit aparecem primeiro, e a família melhor
+  classificada inicia a sequência.
 - **Aplicar marca ao Word:** um `.docx` existente é analisado antes de qualquer
   mudança. Depois do consentimento, o worker cria uma nova cópia editável com
   estilos, hierarquia, margens, tabelas e logo da marca, preservando texto e

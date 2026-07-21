@@ -28,12 +28,17 @@ from brand_runtime.templates.quality import (
     evaluate_template_package,
     structural_signature,
 )
+from brand_runtime.templates.recommendations import (
+    TemplateRecommendation,
+    recommend_template_layouts,
+)
 
 __all__ = [
     "ExportSupport",
     "TemplateComposition",
     "TemplateEvaluation",
     "TemplatePackage",
+    "TemplateRecommendation",
     "generate_template_layouts",
     "constructivist_dynamics_package",
     "data_evidence_package",
@@ -44,6 +49,7 @@ __all__ = [
     "kinetic_typography_package",
     "minimal_luxury_package",
     "product_campaign_package",
+    "recommend_template_layouts",
     "TemplateQualityReport",
     "evaluate_template_package",
     "structural_signature",

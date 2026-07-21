@@ -11,12 +11,13 @@ from brand_runtime import (
     generate_carousel_layouts,
     generate_template_layouts,
 )
+from brand_runtime.templates import recommend_template_layouts
 
 _CAROUSEL_LAYOUT_ID = re.compile(r"^carousel-(?:cover|content-[ab]|closing)-(post-1x1|post-4x5)$")
 
 
 def public_kit(revision: BrandRevision) -> list[dict]:
-    """Sobrepõe templates versionados sem reescrever o snapshot persistido."""
+    """Sobrepõe templates versionados e prioriza sugestões sem alterar o snapshot."""
     persisted = list(revision.kit)
     known_ids = {
         item.get("id")
@@ -24,12 +25,33 @@ def public_kit(revision: BrandRevision) -> list[dict]:
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
     ir = revision_brand_ir(revision)
-    additions = [
-        layout.model_dump(mode="json", by_alias=True)
-        for layout in generate_template_layouts(ir)
-        if layout.id not in known_ids
+    generated = [layout for layout in generate_template_layouts(ir) if layout.id not in known_ids]
+    additions = [layout.model_dump(mode="json", by_alias=True) for layout in generated]
+    public = [*persisted, *additions]
+    candidates: list[LayoutSpec] = []
+    for item in public:
+        try:
+            candidates.append(LayoutSpec.model_validate(item))
+        except (TypeError, ValueError):
+            continue
+    recommendations = {
+        item.layout_id: item for item in recommend_template_layouts(ir, candidates, limit=8)
+    }
+    return [
+        {
+            **item,
+            **(
+                {
+                    "recommendationRank": recommendation.rank,
+                    "recommendationReasonPt": recommendation.reason_pt,
+                    "recommendationBasis": recommendation.basis,
+                }
+                if (recommendation := recommendations.get(item.get("id"))) is not None
+                else {}
+            ),
+        }
+        for item in public
     ]
-    return [*persisted, *additions]
 
 
 def resolve_layout(revision: BrandRevision, layout_id: str) -> LayoutSpec | None:

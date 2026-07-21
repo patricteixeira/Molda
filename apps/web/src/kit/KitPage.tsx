@@ -9,6 +9,11 @@ import { materializeContentLayout } from "../editor/contentLayout"
 import { Preview } from "../render/Preview"
 import { placeholderContent } from "./placeholder"
 import { templateFamilyLabel } from "./templateFamilies"
+import {
+  recommendationIsBrandLed,
+  recommendedTemplateLayouts,
+  type TemplateCatalogMode,
+} from "./templateRecommendations"
 
 interface KitState {
   brandIr: BrandIr
@@ -21,6 +26,7 @@ export function KitPage(): JSX.Element {
   const [kit, setKit] = useState<KitState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [catalogMode, setCatalogMode] = useState<TemplateCatalogMode>("recommended")
 
   useEffect(() => {
     let active = true
@@ -99,6 +105,9 @@ export function KitPage(): JSX.Element {
   const orderedLayouts = [...kit.layouts].sort(
     (left, right) => Number(right.templateRef != null) - Number(left.templateRef != null),
   )
+  const recommendedLayouts = recommendedTemplateLayouts(orderedLayouts)
+  const visibleLayouts = catalogMode === "recommended" ? recommendedLayouts : orderedLayouts
+  const brandLedRecommendations = recommendationIsBrandLed(recommendedLayouts)
 
   return (
     <main
@@ -161,18 +170,44 @@ export function KitPage(): JSX.Element {
 
         <section className="kit-library-heading" aria-labelledby="kit-library-title">
           <p className="panel-kicker">Peças individuais</p>
-          <h2 id="kit-library-title">Escolha uma composição. Depois faça dela a sua peça.</h2>
+          <h2 id="kit-library-title">
+            {catalogMode === "recommended"
+              ? "Comece pelas composições que conversam com esta marca."
+              : "Escolha qualquer composição. Depois faça dela a sua peça."}
+          </h2>
           <p>
-            Texto, imagem, logo, assinatura e formas continuam separados e editáveis.
+            {catalogMode === "recommended"
+              ? brandLedRecommendations
+                ? "O Molda cruzou o tom, a energia e a estrutura encontrados no manual. Você ainda pode abrir o catálogo inteiro."
+                : "Ainda há poucos sinais no manual, então começamos por direções variadas. Você pode abrir o catálogo inteiro."
+              : "Texto, imagem, logo, assinatura e formas continuam separados e editáveis."}
           </p>
+          <div className="template-catalog-switch" aria-label="Abrangência do catálogo">
+            <button
+              type="button"
+              aria-pressed={catalogMode === "recommended"}
+              onClick={() => setCatalogMode("recommended")}
+            >
+              Sugestões para a marca
+              <span>{recommendedLayouts.length}</span>
+            </button>
+            <button
+              type="button"
+              aria-pressed={catalogMode === "all"}
+              onClick={() => setCatalogMode("all")}
+            >
+              Todos os modelos
+              <span>{orderedLayouts.length}</span>
+            </button>
+          </div>
         </section>
 
         <div
           className="kit-grid"
-          data-layout-count={kit.layouts.length}
+          data-layout-count={visibleLayouts.length}
           aria-label="Modelos disponíveis"
         >
-          {orderedLayouts.map((layout) => {
+          {visibleLayouts.map((layout) => {
             const sample = placeholderContent(layout, revisionId, kit.brandIr)
             return (
               <Link
@@ -201,6 +236,9 @@ export function KitPage(): JSX.Element {
                     </span>
                   ) : null}
                   <span>{layout.namePt}</span>
+                  {catalogMode === "recommended" && layout.recommendationReasonPt ? (
+                    <span className="kit-card-reason">{layout.recommendationReasonPt}</span>
+                  ) : null}
                   <span className="kit-card-action">Editar peça →</span>
                 </span>
                 <span className="kit-card-meta">

@@ -18,6 +18,9 @@ release pública.
   geometria, ordem, visibilidade, logos, imagens, formas e superfícies.
 - OCR local para PDFs achatados ou digitalizados e tradução local de manuais em
   inglês para PT-BR, preservando o texto original e sem API externa paga.
+- Recomendação local e explicável de oito composições a partir da direção
+  confirmada da marca, compartilhada pelo Kit e pelo Modo Carrossel sem ocultar
+  o catálogo completo.
 
 ### Alterado
 
@@ -27,6 +30,9 @@ release pública.
   interface pergunta somente o que não pôde ser sustentado pelos materiais.
 - O carrossel e as peças individuais usam a paleta completa e todas as variantes
   de logo preservadas no Brand IR, com escolha manual disponível na edição.
+- Kit e Carrossel passam a abrir pelas famílias mais coerentes com linguagem,
+  densidade, energia, formalidade, superfície e geometria do manual; cada
+  sugestão informa em linguagem simples por que foi priorizada.
 
 ### Corrigido
 

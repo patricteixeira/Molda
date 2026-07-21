@@ -2939,11 +2939,55 @@ textarea:disabled {
   line-height: 0.9;
 }
 
-.kit-library-heading > p:last-child {
+.kit-library-heading > p {
   margin: 0;
   color: var(--m-graphite);
   font-size: 0.8rem;
   line-height: 1.5;
+}
+
+.template-catalog-switch {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, auto));
+  border: var(--m-rule-solid);
+  background: var(--m-sheet);
+}
+
+.template-catalog-switch button {
+  display: inline-flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.55rem;
+  border: 0;
+  border-right: var(--m-rule-solid);
+  padding: 0.6rem 0.8rem;
+  background: transparent;
+  color: var(--m-ink);
+  font-family: var(--m-mono);
+  font-size: 0.62rem;
+  font-weight: 650;
+}
+
+.template-catalog-switch button:last-child {
+  border-right: 0;
+}
+
+.template-catalog-switch button[aria-pressed="true"] {
+  background: var(--m-ink);
+  color: var(--m-sheet);
+}
+
+.template-catalog-switch button span {
+  min-width: 1.5rem;
+  border: 1px solid currentColor;
+  padding: 0.1rem 0.3rem;
+  text-align: center;
+}
+
+.kit-library-heading > .template-catalog-switch {
+  grid-column: 1 / -1;
+  justify-self: start;
 }
 
 .kit-workflows {
@@ -3145,6 +3189,16 @@ textarea:disabled {
   font-size: 0.58rem;
   font-weight: 400;
   text-transform: none;
+}
+
+.kit-card-caption .kit-card-reason {
+  max-width: 38rem;
+  margin-top: 0.35rem;
+  color: var(--m-graphite);
+  font-family: var(--m-sans);
+  font-size: 0.68rem;
+  font-weight: 430;
+  line-height: 1.45;
 }
 
 /* Campaign is a connected production line. */
@@ -4581,6 +4635,16 @@ textarea:disabled {
   color: var(--m-ink);
 }
 
+.carousel-template-controls {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: stretch;
+}
+
+.carousel-template-controls .template-catalog-switch {
+  width: 100%;
+}
+
 .carousel-template-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
@@ -4685,6 +4749,13 @@ textarea:disabled {
   white-space: nowrap;
 }
 
+.carousel-template-hover-caption small:last-child:not(:first-child) {
+  grid-column: 1 / -1;
+  line-height: 1.4;
+  text-transform: none;
+  white-space: normal;
+}
+
 .carousel-template-caption {
   display: grid;
   gap: 0.25rem;
@@ -4704,6 +4775,14 @@ textarea:disabled {
   font-family: var(--m-mono);
   font-size: 0.52rem;
   text-transform: uppercase;
+}
+
+.carousel-template-caption .carousel-template-reason {
+  margin-top: 0.25rem;
+  font-family: var(--m-sans);
+  font-size: 0.58rem;
+  line-height: 1.35;
+  text-transform: none;
 }
 
 .carousel-template-actions {

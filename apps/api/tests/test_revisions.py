@@ -58,6 +58,14 @@ def test_get_kit_com_templates_principais_e_alternativos(client, compiled):
     assert len(kit) == 88
     assert len({layout["id"] for layout in kit}) == 88
     assert all("canvas" in layout and "slots" in layout for layout in kit)
+    recommendations = [layout for layout in kit if "recommendationRank" in layout]
+    assert len(recommendations) == 8
+    assert sorted(layout["recommendationRank"] for layout in recommendations) == list(range(1, 9))
+    assert all(layout["recommendationReasonPt"] for layout in recommendations)
+    assert {layout["recommendationBasis"] for layout in recommendations} <= {
+        "brand",
+        "exploratory",
+    }
 
 
 def test_catalogo_versionado_aparece_em_revisao_legada_sem_mudar_snapshot(client, compiled):

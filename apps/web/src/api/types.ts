@@ -209,6 +209,9 @@ export interface LayoutSpec {
   lockedLayers?: LockedLayer[]
   templateRef?: TemplateRef | null
   sceneGraph?: SceneGraph | null
+  recommendationRank?: number | null
+  recommendationReasonPt?: string | null
+  recommendationBasis?: "brand" | "exploratory" | null
 }
 
 export interface TemplateRef {
