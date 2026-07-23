@@ -1,0 +1,317 @@
+{
+  "$defs": {
+    "TemplateFamilyMatch": {
+      "additionalProperties": false,
+      "description": "Família vizinha e componentes explicáveis da pontuação.",
+      "properties": {
+        "familyId": {
+          "maxLength": 96,
+          "minLength": 2,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Familyid",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Score",
+          "type": "number"
+        },
+        "axisSimilarity": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Axissimilarity",
+          "type": "number"
+        },
+        "compositionOverlap": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Compositionoverlap",
+          "type": "number"
+        },
+        "surfaceOverlap": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Surfaceoverlap",
+          "type": "number"
+        }
+      },
+      "required": [
+        "familyId",
+        "score",
+        "axisSimilarity",
+        "compositionOverlap",
+        "surfaceOverlap"
+      ],
+      "title": "TemplateFamilyMatch",
+      "type": "object"
+    },
+    "TemplatePreviewEvidence": {
+      "additionalProperties": false,
+      "description": "Evidência raster determinística usada na comparação estrutural.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "mediaType": {
+          "enum": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ],
+          "title": "Mediatype",
+          "type": "string"
+        },
+        "widthPx": {
+          "exclusiveMinimum": 0,
+          "title": "Widthpx",
+          "type": "integer"
+        },
+        "heightPx": {
+          "exclusiveMinimum": 0,
+          "title": "Heightpx",
+          "type": "integer"
+        },
+        "aspectRatio": {
+          "exclusiveMinimum": 0.0,
+          "title": "Aspectratio",
+          "type": "number"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "differenceHash": {
+          "pattern": "^[0-9a-f]{16}$",
+          "title": "Differencehash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "mediaType",
+        "widthPx",
+        "heightPx",
+        "aspectRatio",
+        "sha256",
+        "differenceHash"
+      ],
+      "title": "TemplatePreviewEvidence",
+      "type": "object"
+    },
+    "TemplateReferenceAssessment": {
+      "additionalProperties": false,
+      "description": "Classificação de triagem, nunca autorização de promoção.",
+      "properties": {
+        "referenceId": {
+          "maxLength": 96,
+          "minLength": 2,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Referenceid",
+          "type": "string"
+        },
+        "titlePt": {
+          "maxLength": 500,
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Titlept",
+          "type": "string"
+        },
+        "intent": {
+          "enum": [
+            "reference",
+            "holdout",
+            "negative-control"
+          ],
+          "title": "Intent",
+          "type": "string"
+        },
+        "preview": {
+          "$ref": "#/$defs/TemplatePreviewEvidence"
+        },
+        "disposition": {
+          "enum": [
+            "needs-annotation",
+            "negative-control",
+            "redundant",
+            "family-variant",
+            "new-composition",
+            "family-gap"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "nearestFamily": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemplateFamilyMatch"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "duplicateOf": {
+          "anyOf": [
+            {
+              "maxLength": 96,
+              "minLength": 2,
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duplicateof"
+        },
+        "findingsPt": {
+          "items": {
+            "maxLength": 500,
+            "minLength": 1,
+            "pattern": ".*\\S.*",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Findingspt",
+          "type": "array"
+        }
+      },
+      "required": [
+        "referenceId",
+        "titlePt",
+        "intent",
+        "preview",
+        "disposition",
+        "findingsPt"
+      ],
+      "title": "TemplateReferenceAssessment",
+      "type": "object"
+    },
+    "TemplateSimilarityPair": {
+      "additionalProperties": false,
+      "description": "Relação visual suspeita entre duas referências.",
+      "properties": {
+        "leftReferenceId": {
+          "maxLength": 96,
+          "minLength": 2,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Leftreferenceid",
+          "type": "string"
+        },
+        "rightReferenceId": {
+          "maxLength": 96,
+          "minLength": 2,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "title": "Rightreferenceid",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "exact-duplicate",
+            "structural-near-duplicate"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "structuralSimilarity": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Structuralsimilarity",
+          "type": "number"
+        }
+      },
+      "required": [
+        "leftReferenceId",
+        "rightReferenceId",
+        "kind",
+        "structuralSimilarity"
+      ],
+      "title": "TemplateSimilarityPair",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Recibo determinístico e exclusivamente orientado à revisão humana.",
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "status": {
+      "const": "ready-for-review",
+      "default": "ready-for-review",
+      "title": "Status",
+      "type": "string"
+    },
+    "promotionPolicy": {
+      "const": "manual-review-required",
+      "default": "manual-review-required",
+      "title": "Promotionpolicy",
+      "type": "string"
+    },
+    "corpusId": {
+      "maxLength": 96,
+      "minLength": 2,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "title": "Corpusid",
+      "type": "string"
+    },
+    "titlePt": {
+      "maxLength": 500,
+      "minLength": 1,
+      "pattern": ".*\\S.*",
+      "title": "Titlept",
+      "type": "string"
+    },
+    "referenceCount": {
+      "maximum": 200,
+      "minimum": 1,
+      "title": "Referencecount",
+      "type": "integer"
+    },
+    "totalBytes": {
+      "minimum": 0,
+      "title": "Totalbytes",
+      "type": "integer"
+    },
+    "corpusSha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Corpussha256",
+      "type": "string"
+    },
+    "assessments": {
+      "items": {
+        "$ref": "#/$defs/TemplateReferenceAssessment"
+      },
+      "maxItems": 200,
+      "minItems": 1,
+      "title": "Assessments",
+      "type": "array"
+    },
+    "similarityPairs": {
+      "items": {
+        "$ref": "#/$defs/TemplateSimilarityPair"
+      },
+      "title": "Similaritypairs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "corpusId",
+    "titlePt",
+    "referenceCount",
+    "totalBytes",
+    "corpusSha256",
+    "assessments"
+  ],
+  "title": "TemplateCorpusReport",
+  "type": "object"
+}

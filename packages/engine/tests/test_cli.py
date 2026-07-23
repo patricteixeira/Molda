@@ -172,6 +172,9 @@ def test_schemas_exports_all_published_contracts(tmp_path):
         "docx-brand-result.schema.json",
         "brand-package.schema.json",
         "package-validation-report.schema.json",
+        "template-corpus-manifest.schema.json",
+        "template-reference.schema.json",
+        "template-corpus-report.schema.json",
     }
     assert {path.name for path in out_dir.glob("*.json")} == schema_names
     assert (out_dir / "LICENSE").read_bytes() == license_bytes
@@ -230,6 +233,7 @@ def test_extract_rejects_missing_package_and_help_lists_commands(tmp_path):
         "docx-brand-plan",
         "docx-brand-apply",
         "package-validate",
+        "template-corpus-audit",
     ):
         assert command in help_result.stdout
 
@@ -254,6 +258,10 @@ def test_master_api_is_exported_from_package_root():
         "validate_brand_package",
         "BrandPackageManifest",
         "PackageValidationReport",
+        "audit_template_corpus",
+        "TemplateCorpusManifest",
+        "TemplateCorpusReport",
+        "TemplateReferenceManifest",
     ):
         assert name in brand_runtime.__all__
         assert callable(getattr(brand_runtime, name)) or name in {"GuardCheck", "GuardVerdict"}

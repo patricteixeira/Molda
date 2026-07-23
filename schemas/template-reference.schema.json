@@ -1,0 +1,380 @@
+{
+  "$defs": {
+    "TemplateCorpusProvenance": {
+      "additionalProperties": false,
+      "description": "Autoria e permissão de uso de uma referência.",
+      "properties": {
+        "author": {
+          "maxLength": 500,
+          "minLength": 1,
+          "pattern": ".*\\S.*",
+          "title": "Author",
+          "type": "string"
+        },
+        "ownership": {
+          "enum": [
+            "authored",
+            "licensed",
+            "public-reference",
+            "unknown"
+          ],
+          "title": "Ownership",
+          "type": "string"
+        },
+        "usagePolicy": {
+          "enum": [
+            "project-internal",
+            "derivative-authoring",
+            "analysis-only"
+          ],
+          "title": "Usagepolicy",
+          "type": "string"
+        },
+        "licenseId": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Licenseid"
+        },
+        "sourceUrl": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "pattern": "^https?://[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourceurl"
+        },
+        "notesPt": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notespt"
+        }
+      },
+      "required": [
+        "author",
+        "ownership",
+        "usagePolicy"
+      ],
+      "title": "TemplateCorpusProvenance",
+      "type": "object"
+    },
+    "TemplateGrammar": {
+      "additionalProperties": false,
+      "description": "Leitura humana da gramática; o auditor apenas compara o declarado.",
+      "properties": {
+        "axes": {
+          "$ref": "#/$defs/TemplateGrammarAxes"
+        },
+        "compositions": {
+          "items": {
+            "enum": [
+              "contemplative",
+              "asymmetric",
+              "modular",
+              "expansive",
+              "layered"
+            ],
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 1,
+          "title": "Compositions",
+          "type": "array"
+        },
+        "surfaces": {
+          "items": {
+            "enum": [
+              "none",
+              "paper-grain",
+              "linear-rhythm",
+              "technical-grid",
+              "point-field",
+              "concentric-rings"
+            ],
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Surfaces",
+          "type": "array"
+        },
+        "hierarchy": {
+          "enum": [
+            "type-led",
+            "image-led",
+            "balanced",
+            "data-led",
+            "device-led"
+          ],
+          "title": "Hierarchy",
+          "type": "string"
+        },
+        "alignment": {
+          "enum": [
+            "grid",
+            "axial",
+            "free",
+            "layered"
+          ],
+          "title": "Alignment",
+          "type": "string"
+        },
+        "slotRoles": {
+          "items": {
+            "maxLength": 500,
+            "minLength": 1,
+            "pattern": ".*\\S.*",
+            "type": "string"
+          },
+          "maxItems": 24,
+          "minItems": 1,
+          "title": "Slotroles",
+          "type": "array"
+        },
+        "negativeSpace": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Negativespace",
+          "type": "number"
+        }
+      },
+      "required": [
+        "axes",
+        "compositions",
+        "surfaces",
+        "hierarchy",
+        "alignment",
+        "slotRoles",
+        "negativeSpace"
+      ],
+      "title": "TemplateGrammar",
+      "type": "object"
+    },
+    "TemplateGrammarAxes": {
+      "additionalProperties": false,
+      "description": "Seis eixos contínuos compartilhados com a direção criativa.",
+      "properties": {
+        "energy": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Energy",
+          "type": "number"
+        },
+        "geometry": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Geometry",
+          "type": "number"
+        },
+        "density": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Density",
+          "type": "number"
+        },
+        "formality": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Formality",
+          "type": "number"
+        },
+        "materiality": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Materiality",
+          "type": "number"
+        },
+        "contrast": {
+          "maximum": 1.0,
+          "minimum": -1.0,
+          "title": "Contrast",
+          "type": "number"
+        }
+      },
+      "required": [
+        "energy",
+        "geometry",
+        "density",
+        "formality",
+        "materiality",
+        "contrast"
+      ],
+      "title": "TemplateGrammarAxes",
+      "type": "object"
+    },
+    "TemplateReferenceFile": {
+      "additionalProperties": false,
+      "description": "Arquivo declarado, sem permissão implícita para execução.",
+      "properties": {
+        "path": {
+          "maxLength": 240,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "preview",
+            "source",
+            "license"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "mediaType": {
+          "enum": [
+            "image/png",
+            "image/jpeg",
+            "image/webp",
+            "image/svg+xml",
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/json",
+            "text/html",
+            "text/css",
+            "text/markdown",
+            "text/plain"
+          ],
+          "title": "Mediatype",
+          "type": "string"
+        },
+        "size": {
+          "maximum": 209715200,
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "role",
+        "mediaType",
+        "size",
+        "sha256"
+      ],
+      "title": "TemplateReferenceFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Manifesto autocontido de uma referência em quarentena.",
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 96,
+      "minLength": 2,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "titlePt": {
+      "maxLength": 500,
+      "minLength": 1,
+      "pattern": ".*\\S.*",
+      "title": "Titlept",
+      "type": "string"
+    },
+    "intent": {
+      "default": "reference",
+      "enum": [
+        "reference",
+        "holdout",
+        "negative-control"
+      ],
+      "title": "Intent",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/TemplateCorpusProvenance"
+    },
+    "purposes": {
+      "items": {
+        "maxLength": 500,
+        "minLength": 1,
+        "pattern": ".*\\S.*",
+        "type": "string"
+      },
+      "maxItems": 12,
+      "minItems": 1,
+      "title": "Purposes",
+      "type": "array"
+    },
+    "profiles": {
+      "items": {
+        "enum": [
+          "post-1x1",
+          "post-4x5",
+          "story-9x16",
+          "doc-a4"
+        ],
+        "type": "string"
+      },
+      "maxItems": 4,
+      "minItems": 1,
+      "title": "Profiles",
+      "type": "array"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/TemplateReferenceFile"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Files",
+      "type": "array"
+    },
+    "grammar": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TemplateGrammar"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "titlePt",
+    "provenance",
+    "purposes",
+    "profiles",
+    "files"
+  ],
+  "title": "TemplateReferenceManifest",
+  "type": "object"
+}

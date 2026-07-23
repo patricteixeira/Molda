@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "description": "Índice mínimo do corpus; cada item conserva seu próprio contrato.",
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1.0",
+      "title": "Schemaversion",
+      "type": "string"
+    },
+    "id": {
+      "maxLength": 96,
+      "minLength": 2,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "title": "Id",
+      "type": "string"
+    },
+    "titlePt": {
+      "maxLength": 500,
+      "minLength": 1,
+      "pattern": ".*\\S.*",
+      "title": "Titlept",
+      "type": "string"
+    },
+    "owner": {
+      "maxLength": 500,
+      "minLength": 1,
+      "pattern": ".*\\S.*",
+      "title": "Owner",
+      "type": "string"
+    },
+    "references": {
+      "items": {
+        "maxLength": 240,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 200,
+      "minItems": 1,
+      "title": "References",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "titlePt",
+    "owner",
+    "references"
+  ],
+  "title": "TemplateCorpusManifest",
+  "type": "object"
+}

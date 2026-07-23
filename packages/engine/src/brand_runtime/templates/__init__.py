@@ -29,12 +29,15 @@ from brand_runtime.templates.quality import (
     structural_signature,
 )
 from brand_runtime.templates.recommendations import (
+    FamilyProfile,
     TemplateRecommendation,
+    family_profiles,
     recommend_template_layouts,
 )
 
 __all__ = [
     "ExportSupport",
+    "FamilyProfile",
     "TemplateComposition",
     "TemplateEvaluation",
     "TemplatePackage",
@@ -45,6 +48,7 @@ __all__ = [
     "device_mockup_package",
     "editorial_collage_package",
     "fashion_editorial_package",
+    "family_profiles",
     "geometric_modernism_package",
     "kinetic_typography_package",
     "minimal_luxury_package",

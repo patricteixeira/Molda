@@ -44,6 +44,7 @@ from brand_runtime.roundtrip.docx import (
 from brand_runtime.roundtrip.lint import RoundtripReport, lint_roundtrip
 from brand_runtime.roundtrip.models import DocumentGraph
 from brand_runtime.roundtrip.pptx import PptxParseError, parse_pptx_document_graph
+from brand_runtime.template_corpus import TemplateCorpusError, audit_template_corpus
 
 app = typer.Typer(
     add_completion=False,
@@ -78,6 +79,7 @@ _EXPECTED_ERRORS = (
     RoundtripFixError,
     PackageValidationError,
     DocxBrandError,
+    TemplateCorpusError,
 )
 
 
@@ -89,6 +91,24 @@ def package_validate_command(
     """Confere o manifesto, o inventário e os hashes de um Brand Package 0.1."""
     try:
         report = validate_brand_package(package_dir)
+    except _EXPECTED_ERRORS as error:
+        _fail(error)
+    payload = _model_json(report)
+    if out is None:
+        typer.echo(payload, nl=False)
+        return
+    atomic_write_text(out, payload)
+    typer.echo(str(out))
+
+
+@app.command("template-corpus-audit")
+def template_corpus_audit_command(
+    corpus_dir: Path = typer.Argument(..., help="Diretório do Template Corpus 0.1."),
+    out: Path | None = typer.Option(None, "--out", help="Relatório JSON da auditoria."),
+) -> None:
+    """Valida, compara e classifica referências sem promover templates."""
+    try:
+        report = audit_template_corpus(corpus_dir)
     except _EXPECTED_ERRORS as error:
         _fail(error)
     payload = _model_json(report)
@@ -246,7 +266,14 @@ def _error_message(error: Exception) -> str:
     """Retorne uma mensagem PT-BR para uma falha operacional esperada."""
     if isinstance(
         error,
-        (CliInputError, CompileError, KitGenerationError, ExportError, PackageValidationError),
+        (
+            CliInputError,
+            CompileError,
+            KitGenerationError,
+            ExportError,
+            PackageValidationError,
+            TemplateCorpusError,
+        ),
     ):
         return str(error)
     if isinstance(error, ValidationError):
@@ -405,7 +432,7 @@ def schemas_command(
         if out_dir.exists() and not out_dir.is_dir():
             raise CliInputError(f"O destino «{out_dir}» não é um diretório.")
         paths = export_schemas(out_dir)
-        if len(paths) != 15:
+        if len(paths) != 18:
             raise CliInputError("A publicação de schemas não produziu os contratos esperados.")
     except _EXPECTED_ERRORS as error:
         _fail(error)

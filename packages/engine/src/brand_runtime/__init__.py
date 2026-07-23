@@ -52,6 +52,15 @@ from brand_runtime.roundtrip import (
     parse_pptx_document_graph,
 )
 from brand_runtime.style import StyleSystemIR, derive_style_system
+from brand_runtime.template_corpus import (
+    TemplateCorpusError,
+    TemplateCorpusManifest,
+    TemplateCorpusReport,
+    TemplateGrammar,
+    TemplateGrammarAxes,
+    TemplateReferenceManifest,
+    audit_template_corpus,
+)
 from brand_runtime.templates import (
     TemplatePackage,
     constructivist_dynamics_package,
@@ -99,11 +108,18 @@ __all__ = [
     "SceneGroup",
     "StyleSystemIR",
     "TemplatePackage",
+    "TemplateCorpusError",
+    "TemplateCorpusManifest",
+    "TemplateCorpusReport",
+    "TemplateGrammar",
+    "TemplateGrammarAxes",
+    "TemplateReferenceManifest",
     "TemplateRef",
     "analyze_docx_brand",
     "apply_creative_direction",
     "artifact_from_content_spec",
     "artifact_to_content_spec",
+    "audit_template_corpus",
     "apply_docx_brand_plan",
     "apply_pptx_fix_plan",
     "build_draft",

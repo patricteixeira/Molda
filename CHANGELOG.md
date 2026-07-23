@@ -6,6 +6,14 @@ release pública.
 
 ## [Não lançado]
 
+### Adicionado
+
+- Laboratório offline de referências de templates com proveniência, inventário
+  fechado, hashes, prévia raster segura, detecção de duplicatas e comparação
+  explicável com as treze famílias atuais.
+- Contratos públicos `Template Corpus 0.1` e comando
+  `template-corpus-audit`, sempre com promoção manual para o catálogo.
+
 ## [0.2.1] - 2026-07-23
 
 ### Corrigido

@@ -10,7 +10,9 @@ from brand_runtime.kit.models import LayoutSpec
 
 
 @dataclass(frozen=True)
-class _FamilyProfile:
+class FamilyProfile:
+    """Assinatura estrutural publicada de uma família do catálogo."""
+
     axes: tuple[float, float, float, float, float, float]
     compositions: frozenset[str]
     surfaces: frozenset[str]
@@ -28,90 +30,90 @@ class TemplateRecommendation:
     basis: Literal["brand", "exploratory"]
 
 
-_FAMILY_PROFILES: dict[str, _FamilyProfile] = {
-    "typographic-editorial": _FamilyProfile(
+_FAMILY_PROFILES: dict[str, FamilyProfile] = {
+    "typographic-editorial": FamilyProfile(
         (0.10, 0.10, -0.20, 0.35, -0.10, 0.35),
         frozenset({"asymmetric", "contemplative", "expansive"}),
         frozenset({"none", "paper-grain"}),
         "Cria hierarquia forte só com tipografia e respiro.",
     ),
-    "typographic-brutalist": _FamilyProfile(
+    "typographic-brutalist": FamilyProfile(
         (0.90, 0.50, 0.50, 0.10, 0.20, 1.00),
         frozenset({"expansive", "layered"}),
         frozenset({"linear-rhythm", "technical-grid"}),
         "Dá impacto direto à mensagem com escala e contraste assumidos.",
         frozenset({0, 5}),
     ),
-    "swiss-system": _FamilyProfile(
+    "swiss-system": FamilyProfile(
         (-0.10, 0.90, -0.50, 0.80, 0.20, 0.35),
         frozenset({"modular", "contemplative"}),
         frozenset({"technical-grid", "none"}),
         "Organiza a informação com precisão, ritmo e bastante legibilidade.",
         frozenset({1, 3}),
     ),
-    "geometric-modernism": _FamilyProfile(
+    "geometric-modernism": FamilyProfile(
         (0.45, 0.95, 0.10, 0.45, 0.10, 0.65),
         frozenset({"modular", "expansive"}),
         frozenset({"technical-grid", "concentric-rings"}),
         "Transforma geometria e cor em sinais claros da identidade.",
         frozenset({1}),
     ),
-    "kinetic-typography": _FamilyProfile(
+    "kinetic-typography": FamilyProfile(
         (1.00, 0.30, 0.55, -0.20, 0.20, 0.90),
         frozenset({"expansive", "layered"}),
         frozenset({"linear-rhythm", "point-field"}),
         "Constrói sensação de movimento sem sacrificar a leitura.",
         frozenset({0, 5}),
     ),
-    "constructivist-dynamics": _FamilyProfile(
+    "constructivist-dynamics": FamilyProfile(
         (0.85, 0.85, 0.55, 0.20, -0.10, 1.00),
         frozenset({"expansive", "layered"}),
         frozenset({"linear-rhythm", "technical-grid"}),
         "Usa tensão, diagonais e blocos para tornar a mensagem enfática.",
         frozenset({0, 1, 5}),
     ),
-    "fashion-editorial": _FamilyProfile(
+    "fashion-editorial": FamilyProfile(
         (0.20, 0.10, -0.15, 0.85, -0.30, 0.45),
         frozenset({"asymmetric", "contemplative"}),
         frozenset({"paper-grain", "none"}),
         "Equilibra sofisticação, imagem e tipografia com ritmo editorial.",
         frozenset({3}),
     ),
-    "minimal-luxury": _FamilyProfile(
+    "minimal-luxury": FamilyProfile(
         (-0.55, 0.20, -0.90, 0.90, -0.35, 0.20),
         frozenset({"contemplative", "asymmetric"}),
         frozenset({"none", "paper-grain"}),
         "Preserva silêncio visual, proporção e uma presença mais refinada.",
         frozenset({2}),
     ),
-    "editorial-collage": _FamilyProfile(
+    "editorial-collage": FamilyProfile(
         (0.35, -0.65, 0.90, -0.30, -1.00, 0.45),
         frozenset({"layered", "asymmetric"}),
         frozenset({"paper-grain", "point-field"}),
         "Combina camadas e materialidade para uma expressão mais humana.",
         frozenset({2}),
     ),
-    "technical-diagram": _FamilyProfile(
+    "technical-diagram": FamilyProfile(
         (0.05, 1.00, 0.20, 1.00, 0.60, 0.40),
         frozenset({"modular", "layered"}),
         frozenset({"technical-grid", "point-field"}),
         "Explica sistemas complexos com estrutura, precisão e rastreabilidade.",
         frozenset({1, 3}),
     ),
-    "product-campaign": _FamilyProfile(
+    "product-campaign": FamilyProfile(
         (0.45, 0.40, 0.10, 0.50, 0.10, 0.55),
         frozenset({"asymmetric", "expansive", "modular"}),
         frozenset({"none", "linear-rhythm"}),
         "Abre espaço para produto, benefício e chamada sem perder identidade.",
     ),
-    "data-evidence": _FamilyProfile(
+    "data-evidence": FamilyProfile(
         (0.10, 0.85, 0.25, 0.95, 0.65, 0.35),
         frozenset({"modular", "layered"}),
         frozenset({"technical-grid", "point-field"}),
         "Transforma números e evidências em uma narrativa visual confiável.",
         frozenset({1, 3}),
     ),
-    "device-mockup": _FamilyProfile(
+    "device-mockup": FamilyProfile(
         (0.25, 0.75, -0.05, 0.65, 1.00, 0.30),
         frozenset({"modular", "asymmetric"}),
         frozenset({"technical-grid", "none"}),
@@ -119,6 +121,12 @@ _FAMILY_PROFILES: dict[str, _FamilyProfile] = {
         frozenset({1, 4}),
     ),
 }
+
+
+def family_profiles() -> dict[str, FamilyProfile]:
+    """Retorna um snapshot raso das assinaturas usadas pela recomendação."""
+    return dict(_FAMILY_PROFILES)
+
 
 _AXIS_LABELS = (
     ("contida", "expansiva"),
@@ -175,7 +183,7 @@ def _axis_confidences(
     )
 
 
-def _score(direction: CreativeDirection, profile: _FamilyProfile) -> float:
+def _score(direction: CreativeDirection, profile: FamilyProfile) -> float:
     values = _axis_values(direction)
     confidences = _axis_confidences(direction)
     evidence_weight = sum(confidences)
@@ -222,7 +230,7 @@ def _score(direction: CreativeDirection, profile: _FamilyProfile) -> float:
     )
 
 
-def _reason(direction: CreativeDirection, profile: _FamilyProfile) -> str:
+def _reason(direction: CreativeDirection, profile: FamilyProfile) -> str:
     values = _axis_values(direction)
     confidences = _axis_confidences(direction)
     strongest = sorted(

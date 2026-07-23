@@ -44,6 +44,7 @@ brandrt extract PACKAGE_DIR --out draft.json
 brandrt compile draft.json answers.json --name "Nome da marca" --out ir.json
 brandrt kit ir.json --out-dir kit
 brandrt guard ir.json kit/statement-post-1x1.json content.json --assets-dir PACKAGE_DIR
+brandrt template-corpus-audit CORPUS_DIR --out template-corpus-report.json
 brandrt schemas --out-dir schemas
 brandrt export ir.json kit/statement-post-1x1.json content.json \
   --assets-dir PACKAGE_DIR --render-dist ../render/dist --out out/post.png
@@ -147,6 +148,22 @@ conjunto. Arquivo ausente, extra, adulterado, path não portável, symlink ou
 divergência entre role, diretório, extensão e media type retorna código `2`.
 O contrato e a fixture pública estão documentados em `docs/ecosystem/adapters.md`.
 
+### Laboratório de referências de templates
+
+Referências autorais ou licenciadas entram num corpus isolado antes de qualquer
+mudança no catálogo. O comando valida proveniência, inventário, hashes e a prévia
+raster, aponta duplicatas exatas ou estruturas possivelmente recoloridas e
+compara a gramática anotada com as famílias atuais:
+
+```bash
+brandrt template-corpus-audit ./meu-corpus --out template-corpus-report.json
+```
+
+Fontes HTML, CSS, JSON, SVG, PDF ou PPTX são preservadas como bytes e nunca
+executadas. O relatório exige revisão humana e não produz `TemplatePackage`.
+Formato, classificação e protocolo do primeiro lote estão em
+`../../docs/template-corpus.md`.
+
 Exemplo mínimo, partindo de um pacote em `./minha-marca`:
 
 ```bash
@@ -196,7 +213,7 @@ Todos os artefatos são UTF-8 sem BOM, camelCase, indentados com dois espaços e
 newline final. Escritas usam substituição atômica. `schemas` publica os contratos
 de Brand IR, Layout Spec, Content Spec, Guard Verdict, Document Graph, relatório
 de round-trip, Fix Plan, Fix Result, plano/resultado de marca em DOCX, Brand
-Package e recibo de validação.
+Package, recibo de validação e os três contratos do Template Corpus 0.1.
 
 ## API Python
 

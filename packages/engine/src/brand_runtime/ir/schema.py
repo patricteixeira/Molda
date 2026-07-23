@@ -21,6 +21,11 @@ from brand_runtime.roundtrip.lint import RoundtripReport
 from brand_runtime.roundtrip.models import DocumentGraph
 from brand_runtime.roundtrip.docx import DocxBrandPlan, DocxBrandResult
 from brand_runtime.style.models import StyleSystemIR
+from brand_runtime.template_corpus.models import (
+    TemplateCorpusManifest,
+    TemplateCorpusReport,
+    TemplateReferenceManifest,
+)
 from brand_runtime.templates.models import TemplatePackage
 
 _SCHEMAS: list[tuple[str, type[BaseModel]]] = [
@@ -39,6 +44,9 @@ _SCHEMAS: list[tuple[str, type[BaseModel]]] = [
     ("docx-brand-result.schema.json", DocxBrandResult),
     ("brand-package.schema.json", BrandPackageManifest),
     ("package-validation-report.schema.json", PackageValidationReport),
+    ("template-corpus-manifest.schema.json", TemplateCorpusManifest),
+    ("template-reference.schema.json", TemplateReferenceManifest),
+    ("template-corpus-report.schema.json", TemplateCorpusReport),
 ]
 
 
