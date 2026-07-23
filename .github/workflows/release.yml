@@ -6,7 +6,7 @@ on:
       version:
         description: Versão SemVer sem o prefixo v
         required: true
-        default: 0.2.0
+        default: 0.2.1
         type: string
       confirm_license_review:
         description: Confirmo que a decisão de licenças foi revisada pelo mantenedor

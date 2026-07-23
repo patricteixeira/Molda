@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 
 REQUIRED_PUBLIC_FILES = (
+    ".gitattributes",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
@@ -31,6 +32,10 @@ REQUIRED_PUBLIC_FILES = (
     "schemas/LICENSE",
     "examples/LICENSE",
     "packages/adapter-sdk-python/LICENSE",
+)
+
+IGNORED_SHELL_DIRECTORIES = frozenset(
+    {".git", ".venv", "dist", "node_modules", "out", "venv"}
 )
 
 
@@ -94,6 +99,24 @@ def declared_versions(root: Path) -> dict[str, str]:
     }
 
 
+def validate_shell_portability(root: Path) -> list[str]:
+    """Protege entrypoints Linux contra conversão CRLF em checkouts Windows."""
+    errors: list[str] = []
+    attributes_path = root / ".gitattributes"
+    if attributes_path.is_file():
+        attributes = attributes_path.read_text(encoding="utf-8")
+        if re.search(r"^\*\.sh\s+text\s+eol=lf\s*$", attributes, re.MULTILINE) is None:
+            errors.append(".gitattributes não força LF para arquivos *.sh.")
+
+    for path in root.rglob("*.sh"):
+        relative = path.relative_to(root)
+        if any(part in IGNORED_SHELL_DIRECTORIES for part in relative.parts):
+            continue
+        if b"\r\n" in path.read_bytes():
+            errors.append(f"{relative.as_posix()} contém CRLF; esperado LF.")
+    return errors
+
+
 def validate_release(root: Path, version: str) -> list[str]:
     """Retorna todos os desvios encontrados, sem parar no primeiro erro."""
     errors: list[str] = []
@@ -104,6 +127,8 @@ def validate_release(root: Path, version: str) -> list[str]:
     for relative in REQUIRED_PUBLIC_FILES:
         if not (root / relative).is_file():
             errors.append(f"Arquivo público obrigatório ausente: {relative}")
+
+    errors.extend(validate_shell_portability(root))
 
     try:
         versions = declared_versions(root)

@@ -6,6 +6,16 @@ release pública.
 
 ## [Não lançado]
 
+## [0.2.1] - 2026-07-23
+
+### Corrigido
+
+- Checkouts e arquivos gerados no Windows preservam em LF o entrypoint shell
+  executado pelo container web, evitando o ciclo de reinício com código 127
+  causado por `/bin/sh\r`.
+- O contrato de release recusa a ausência da regra `*.sh text eol=lf` e qualquer
+  script shell versionado que contenha CRLF.
+
 ## [0.2.0] - 2026-07-21
 
 ### Adicionado

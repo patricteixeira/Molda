@@ -18,7 +18,7 @@ continuam salváveis e exportáveis. Apenas falhas de segurança, integridade ou
 contrato técnico impedem a produção do arquivo. Veja o
 [ADR 0014](docs/adr/0014-guard-orienta-sem-policiar.md).
 
-**Status: v0.2.0** — motor, renderer, API, worker e app web compõem
+**Status: v0.2.1** — motor, renderer, API, worker e app web compõem
 fluxos executáveis de ponta a ponta, cobertos por testes de contrato, integração,
 interface e smoke test da distribuição Docker. A linha `0.x` ainda não promete
 estabilidade de todos os contratos internos.
@@ -67,7 +67,7 @@ preservar os dados, use `docker compose down`.
 - o SDK e o contrato de adapters estão disponíveis, mas o importador Figma e a
   instância pública multi-tenant não fazem parte deste corte.
 
-Veja as [notas completas da v0.2.0](docs/releases/v0.2.0.md) e a
+Veja as [notas completas da v0.2.1](docs/releases/v0.2.1.md) e a
 [política de segurança](SECURITY.md).
 
 | Serviço | Responsabilidade | Porta publicada |

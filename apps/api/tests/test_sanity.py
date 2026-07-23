@@ -2,4 +2,4 @@ import brand_api
 
 
 def test_version():
-    assert brand_api.__version__ == "0.2.0"
+    assert brand_api.__version__ == "0.2.1"

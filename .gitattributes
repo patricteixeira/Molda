@@ -1,3 +1,6 @@
+# Shell entrypoints execute inside Linux containers even from Windows checkouts.
+*.sh text eol=lf
+
 # Brand Packages are byte-addressed artifacts. Git must not rewrite their
 # contents on Windows, otherwise manifest sizes and SHA-256 hashes diverge.
 examples/brand-package-reference/** text eol=lf
