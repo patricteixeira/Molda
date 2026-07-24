@@ -171,6 +171,7 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
 
   await page.goto(kitBaseUrl)
   await page.getByRole("button", { name: /Todos os modelos/ }).click()
+  await page.getByLabel("Buscar modelo").fill("one-pager-doc-a4")
   await page.locator('[data-testid="kit-card"][data-layout-id="one-pager-doc-a4"]').click()
   await page.getByTestId("slot-input-title").fill("Relatório do mês")
   await page.getByRole("button", { name: "Texto", exact: true }).click()
