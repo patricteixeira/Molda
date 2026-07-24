@@ -214,7 +214,16 @@ def package_zip() -> bytes:
 
 def _answers(draft_body: dict) -> dict:
     del draft_body
-    return {"values": {}}
+    return {
+        "values": {
+            "identity.expression": {
+                "essence": "A marca existe para tornar a criação mais clara.",
+                "personality": "Humana, precisa e acessível.",
+                "voice": "Direta e clara.",
+                "avoid": "Genérica e confusa.",
+            }
+        }
+    }
 
 
 @pytest.fixture()
