@@ -73,11 +73,12 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
     ),
   ).toBeVisible()
   const kitUrl = page.url()
+  const kitBaseUrl = kitUrl.split("?")[0]
 
   await page.getByRole("button", { name: /Todos os modelos/ }).click()
   await expect.poll(async () => page.getByTestId("kit-card").count()).toBeGreaterThan(13)
 
-  await page.locator('[data-testid="kit-card"][data-layout-id="quote-post-1x1"]').click()
+  await page.locator('[data-testid="kit-card"][data-layout-id="quote-post-4x5"]').click()
   await expect(page.getByRole("heading", { name: "Títulos maiores" })).toBeVisible()
   await page.getByRole("button", { name: "Aplicar esta sugestão" }).click()
   await expect(page.getByText("Ajustar Grade técnica")).toBeVisible()
@@ -146,7 +147,7 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
   await pngLink.click()
   const pngPath = path.join(FIX, "out-post.png")
   await (await pngDownload).saveAs(pngPath)
-  validateOutput("png", pngPath)
+  validateOutput("png-4x5", pngPath)
 
   await page.getByTestId("exportar-pptx").click()
   await expect(page.getByTestId("export-status")).toContainText("PPTX pronto", {
@@ -167,7 +168,7 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
     timeout: 120_000,
   })
 
-  await page.goto(kitUrl)
+  await page.goto(kitBaseUrl)
   await page.getByRole("button", { name: /Todos os modelos/ }).click()
   await page.locator('[data-testid="kit-card"][data-layout-id="one-pager-doc-a4"]').click()
   await page.getByTestId("slot-input-title").fill("Relatório do mês")
@@ -196,7 +197,7 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
   await (await docxDownload).saveAs(docxPath)
   validateOutput("docx", docxPath)
 
-  await page.goto(kitUrl)
+  await page.goto(kitBaseUrl)
   await page.getByRole("link", { name: "Carrossel" }).click()
   await expect(page.getByRole("heading", { name: "Crie um carrossel." })).toBeVisible()
   await page.getByLabel("Nome do carrossel").fill("Autonomia em três atos")
