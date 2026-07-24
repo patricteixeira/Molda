@@ -531,6 +531,286 @@ textarea {
   }
 }
 
+/* O catálogo é a tarefa principal: cabeçalho compacto, modelos antes dos fluxos extras. */
+
+.kit-layout {
+  align-items: start;
+}
+
+.kit-heading {
+  position: static;
+  grid-column: 1 / 7;
+  grid-row: 1;
+  align-self: stretch;
+  gap: 0.8rem;
+  min-height: 0;
+  padding: clamp(1.5rem, 3vw, 2.75rem) clamp(1rem, 2.5vw, 2.5rem)
+    clamp(1.5rem, 3vw, 2.75rem) 0;
+}
+
+.kit-heading::before {
+  width: clamp(3.5rem, 5vw, 5rem);
+  margin-bottom: 0.6rem;
+}
+
+.kit-heading h1 {
+  max-width: 7ch;
+  font-size: clamp(3.5rem, 6.2vw, 6.8rem);
+  line-height: 0.82;
+}
+
+.kit-intro {
+  max-width: 34rem;
+  font-size: clamp(0.95rem, 1.25vw, 1.15rem);
+}
+
+.kit-count {
+  margin: 0;
+}
+
+.kit-heading .brand-material-summary {
+  max-width: 28rem;
+}
+
+.kit-models-jump {
+  justify-self: start;
+  margin-top: 0.4rem;
+}
+
+.kit-tester {
+  grid-column: 7 / -1;
+  grid-row: 1;
+  align-self: stretch;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: end;
+  min-height: 0;
+  margin: 0;
+  padding: clamp(1.5rem, 3vw, 2.75rem);
+}
+
+.kit-tester h2 {
+  font-size: clamp(1.8rem, 3vw, 3.4rem);
+}
+
+.kit-tester input {
+  min-height: 4.25rem;
+  font-size: clamp(1.3rem, 2.2vw, 2.35rem);
+}
+
+.kit-catalog {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0 var(--m-grid-gap);
+  scroll-margin-top: 6rem;
+}
+
+.kit-catalog > .kit-library-heading,
+.kit-catalog > .kit-recommendation-groups,
+.kit-catalog > .kit-grid,
+.kit-catalog > .kit-catalog-progress,
+.kit-catalog > .kit-catalog-empty {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.kit-library-heading {
+  margin: 0;
+  padding: clamp(1.8rem, 3.5vw, 3.5rem) 0;
+}
+
+.template-catalog-filters {
+  display: grid;
+  grid-column: 3 / -1;
+  grid-template-columns: minmax(16rem, 1fr) minmax(14rem, 24rem);
+  gap: var(--m-grid-gap);
+  align-items: end;
+}
+
+.template-catalog-search,
+.template-family-filter {
+  display: grid;
+  grid-column: auto;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.template-catalog-search > span,
+.template-family-filter > span {
+  font-family: var(--m-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.template-catalog-search input,
+.template-family-filter select {
+  width: 100%;
+  min-height: 3.25rem;
+  border: var(--m-rule-ink);
+  border-radius: 0;
+  padding: 0.7rem 0.85rem;
+  background: var(--m-sheet);
+  color: var(--m-ink);
+}
+
+.template-catalog-search input:focus-visible,
+.template-family-filter select:focus-visible {
+  border-color: var(--m-amber-dark);
+  box-shadow: inset 0 0 0 2px var(--m-amber);
+  outline: 0;
+}
+
+.kit-catalog-progress,
+.kit-catalog-empty {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  border-right: var(--m-rule-ink);
+  border-bottom: var(--m-rule-ink);
+  border-left: var(--m-rule-ink);
+  padding: 1rem;
+}
+
+.kit-catalog-progress p,
+.kit-catalog-empty p {
+  margin: 0;
+}
+
+.kit-catalog-empty {
+  display: grid;
+  justify-items: start;
+  min-height: 14rem;
+  align-content: center;
+}
+
+.kit-catalog-empty h3 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 3rem);
+}
+
+.kit-workflows {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0 var(--m-grid-gap);
+  margin: clamp(3rem, 7vw, 7rem) 0 0;
+  border: 0;
+  border-top: var(--m-rule-ink);
+  border-bottom: var(--m-rule-ink);
+}
+
+.kit-workflows-heading {
+  grid-column: 1 / 4;
+  min-height: 100%;
+  align-content: center;
+  border-right: var(--m-rule-ink);
+  border-bottom: 0;
+}
+
+.kit-workflow-grid {
+  grid-column: 4 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.kit-workflow-card,
+.kit-workflow-card-primary {
+  min-height: 10rem;
+}
+
+.kit-workflow-card + .kit-workflow-card {
+  border-left: var(--m-rule-ink);
+}
+
+@media (max-width: 900px) {
+  .kit-heading,
+  .kit-tester,
+  .kit-catalog,
+  .kit-workflows {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .kit-heading {
+    padding-right: 0;
+  }
+
+  .kit-tester {
+    margin: 1rem 0 0;
+  }
+
+  .template-catalog-filters {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .kit-heading h1 {
+    font-size: clamp(3.2rem, 15vw, 5rem);
+  }
+
+  .kit-library-heading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kit-library-heading .panel-kicker,
+  .kit-library-heading h2,
+  .kit-library-heading > p,
+  .kit-library-heading > .template-catalog-switch,
+  .template-catalog-filters {
+    grid-column: 1 / -1;
+  }
+
+  .template-catalog-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .template-catalog-switch {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .template-catalog-switch button {
+    border-right: 0;
+    border-bottom: var(--m-rule-solid);
+  }
+
+  .template-catalog-switch button:last-child {
+    border-bottom: 0;
+  }
+
+  .kit-catalog-progress {
+    display: grid;
+    justify-items: stretch;
+  }
+
+  .kit-workflows {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kit-workflows-heading,
+  .kit-workflow-grid {
+    grid-column: 1;
+  }
+
+  .kit-workflows-heading {
+    min-height: 7rem;
+    border-right: 0;
+    border-bottom: var(--m-rule-ink);
+  }
+
+  .kit-workflow-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kit-workflow-card + .kit-workflow-card {
+    border-left: 0;
+  }
+}
+
 .brand-evidence {
   background: var(--m-quiet);
 }
@@ -2500,5 +2780,96 @@ input[type="range"] {
     border-top: var(--m-rule-solid);
     border-left: 0;
     padding: 0.5rem 0.55rem;
+  }
+}
+
+/*
+ * Tipografia de interface
+ *
+ * A caixa alta pertence ao sistema, não ao conteúdo criado pela pessoa.
+ * O canvas redefine a transformação para preservar a intenção de cada modelo.
+ */
+
+.app-shell {
+  text-transform: uppercase;
+}
+
+.app-shell :is(h1, h2, h3, h4, h5, h6) {
+  text-wrap: balance;
+}
+
+.app-shell h1 {
+  letter-spacing: 0.012em;
+  line-height: 1.02;
+}
+
+.app-shell h2 {
+  letter-spacing: 0.018em;
+  line-height: 1.08;
+}
+
+.app-shell h3 {
+  letter-spacing: 0.024em;
+  line-height: 1.12;
+}
+
+.app-shell :is(h4, h5, h6) {
+  letter-spacing: 0.03em;
+  line-height: 1.18;
+}
+
+.app-shell :is(input, textarea, select) {
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.wordmark {
+  letter-spacing: 0.035em;
+  line-height: 1;
+}
+
+.preview-canvas {
+  text-transform: none;
+}
+
+/*
+ * O catálogo e o provador dividem apenas a primeira faixa. As seções seguintes
+ * ocupam faixas próprias para impedir qualquer sobreposição na grade.
+ */
+
+.kit-heading {
+  grid-column: 1 / 7;
+  grid-row: 1;
+}
+
+.kit-tester {
+  grid-column: 7 / -1;
+  grid-row: 1;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: end;
+  margin: 0;
+}
+
+.kit-catalog {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.kit-workflows {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+@media (max-width: 900px) {
+  .kit-heading,
+  .kit-tester,
+  .kit-catalog,
+  .kit-workflows {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .kit-tester {
+    margin-top: 1rem;
   }
 }

@@ -65,9 +65,11 @@ export function KitPage(): JSX.Element {
   const [kit, setKit] = useState<KitState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
-  const [catalogMode, setCatalogMode] = useState<TemplateCatalogMode>("recommended")
+  const [catalogMode, setCatalogMode] = useState<TemplateCatalogMode>("all")
   const [previewText, setPreviewText] = useState("")
   const [familyFilter, setFamilyFilter] = useState("all")
+  const [catalogQuery, setCatalogQuery] = useState("")
+  const [visibleCount, setVisibleCount] = useState(24)
 
   useEffect(() => {
     let active = true
@@ -164,10 +166,24 @@ export function KitPage(): JSX.Element {
   ].sort((left, right) =>
     templateFamilyLabel(left).localeCompare(templateFamilyLabel(right), "pt-BR"),
   )
-  const allLayouts =
+  const familyLayouts =
     familyFilter === "all"
       ? orderedLayouts
       : orderedLayouts.filter((layout) => templateFamilyKey(layout) === familyFilter)
+  const normalizedQuery = catalogQuery.trim().toLocaleLowerCase("pt-BR")
+  const allLayouts = normalizedQuery
+    ? familyLayouts.filter((layout) => {
+        const searchable = [
+          layout.id,
+          layout.namePt,
+          templateFamilyLabel(templateFamilyKey(layout)),
+        ]
+          .join(" ")
+          .toLocaleLowerCase("pt-BR")
+        return searchable.includes(normalizedQuery)
+      })
+    : familyLayouts
+  const visibleLayouts = allLayouts.slice(0, visibleCount)
 
   if (orderedLayouts.length === 0) {
     return (
@@ -283,6 +299,9 @@ export function KitPage(): JSX.Element {
           >
             {briefSummary ? "Mudar respostas" : "Criar nova peça"}
           </Link>
+          <a className="primary-link kit-models-jump" href="#modelos">
+            Ver modelos
+          </a>
         </header>
 
         <section className="kit-tester" aria-labelledby="kit-tester-title">
@@ -304,9 +323,164 @@ export function KitPage(): JSX.Element {
           </label>
         </section>
 
+        <section
+          className="kit-catalog"
+          id="modelos"
+          aria-labelledby="kit-library-title"
+        >
+          <div className="kit-library-heading">
+            <p className="panel-kicker">Peças individuais</p>
+            <h2 id="kit-library-title">
+              {catalogMode === "recommended"
+                ? "Escolha pela função da peça."
+                : "Todos os modelos disponíveis."}
+            </h2>
+            <p>
+              {catalogMode === "recommended"
+                ? brandLedRecommendations
+                  ? "As primeiras opções combinam a estrutura do modelo com os dados da marca."
+                  : "As sugestões estão separadas em abrir, explicar e encerrar."
+                : "Use o filtro para reduzir a lista."}
+            </p>
+            <div className="template-catalog-switch" aria-label="Abrangência do catálogo">
+              <button
+                type="button"
+                aria-pressed={catalogMode === "recommended"}
+                onClick={() => {
+                  setCatalogMode("recommended")
+                  setVisibleCount(24)
+                }}
+              >
+                Sugestões para a marca
+                <span>{recommendedLayouts.length}</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={catalogMode === "all"}
+                onClick={() => {
+                  setCatalogMode("all")
+                  setVisibleCount(24)
+                }}
+              >
+                Todos os modelos
+                <span>{orderedLayouts.length}</span>
+              </button>
+            </div>
+            {catalogMode === "all" ? (
+              <div className="template-catalog-filters">
+                <label className="template-catalog-search">
+                  <span>Buscar modelo</span>
+                  <input
+                    name="template-query"
+                    type="search"
+                    value={catalogQuery}
+                    autoComplete="off"
+                    placeholder="Ex.: abertura, dados ou imagem"
+                    onChange={(event) => {
+                      setCatalogQuery(event.currentTarget.value)
+                      setVisibleCount(24)
+                    }}
+                  />
+                </label>
+                {availableFamilies.length > 1 ? (
+                  <label className="template-family-filter">
+                    <span>Filtrar por estrutura</span>
+                    <select
+                      name="template-family"
+                      value={familyFilter}
+                      onChange={(event) => {
+                        setFamilyFilter(event.currentTarget.value)
+                        setVisibleCount(24)
+                      }}
+                    >
+                      <option value="all">Todas as estruturas</option>
+                      {availableFamilies.map((family) => (
+                        <option key={family} value={family}>
+                          {templateFamilyLabel(family)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          {catalogMode === "recommended" ? (
+            <div className="kit-recommendation-groups" aria-label="Sugestões por função">
+              {recommendationGroups.map((group) => (
+                <section
+                  key={group.purpose}
+                  className="kit-recommendation-group"
+                  data-template-purpose={group.purpose}
+                  aria-labelledby={`template-purpose-${group.purpose}`}
+                >
+                  <header className="kit-recommendation-heading">
+                    <p>{group.eyebrow}</p>
+                    <h3 id={`template-purpose-${group.purpose}`}>{group.label}</h3>
+                    <p>{group.description}</p>
+                    <span>{group.layouts.length} opções</span>
+                  </header>
+                  <div
+                    className="kit-grid kit-grid-category"
+                    data-layout-count={group.layouts.length}
+                    aria-label={`Modelos de ${group.label.toLocaleLowerCase("pt-BR")}`}
+                  >
+                    {group.layouts.map((layout) => renderLayoutCard(layout, true))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <>
+              {allLayouts.length > 0 ? (
+                <div
+                  className="kit-grid"
+                  data-layout-count={visibleLayouts.length}
+                  aria-label="Todos os modelos disponíveis"
+                >
+                  {visibleLayouts.map((layout) => renderLayoutCard(layout, false))}
+                </div>
+              ) : (
+                <div className="kit-catalog-empty" role="status">
+                  <h3>Nenhum modelo encontrado.</h3>
+                  <p>Limpe a busca ou escolha todas as estruturas.</p>
+                  <button
+                    type="button"
+                    className="secondary-action"
+                    onClick={() => {
+                      setCatalogQuery("")
+                      setFamilyFilter("all")
+                      setVisibleCount(24)
+                    }}
+                  >
+                    Limpar filtros
+                  </button>
+                </div>
+              )}
+              {allLayouts.length > 0 ? (
+                <div className="kit-catalog-progress" aria-live="polite">
+                  <p>
+                    Mostrando {visibleLayouts.length} de {allLayouts.length} modelos
+                  </p>
+                  {visibleLayouts.length < allLayouts.length ? (
+                    <button
+                      type="button"
+                      className="secondary-action"
+                      onClick={() => setVisibleCount((count) => count + 24)}
+                    >
+                      Mostrar mais modelos
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
+          )}
+        </section>
+
         <section className="kit-workflows" aria-labelledby="kit-workflows-title">
           <div className="kit-workflows-heading">
-            <h2 id="kit-workflows-title">Precisa de mais de uma tela?</h2>
+            <h2 id="kit-workflows-title">Outros formatos</h2>
           </div>
           <div className="kit-workflow-grid">
             <Link
@@ -331,92 +505,6 @@ export function KitPage(): JSX.Element {
             </Link>
           </div>
         </section>
-
-        <section className="kit-library-heading" aria-labelledby="kit-library-title">
-          <p className="panel-kicker">Peças individuais</p>
-          <h2 id="kit-library-title">
-            {catalogMode === "recommended"
-              ? "Escolha pela função da peça."
-              : "Todos os modelos disponíveis."}
-          </h2>
-          <p>
-            {catalogMode === "recommended"
-              ? brandLedRecommendations
-                ? "As primeiras opções combinam a estrutura do modelo com os dados da marca."
-                : "As sugestões estão separadas em abrir, explicar e encerrar."
-              : "Use o filtro para reduzir a lista."}
-          </p>
-          <div className="template-catalog-switch" aria-label="Abrangência do catálogo">
-            <button
-              type="button"
-              aria-pressed={catalogMode === "recommended"}
-              onClick={() => setCatalogMode("recommended")}
-            >
-              Sugestões para a marca
-              <span>{recommendedLayouts.length}</span>
-            </button>
-            <button
-              type="button"
-              aria-pressed={catalogMode === "all"}
-              onClick={() => setCatalogMode("all")}
-            >
-              Todos os modelos
-              <span>{orderedLayouts.length}</span>
-            </button>
-          </div>
-          {catalogMode === "all" && availableFamilies.length > 1 ? (
-            <label className="template-family-filter">
-              <span>Filtrar por estrutura</span>
-              <select
-                name="template-family"
-                value={familyFilter}
-                onChange={(event) => setFamilyFilter(event.currentTarget.value)}
-              >
-                <option value="all">Todas as estruturas</option>
-                {availableFamilies.map((family) => (
-                  <option key={family} value={family}>
-                    {templateFamilyLabel(family)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-        </section>
-
-        {catalogMode === "recommended" ? (
-          <div className="kit-recommendation-groups" aria-label="Sugestões por função">
-            {recommendationGroups.map((group) => (
-              <section
-                key={group.purpose}
-                className="kit-recommendation-group"
-                data-template-purpose={group.purpose}
-                aria-labelledby={`template-purpose-${group.purpose}`}
-              >
-                <header className="kit-recommendation-heading">
-                  <p>{group.eyebrow}</p>
-                  <h3 id={`template-purpose-${group.purpose}`}>{group.label}</h3>
-                  <p>{group.description}</p>
-                  <span>{group.layouts.length} opções</span>
-                </header>
-                <div
-                  className="kit-grid kit-grid-category"
-                  data-layout-count={group.layouts.length}
-                  aria-label={`Modelos de ${group.label.toLocaleLowerCase("pt-BR")}`}
-                >
-                  {group.layouts.map((layout) => renderLayoutCard(layout, true))}
-                </div>
-              </section>
-            ))}
-          </div>
-        ) : (
-          <div
-            className="kit-grid"
-            data-layout-count={allLayouts.length}
-            aria-label="Todos os modelos disponíveis"
-          >
-            {allLayouts.map((layout) => renderLayoutCard(layout, false))}
-          </div>
-        )}
 
       </div>
     </main>

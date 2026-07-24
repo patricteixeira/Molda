@@ -66,7 +66,13 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
   await page.getByRole("button", { name: "Ver modelos" }).click()
 
   await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/kit\?/)
-  await expect.poll(async () => page.getByTestId("kit-card").count()).toBeGreaterThanOrEqual(8)
+  await expect.poll(async () => page.getByTestId("kit-card").count()).toBeGreaterThanOrEqual(20)
+  const allModelsButton = page.getByRole("button", { name: /Todos os modelos/ })
+  await expect
+    .poll(async () => Number(await allModelsButton.locator("span").textContent()))
+    .toBeGreaterThan(200)
+  const modelSearch = page.getByLabel("Buscar modelo")
+  await modelSearch.fill("ritmo-editorial-closing-post-4x5")
   await expect(
     page.locator(
       '[data-testid="kit-card"][data-layout-id="ritmo-editorial-closing-post-4x5"]',
@@ -75,9 +81,7 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
   const kitUrl = page.url()
   const kitBaseUrl = kitUrl.split("?")[0]
 
-  await page.getByRole("button", { name: /Todos os modelos/ }).click()
-  await expect.poll(async () => page.getByTestId("kit-card").count()).toBeGreaterThan(13)
-
+  await modelSearch.fill("quote-post-4x5")
   await page.locator('[data-testid="kit-card"][data-layout-id="quote-post-4x5"]').click()
   await expect(page.getByRole("heading", { name: "Ainda não há uma sugestão" })).toBeVisible()
   await page.getByRole("button", { name: "Ver todas as 20 texturas" }).click()

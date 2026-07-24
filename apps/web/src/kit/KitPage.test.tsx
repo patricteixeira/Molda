@@ -79,19 +79,23 @@ it("lista os layouts com nome PT e thumbnail renderizado pela biblioteca real", 
   expect(screen.getAllByTestId("preview-canvas")[0]).toHaveStyle({ maxWidth: "360px" })
 })
 
-it("mantém os fluxos de carrossel e Word antes da biblioteca de peças", async () => {
+it("mostra a biblioteca antes dos fluxos adicionais", async () => {
   renderKit(fakeClient({ getKit: vi.fn(async () => [fakeStatementLayout()]) }))
 
-  const workflowHeading = await screen.findByRole("heading", {
-    name: "Precisa de mais de uma tela?",
+  const libraryHeading = await screen.findByRole("heading", {
+    name: "Todos os modelos disponíveis.",
   })
-  const libraryHeading = screen.getByRole("heading", {
-    name: "Escolha pela função da peça.",
+  const workflowHeading = screen.getByRole("heading", {
+    name: "Outros formatos",
   })
 
   expect(
-    workflowHeading.compareDocumentPosition(libraryHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    libraryHeading.compareDocumentPosition(workflowHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy()
+  expect(screen.getByRole("link", { name: "Ver modelos" })).toHaveAttribute(
+    "href",
+    "#modelos",
+  )
   expect(screen.getByRole("link", { name: /Carrossel/i })).toHaveAttribute(
     "href",
     "/marcas/brandrev_x/carrossel",
@@ -269,6 +273,9 @@ it("prioriza sugestões explicadas e mantém o catálogo inteiro disponível", a
   const other = fakeQuoteLayout()
   renderKit(fakeClient({ getKit: vi.fn(async () => [other, recommended]) }))
 
+  await userEvent.click(
+    await screen.findByRole("button", { name: /Sugestões para a marca/ }),
+  )
   const cards = await screen.findAllByTestId("kit-card")
   expect(cards).toHaveLength(2)
   expect(cards.some((card) => card.getAttribute("data-layout-id") === recommended.id)).toBe(true)
@@ -322,6 +329,9 @@ it("mantém a biblioteca visível quando a dimensão do briefing ainda não exis
 it("orienta a escolha com três opções para abrir, explicar e encerrar", async () => {
   renderKit(fakeClient({ getKit: vi.fn(async () => categorizedLayouts()) }))
 
+  await userEvent.click(
+    await screen.findByRole("button", { name: /Sugestões para a marca/ }),
+  )
   const cover = await screen.findByRole("region", { name: "Abrir a mensagem" })
   const content = screen.getByRole("region", { name: "Explicar" })
   const closing = screen.getByRole("region", { name: "Encerrar" })
@@ -330,6 +340,26 @@ it("orienta a escolha com três opções para abrir, explicar e encerrar", async
   expect(within(content).getAllByTestId("kit-card")).toHaveLength(3)
   expect(within(closing).getAllByTestId("kit-card")).toHaveLength(3)
   expect(screen.getByRole("button", { name: /Sugestões para a marca/ })).toHaveTextContent("9")
+})
+
+it("carrega catálogos grandes em blocos e permite buscar qualquer modelo", async () => {
+  const layouts = Array.from({ length: 30 }, (_, index) => {
+    const item = fakeStatementLayout()
+    item.id = `catalog-layout-${String(index + 1).padStart(2, "0")}`
+    item.namePt = index === 29 ? "Modelo distante" : `Modelo ${index + 1}`
+    return item
+  })
+  renderKit(fakeClient({ getKit: vi.fn(async () => layouts) }))
+
+  expect(await screen.findAllByTestId("kit-card")).toHaveLength(24)
+  expect(screen.getByText("Mostrando 24 de 30 modelos")).toBeInTheDocument()
+
+  await userEvent.type(screen.getByLabelText("Buscar modelo"), "Modelo distante")
+
+  const filtered = await screen.findAllByTestId("kit-card")
+  expect(filtered).toHaveLength(1)
+  expect(filtered[0]).toHaveAttribute("data-layout-id", "catalog-layout-30")
+  expect(screen.getByText("Mostrando 1 de 1 modelos")).toBeInTheDocument()
 })
 
 it("clicar num layout abre o editor daquele layout", async () => {
