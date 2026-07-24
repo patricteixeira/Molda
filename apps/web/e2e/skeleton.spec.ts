@@ -156,7 +156,7 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
   await pptxLink.click()
   const pptxPath = path.join(FIX, "out-post.pptx")
   await (await pptxDownload).saveAs(pptxPath)
-  validateOutput("pptx", pptxPath)
+  validateOutput("pptx-4x5", pptxPath)
 
   await expect(page.getByText("Confira o arquivo editado")).toBeVisible()
   await page.getByTestId("roundtrip-file").setInputFiles(pptxPath)
