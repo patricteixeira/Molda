@@ -131,9 +131,10 @@ esconder nenhuma alternativa. Sua portabilidade e seus limites estão no
 O mesmo princípio organiza o catálogo autoral de composições. Depois da
 instalação, um briefing curto pergunta objetivo, tipo de peça, canal, formato,
 ação esperada e uso de imagem. Só então Kit e Carrossel mostram as recomendações.
-O Kit abre com três capas, três modelos de conteúdo e três fechamentos. A pessoa
-pode alternar para todos os modelos a qualquer momento; recomendação é um ponto
-de partida, não uma restrição. Esse contrato está no
+Para cada formato social escolhido, o Kit abre com três capas, três modelos de
+conteúdo e três fechamentos. A pessoa pode alternar para todos os modelos a
+qualquer momento; recomendação é um ponto de partida, não uma restrição. Esse
+contrato está no
 [`ADR 0021`](docs/adr/0021-fluxo-guiado-de-criacao.md).
 
 ## Fluxos recorrentes

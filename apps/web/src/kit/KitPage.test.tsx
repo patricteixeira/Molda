@@ -22,7 +22,7 @@ function renderKit(client: ApiClient, entry = "/marcas/brandrev_x/kit") {
   )
 }
 
-function categorizedLayouts(): LayoutSpec[] {
+function categorizedLayouts(profile = "post-4x5"): LayoutSpec[] {
   return [
     "fashion-cover",
     "product-hero",
@@ -35,8 +35,9 @@ function categorizedLayouts(): LayoutSpec[] {
     "kinetic-pulse",
   ].map((id, index) => {
     const layout = fakeStatementLayout()
-    layout.id = `${id}-post-4x5`
+    layout.id = `${id}-${profile}`
     layout.namePt = id
+    layout.profile = profile
     layout.recommendationRank = index + 1
     layout.recommendationBasis = "brand"
     if (/spread|benefit|comparison/.test(id)) {
@@ -377,6 +378,34 @@ it("abre orientando a escolha com três capas, três conteúdos e três fechamen
   expect(within(closing).getAllByTestId("kit-card")).toHaveLength(3)
   expect(screen.getByRole("button", { name: /Sugestões para a marca/ })).toHaveTextContent("9")
 })
+
+it.each(["post-1x1", "story-9x16"])(
+  "mantém três capas, três conteúdos e três fechamentos no formato %s",
+  async (profile) => {
+    const otherProfile = profile === "post-1x1" ? "story-9x16" : "post-1x1"
+    renderKit(
+      fakeClient({
+        getKit: vi.fn(async () => [
+          ...categorizedLayouts(profile),
+          ...categorizedLayouts(otherProfile),
+        ]),
+      }),
+      `/marcas/brandrev_x/kit?objective=inform&piece=individual&channel=instagram&profile=${profile}&action=save&visual=either`,
+    )
+
+    const cover = await screen.findByRole("region", { name: "Capa" })
+    const content = screen.getByRole("region", { name: "Conteúdo" })
+    const closing = screen.getByRole("region", { name: "Fechamento" })
+
+    expect(within(cover).getAllByTestId("kit-card")).toHaveLength(3)
+    expect(within(content).getAllByTestId("kit-card")).toHaveLength(3)
+    expect(within(closing).getAllByTestId("kit-card")).toHaveLength(3)
+    expect(screen.getByRole("button", { name: /Sugestões para a marca/ })).toHaveTextContent(
+      "9",
+    )
+    expect(screen.getByRole("button", { name: /Todos os modelos/ })).toHaveTextContent("9")
+  },
+)
 
 it("carrega catálogos grandes em blocos e permite buscar qualquer modelo", async () => {
   const layouts = Array.from({ length: 30 }, (_, index) => {

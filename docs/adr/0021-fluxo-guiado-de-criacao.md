@@ -22,8 +22,8 @@ explicar um assunto.
 - As respostas filtram o formato compatível e ordenam as recomendações. Elas
   não alteram a identidade extraída do manual.
 - A primeira visão do Kit é `Sugestões para a marca`, nunca o catálogo inteiro.
-- As sugestões são organizadas em três capas, três modelos de conteúdo com mais
-  espaço para texto e três fechamentos.
+- Em cada formato social escolhido, as sugestões são organizadas em três capas,
+  três modelos de conteúdo com mais espaço para texto e três fechamentos.
 - Uma alternativa apenas cromática não conta como nova composição.
 - `Todos os modelos` continua disponível como escolha secundária.
 - Nomes internos de movimentos, estilos e implementações não aparecem na
@@ -38,4 +38,3 @@ O sistema orienta antes de ampliar escolhas. Corrigir falta de modelos não
 autoriza pular o briefing, abrir o catálogo completo por padrão ou expor nomes
 técnicos. Qualquer mudança nessa ordem ou nessas perguntas exige uma nova
 decisão de produto.
-
