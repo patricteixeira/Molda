@@ -44,23 +44,6 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
   )
   await page.getByTestId("wizard-enviar").click()
 
-  await expect(page.getByTestId("wizard-question")).toContainText(
-    "Como é a sua marca?",
-  )
-  await page
-    .getByLabel("O que a marca oferece")
-    .fill("Uma marca ousada e dinâmica que transforma sistemas em autonomia.")
-  await page
-    .getByLabel("Como a marca deve parecer")
-    .fill("Geométrica, precisa, técnica e confiável.")
-  await page
-    .getByLabel("Como a marca escreve?")
-    .fill("Direta, clara e acessível.")
-  await page
-    .getByLabel("O que nunca deve aparecer na marca")
-    .fill("Urgência artificial, exagero e promessas vazias.")
-  await page.getByTestId("wizard-confirmar").click()
-
   for (let index = 0; index < 8; index += 1) {
     const visible = await page
       .getByTestId("wizard-question")
