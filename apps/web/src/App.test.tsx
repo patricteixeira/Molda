@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react"
-import { MemoryRouter } from "react-router-dom"
+import { MemoryRouter } from "react-router"
 import { expect, it } from "vitest"
 import App from "./App"
 import { ApiProvider } from "./api/context"
@@ -13,7 +13,7 @@ it("rota inicial mostra o assistente de instalação", () => {
       </ApiProvider>
     </MemoryRouter>,
   )
-  expect(screen.getByRole("heading", { name: "Traga o que já existe." })).toBeInTheDocument()
+  expect(screen.getByRole("heading", { name: "Envie os arquivos da marca." })).toBeInTheDocument()
 })
 
 it("rota desconhecida oferece retorno ao início", () => {

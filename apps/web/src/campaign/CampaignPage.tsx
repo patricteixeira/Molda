@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ChangeEvent, JSX } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams } from "react-router"
 import { ApiError } from "../api/client"
 import { useApi } from "../api/context"
 import type {
@@ -12,6 +12,7 @@ import type {
   LayoutSpec,
 } from "../api/types"
 import { brandThemeStyle } from "../brandTheme"
+import { templateDisplayName } from "../kit/templateFamilies"
 import { Preview } from "../render/Preview"
 
 interface CampaignData {
@@ -151,7 +152,7 @@ function CampaignPieceCard({
       </div>
       <div className="campaign-piece-copy">
         <p className="product-kicker">{profileName(layout.profile)}</p>
-        <h3>{layout.namePt}</h3>
+        <h3>{templateDisplayName(layout)}</h3>
         {blockers.length ? (
           <div className="campaign-piece-warning campaign-piece-blocked" role="alert">
             <strong>Peça incompleta — exportação bloqueada</strong>
@@ -273,7 +274,7 @@ export function CampaignPage(): JSX.Element {
     }
     if (!data?.brandIr.creativeDirection) {
       setError(
-        "Esta revisão ainda não tem direção criativa confiável. Refaça a leitura da marca antes de gerar peças.",
+        "Faltam dados da marca para gerar peças. Envie o manual novamente e confira as respostas.",
       )
       return
     }
@@ -291,7 +292,7 @@ export function CampaignPage(): JSX.Element {
       .find((layout) => layout && layoutRequiresImage(layout) && !hasImage)
     if (incompatible) {
       setError(
-        `O modelo “${incompatible.namePt}” precisa de uma imagem. Envie uma foto ou escolha um modelo sem imagem.`,
+        `O modelo “${templateDisplayName(incompatible)}” precisa de uma imagem. Envie uma foto ou escolha um modelo sem imagem.`,
       )
       return
     }
@@ -442,8 +443,8 @@ export function CampaignPage(): JSX.Element {
               <div className="campaign-direction-blocker" role="alert">
                 <strong>Esta marca ainda não está pronta para gerar campanhas.</strong>
                 <span>
-                  A leitura anterior não encontrou direção criativa suficiente. Volte ao início,
-                  envie o manual novamente e confira as pistas que o Molda extrair.
+                  Faltam dados para gerar as peças. Volte ao início, envie o manual novamente e
+                  confira as respostas.
                 </span>
                 <Link className="text-action" to="/">Refazer leitura da marca</Link>
               </div>
@@ -574,7 +575,7 @@ export function CampaignPage(): JSX.Element {
                       onChange={changeLayout}
                     />
                     <span>
-                      {layout.namePt}
+                      {templateDisplayName(layout)}
                       <small>
                         {profileName(layout.profile)}
                         {layoutRequiresImage(layout) && !hasCampaignImage

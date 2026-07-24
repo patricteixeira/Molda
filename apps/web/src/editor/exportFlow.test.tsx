@@ -1,7 +1,7 @@
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, it, vi } from "vitest"
-import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { MemoryRouter, Route, Routes } from "react-router"
 import { ApiError } from "../api/client"
 import { ApiProvider } from "../api/context"
 import type { ApiClient, RoundtripJobInfo } from "../api/types"
@@ -294,7 +294,7 @@ it("confere o PPTX que voltou e oferece uma cópia corrigida sem expor jargão",
 
   await screen.findByTestId("slot-input-headline")
   await userEvent.click(screen.getByTestId("exportar-pptx"))
-  expect(await screen.findByText("Confira o arquivo que voltou")).toBeInTheDocument()
+  expect(await screen.findByText("Confira o arquivo editado")).toBeInTheDocument()
 
   const edited = new File(["pptx"], "editado-no-google.pptx", {
     type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",

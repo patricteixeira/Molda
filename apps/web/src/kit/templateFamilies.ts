@@ -1,19 +1,41 @@
 import type { LayoutSpec } from "../api/types"
 
 export const TEMPLATE_FAMILY_LABELS: Record<string, string> = {
-  "typographic-editorial": "Tipográfico editorial",
-  "typographic-brutalist": "Brutalismo tipográfico",
-  "swiss-system": "Sistema suíço",
-  "geometric-modernism": "Modernismo geométrico",
-  "kinetic-typography": "Tipografia cinética",
-  "constructivist-dynamics": "Construtivismo",
-  "fashion-editorial": "Editorial de moda",
-  "minimal-luxury": "Minimalismo de luxo",
-  "editorial-collage": "Colagem editorial",
-  "technical-diagram": "Diagrama técnico",
-  "product-campaign": "Produto e campanha",
-  "data-evidence": "Dados e evidências",
-  "device-mockup": "Mockup de dispositivo",
+  "typographic-editorial": "Texto em destaque",
+  "typographic-brutalist": "Texto de grande impacto",
+  "swiss-system": "Grade precisa",
+  "geometric-modernism": "Formas geométricas",
+  "kinetic-typography": "Texto com ritmo",
+  "constructivist-dynamics": "Blocos em tensão",
+  "fashion-editorial": "Imagem editorial",
+  "minimal-luxury": "Espaço e precisão",
+  "editorial-collage": "Camadas e recortes",
+  "technical-diagram": "Informação diagramada",
+  "product-campaign": "Produto em foco",
+  "data-evidence": "Dados em destaque",
+  "device-mockup": "Tela em contexto",
+  "ritmo-editorial": "Ritmo editorial",
+  "orbita-humana": "Órbita humana",
+  "quadro-funcional": "Quadro funcional",
+  "pulso-editorial": "Pulso editorial",
+  "materia-franca": "Matéria franca",
+  "corte-modular": "Corte modular",
+  "pagina-serena": "Página serena",
+  "bloco-direto": "Bloco direto",
+  "coluna-inteira": "Coluna inteira",
+  "ritmo-obliquo": "Ritmo oblíquo",
+  "vazio-ativo": "Vazio ativo",
+  "modulo-tensao": "Módulo em tensão",
+  "numero-em-campo": "Número em campo",
+  "escala-silenciosa": "Escala silenciosa",
+  "palavra-materia": "Palavra matéria",
+  "voz-em-contraste": "Voz em contraste",
+  "forma-em-acao": "Forma em ação",
+  "curva-humana": "Curva humana",
+  "ordem-aberta": "Ordem aberta",
+  "eixo-cerimonial": "Eixo cerimonial",
+  "gesto-calmo": "Gesto calmo",
+  "selo-editorial": "Selo editorial",
   essential: "Modelos essenciais",
 }
 
@@ -23,4 +45,9 @@ export function templateFamilyKey(layout: LayoutSpec): string {
 
 export function templateFamilyLabel(packageId: string): string {
   return TEMPLATE_FAMILY_LABELS[packageId] ?? packageId.replaceAll("-", " ")
+}
+
+export function templateDisplayName(layout: LayoutSpec): string {
+  if (layout.templateRef == null) return layout.namePt
+  return templateFamilyLabel(layout.templateRef.packageId)
 }

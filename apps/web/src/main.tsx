@@ -1,6 +1,6 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
-import { BrowserRouter } from "react-router-dom"
+import { BrowserRouter } from "react-router"
 import App from "./App"
 import { createApiClient } from "./api/client"
 import { ApiProvider } from "./api/context"
