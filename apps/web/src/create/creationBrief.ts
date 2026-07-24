@@ -209,18 +209,11 @@ export function selectLayoutsForCreationBrief(
   layouts: LayoutSpec[],
   brief: Partial<CreationBrief>,
 ): CreationLayoutSelection {
+  if (layouts.length === 0) return { layouts: [], match: "unavailable" }
   if (!brief.profile) return { layouts, match: "unfiltered" }
 
   const exactLayouts = layouts.filter((layout) => layout.profile === brief.profile)
-  if (exactLayouts.length > 0) return { layouts: exactLayouts, match: "exact" }
+  if (exactLayouts.length > 0) return { layouts, match: "exact" }
 
-  const socialLayouts = layouts.filter(
-    (layout) =>
-      layout.profile === "post-1x1" ||
-      layout.profile === "post-4x5" ||
-      layout.profile === "story-9x16",
-  )
-  if (socialLayouts.length > 0) return { layouts: socialLayouts, match: "fallback" }
-
-  return { layouts: [], match: "unavailable" }
+  return { layouts, match: "fallback" }
 }

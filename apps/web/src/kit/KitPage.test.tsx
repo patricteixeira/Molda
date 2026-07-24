@@ -285,7 +285,7 @@ it("prioriza sugestões explicadas e mantém o catálogo inteiro disponível", a
   expect(await screen.findAllByTestId("kit-card")).toHaveLength(2)
 })
 
-it("usa o briefing para filtrar a dimensão e explicar o recorte", async () => {
+it("usa o briefing sem esconder modelos de outros tamanhos", async () => {
   const square = fakeStatementLayout()
   square.profile = "post-1x1"
   const portrait = fakeQuoteLayout()
@@ -298,9 +298,14 @@ it("usa o briefing para filtrar a dimensão e explicar o recorte", async () => {
   )
 
   const cards = await screen.findAllByTestId("kit-card")
-  expect(cards).toHaveLength(1)
-  expect(cards[0]).toHaveAttribute("data-layout-id", portrait.id)
+  expect(cards).toHaveLength(2)
+  expect(cards.map((card) => card.getAttribute("data-layout-id"))).toEqual(
+    expect.arrayContaining([square.id, portrait.id]),
+  )
   expect(screen.getByText("Instagram · Feed vertical · Explicar ou ensinar")).toBeInTheDocument()
+  expect(
+    screen.getByText("1 modelo tem o tamanho escolhido. Os outros formatos continuam visíveis."),
+  ).toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Mudar respostas" })).toHaveAttribute(
     "href",
     "/marcas/brandrev_x/criar",
@@ -318,12 +323,45 @@ it("mantém a biblioteca visível quando a dimensão do briefing ainda não exis
   )
 
   const cards = await screen.findAllByTestId("kit-card")
-  expect(cards).toHaveLength(1)
-  expect(cards[0]).toHaveAttribute("data-layout-id", square.id)
-  expect(screen.getByRole("status")).toHaveTextContent(
-    "Exibindo outros formatos disponíveis",
+  expect(cards).toHaveLength(2)
+  expect(cards.map((card) => card.getAttribute("data-layout-id"))).toEqual(
+    expect.arrayContaining([square.id, document.id]),
   )
-  expect(screen.getByText(/ainda não há um modelo no tamanho escolhido/i)).toBeInTheDocument()
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "0 modelos têm o tamanho escolhido",
+  )
+  expect(screen.getByText(/catálogo completo continua disponível/i)).toBeInTheDocument()
+})
+
+it("mantém um catálogo grande visível quando o briefing pede quadrado", async () => {
+  const square = fakeStatementLayout()
+  square.profile = "post-1x1"
+  const authored = Array.from({ length: 210 }, (_, index) => {
+    const item = fakeQuoteLayout()
+    item.id = `authorial-post-4x5-${String(index + 1).padStart(3, "0")}`
+    item.namePt = `Modelo autoral ${index + 1}`
+    item.profile = "post-4x5"
+    item.templateRef = {
+      packageId: "catalogo-autoral",
+      version: "1.0.0",
+      compositionId: item.id,
+      sceneSchemaVersion: "2.0.0",
+    }
+    return item
+  })
+
+  renderKit(
+    fakeClient({ getKit: vi.fn(async () => [square, ...authored]) }),
+    "/marcas/brandrev_x/kit?objective=brand&piece=individual&channel=instagram&profile=post-1x1&action=none&visual=either",
+  )
+
+  expect(await screen.findAllByTestId("kit-card")).toHaveLength(24)
+  expect(screen.getByText("211 modelos disponíveis")).toBeInTheDocument()
+  expect(screen.getByText("Mostrando 24 de 211 modelos")).toBeInTheDocument()
+  expect(screen.getAllByTestId("kit-card")[0]).toHaveAttribute(
+    "data-layout-id",
+    "authorial-post-4x5-001",
+  )
 })
 
 it("orienta a escolha com três opções para abrir, explicar e encerrar", async () => {

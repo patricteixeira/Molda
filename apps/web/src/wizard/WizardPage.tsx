@@ -40,7 +40,7 @@ export function WizardPage() {
 
   useEffect(() => {
     if (state.step === "done") {
-      navigate(`/marcas/${encodeURIComponent(state.brandRevisionId)}/criar`)
+      navigate(`/marcas/${encodeURIComponent(state.brandRevisionId)}/kit`)
     }
   }, [navigate, state])
 

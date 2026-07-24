@@ -150,6 +150,11 @@ export function KitPage(): JSX.Element {
   const assetsBaseUrl = api.revisionAssetsBaseUrl(activeRevisionId)
   const layoutSelection = selectLayoutsForCreationBrief(kit.layouts, creationBrief)
   const formatFallback = layoutSelection.match === "fallback"
+  const matchingProfileCount = creationBrief.profile
+    ? kit.layouts.filter((layout) => layout.profile === creationBrief.profile).length
+    : null
+  const catalogIncludesOtherProfiles =
+    matchingProfileCount !== null && matchingProfileCount < kit.layouts.length
   const orderedLayouts = [...layoutSelection.layouts].sort(
     (left, right) => Number(right.templateRef != null) - Number(left.templateRef != null),
   )
@@ -267,14 +272,17 @@ export function KitPage(): JSX.Element {
           <p className="kit-intro">
             {briefSummary
               ? formatFallback
-                ? "Ainda não há um modelo no tamanho escolhido. Mostramos os outros tamanhos disponíveis."
-                : "Os modelos abaixo têm o tamanho escolhido e estão ordenados pelo seu objetivo."
+                ? "Ainda não há um modelo no tamanho escolhido. O catálogo completo continua disponível."
+                : "O catálogo completo está disponível. Confira o tamanho em cada cartão."
               : "Teste seu texto nas prévias e escolha uma opção para editar."}
           </p>
           {briefSummary ? <p className="creation-brief-summary">{briefSummary}</p> : null}
-          {formatFallback ? (
+          {catalogIncludesOtherProfiles ? (
             <p className="creation-format-notice" role="status">
-              Exibindo outros formatos disponíveis. O tamanho real aparece em cada cartão.
+              {matchingProfileCount === 1
+                ? "1 modelo tem o tamanho escolhido."
+                : `${matchingProfileCount} modelos têm o tamanho escolhido.`}{" "}
+              Os outros formatos continuam visíveis.
             </p>
           ) : null}
           <p className="kit-count">{orderedLayouts.length} modelos disponíveis</p>

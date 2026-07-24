@@ -58,14 +58,7 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
   await page.getByTestId("wizard-brand-name").fill("ACME")
   await page.getByTestId("wizard-publicar").click()
 
-  await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/criar/)
-  await page.getByRole("radio", { name: /Explicar ou ensinar/ }).check()
-  await page.getByRole("radio", { name: /Peça individual/ }).check()
-  await page.getByRole("button", { name: "Escolher formato" }).click()
-  await page.getByRole("button", { name: "Definir conteúdo" }).click()
-  await page.getByRole("button", { name: "Ver modelos" }).click()
-
-  await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/kit\?/)
+  await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/kit/)
   await expect.poll(async () => page.getByTestId("kit-card").count()).toBeGreaterThanOrEqual(20)
   const allModelsButton = page.getByRole("button", { name: /Todos os modelos/ })
   await expect

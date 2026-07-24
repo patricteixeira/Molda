@@ -41,3 +41,13 @@ O host precisa definir:
 
 O corpus de referências não é montado nem servido. Somente os pacotes
 declarativos promovidos após revisão entram no diretório privado de templates.
+
+Na máquina de autoria, o mesmo catálogo pode ser validado sem copiar nenhum
+arquivo para o Git ou para as imagens Docker:
+
+```powershell
+.\infra\hosting\start-private-local.ps1
+```
+
+O script monta somente `carrosseis/.molda-private/runtime-packages` e a pasta
+local de fontes. O corpus bruto continua fora dos contêineres.
