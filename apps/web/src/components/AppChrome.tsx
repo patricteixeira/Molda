@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react"
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation } from "react-router"
 
 export function AppChrome({ children }: PropsWithChildren) {
   const { pathname } = useLocation()

@@ -1,7 +1,7 @@
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, it, vi } from "vitest"
-import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { MemoryRouter, Route, Routes } from "react-router"
 import { ApiError } from "../api/client"
 import { ApiProvider } from "../api/context"
 import type { ApiClient, RoundtripJobInfo } from "../api/types"

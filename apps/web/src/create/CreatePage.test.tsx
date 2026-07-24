@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
+import { MemoryRouter, Route, Routes, useLocation } from "react-router"
 import { expect, it } from "vitest"
 import { ApiProvider } from "../api/context"
 import { fakeClient } from "../test/fakeApi"

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type JSX } from "react"
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { Link, useNavigate, useParams, useSearchParams } from "react-router"
 import { ApiError } from "../api/client"
 import { useApi } from "../api/context"
 import type {

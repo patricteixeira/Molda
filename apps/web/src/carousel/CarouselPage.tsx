@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { JSX } from "react"
-import { Link, useParams, useSearchParams } from "react-router-dom"
+import { Link, useParams, useSearchParams } from "react-router"
 import { ApiError, contentAddressedPath } from "../api/client"
 import { useApi } from "../api/context"
 import type {

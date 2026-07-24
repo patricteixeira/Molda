@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import type { JSX } from "react"
-import { Link, useNavigate, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router"
 import { ApiError } from "../api/client"
 import { useApi } from "../api/context"
 import type { BrandIr } from "../api/types"

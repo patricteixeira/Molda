@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react"
-import { Link, Route, Routes } from "react-router-dom"
+import { Link, Route, Routes } from "react-router"
 import { AppChrome } from "./components/AppChrome"
 import { WizardPage } from "./wizard/WizardPage"
 

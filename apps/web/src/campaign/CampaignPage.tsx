@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import type { ChangeEvent, JSX } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams } from "react-router"
 import { ApiError } from "../api/client"
 import { useApi } from "../api/context"
 import type {

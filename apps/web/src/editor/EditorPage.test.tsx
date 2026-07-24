@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, it, vi } from "vitest"
-import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { MemoryRouter, Route, Routes } from "react-router"
 import { ApiProvider } from "../api/context"
 import { ApiError } from "../api/client"
 import type { ApiClient, BrandIr, ContentSpec } from "../api/types"
