@@ -148,7 +148,6 @@ export function KitPage(): JSX.Element {
   const creationBrief = creationBriefFromSearch(searchParams)
   const briefSummary = creationBriefSummary(creationBrief)
   const assetsBaseUrl = api.revisionAssetsBaseUrl(activeRevisionId)
-  const headingFont = brandIr.fonts["font.heading"]?.family ?? "Fonte da marca"
   const layoutSelection = selectLayoutsForCreationBrief(kit.layouts, creationBrief)
   const formatFallback = layoutSelection.match === "fallback"
   const orderedLayouts = [...layoutSelection.layouts].sort(
@@ -279,29 +278,20 @@ export function KitPage(): JSX.Element {
             </p>
           ) : null}
           <p className="kit-count">{orderedLayouts.length} modelos disponíveis</p>
-          <div className="brand-material-summary" aria-label="Fonte usada nos títulos">
-            <span className="brand-material-swatches" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </span>
-            <span>
-              <small>Fonte usada nos títulos</small>
-              <strong>{headingFont}</strong>
-            </span>
+          <div className="kit-heading-actions">
+            <Link className="text-action" to="/">
+              Instalar outra marca
+            </Link>
+            <Link
+              className="text-action"
+              to={`/marcas/${encodeURIComponent(activeRevisionId)}/criar`}
+            >
+              {briefSummary ? "Mudar respostas" : "Criar nova peça"}
+            </Link>
+            <a className="primary-link kit-models-jump" href="#modelos">
+              Ver modelos
+            </a>
           </div>
-          <Link className="text-action" to="/">
-            Instalar outra marca
-          </Link>
-          <Link
-            className="text-action"
-            to={`/marcas/${encodeURIComponent(activeRevisionId)}/criar`}
-          >
-            {briefSummary ? "Mudar respostas" : "Criar nova peça"}
-          </Link>
-          <a className="primary-link kit-models-jump" href="#modelos">
-            Ver modelos
-          </a>
         </header>
 
         <section className="kit-tester" aria-labelledby="kit-tester-title">
