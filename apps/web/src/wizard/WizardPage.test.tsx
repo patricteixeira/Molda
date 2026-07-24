@@ -30,14 +30,14 @@ function renderWizard(client: ApiClient) {
       <MemoryRouter initialEntries={["/"]}>
         <Routes>
           <Route path="/" element={<WizardPage />} />
-          <Route path="/marcas/:revisionId/kit" element={<h1>Catálogo de modelos</h1>} />
+          <Route path="/marcas/:revisionId/criar" element={<h1>O que você quer criar?</h1>} />
         </Routes>
       </MemoryRouter>
     </ApiProvider>,
   )
 }
 
-it("roteiro completo: upload → conferências necessárias → publicar → catálogo", async () => {
+it("roteiro completo: upload → conferências necessárias → publicar → briefing de criação", async () => {
   const user = userEvent.setup()
   const importBrandPackage = vi.fn(async () => ({
     draftId: "d1",
@@ -69,10 +69,12 @@ it("roteiro completo: upload → conferências necessárias → publicar → cat
       "ACME",
     ),
   )
-  expect(await screen.findByRole("heading", { name: "Catálogo de modelos" })).toBeInTheDocument()
+  expect(
+    await screen.findByRole("heading", { name: "O que você quer criar?" }),
+  ).toBeInTheDocument()
 })
 
-it("quando o PDF não deixa dúvida, pede apenas o nome antes do catálogo", async () => {
+it("quando o PDF não deixa dúvida, pede apenas o nome antes do briefing de criação", async () => {
   const user = userEvent.setup()
   const importBrandPackage = vi.fn(async () => ({
     draftId: "d-automatico",
@@ -95,7 +97,9 @@ it("quando o PDF não deixa dúvida, pede apenas o nome antes do catálogo", asy
   await user.click(screen.getByTestId("wizard-publicar"))
 
   expect(compileDraft).toHaveBeenCalledWith("d-automatico", {}, "ACME")
-  expect(await screen.findByRole("heading", { name: "Catálogo de modelos" })).toBeInTheDocument()
+  expect(
+    await screen.findByRole("heading", { name: "O que você quer criar?" }),
+  ).toBeInTheDocument()
 })
 
 it("mantém o upload visível quando uma pergunta obrigatória não tem candidatos", async () => {

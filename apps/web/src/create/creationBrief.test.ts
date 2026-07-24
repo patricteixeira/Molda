@@ -4,7 +4,6 @@ import {
   creationBriefFromSearch,
   creationBriefSearch,
   creationTarget,
-  layoutsForCreationBrief,
   selectLayoutsForCreationBrief,
   type CreationBrief,
 } from "./creationBrief"
@@ -27,32 +26,35 @@ it("serializa o briefing na rota sem misturá-lo à identidade da marca", () => 
   )
 })
 
-it("preserva o catálogo completo quando um formato foi escolhido", () => {
+it("mostra somente os modelos do formato escolhido", () => {
   const portrait = fakeStatementLayout()
   portrait.profile = "post-4x5"
   const square = fakeQuoteLayout()
   square.profile = "post-1x1"
 
-  expect(layoutsForCreationBrief([portrait, square], brief)).toEqual([portrait, square])
+  expect(selectLayoutsForCreationBrief([portrait, square], brief)).toEqual({
+    layouts: [portrait],
+    match: "exact",
+  })
 })
 
-it("preserva todos os modelos quando o formato pedido ainda não existe", () => {
+it("usa somente outros formatos sociais quando o formato pedido ainda não existe", () => {
   const square = fakeStatementLayout()
   const document = fakeQuoteLayout()
   document.profile = "doc-a4"
 
   expect(selectLayoutsForCreationBrief([square, document], brief)).toEqual({
-    layouts: [square, document],
+    layouts: [square],
     match: "fallback",
   })
 })
 
-it("não esconde o catálogo quando só existe outro formato", () => {
+it("não oferece documento como se fosse um formato social alternativo", () => {
   const document = fakeQuoteLayout()
   document.profile = "doc-a4"
 
   expect(selectLayoutsForCreationBrief([document], brief)).toEqual({
-    layouts: [document],
-    match: "fallback",
+    layouts: [],
+    match: "unavailable",
   })
 })

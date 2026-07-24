@@ -213,7 +213,15 @@ export function selectLayoutsForCreationBrief(
   if (!brief.profile) return { layouts, match: "unfiltered" }
 
   const exactLayouts = layouts.filter((layout) => layout.profile === brief.profile)
-  if (exactLayouts.length > 0) return { layouts, match: "exact" }
+  if (exactLayouts.length > 0) return { layouts: exactLayouts, match: "exact" }
 
-  return { layouts, match: "fallback" }
+  const socialLayouts = layouts.filter(
+    (layout) =>
+      layout.profile === "post-1x1" ||
+      layout.profile === "post-4x5" ||
+      layout.profile === "story-9x16",
+  )
+  if (socialLayouts.length > 0) return { layouts: socialLayouts, match: "fallback" }
+
+  return { layouts: [], match: "unavailable" }
 }

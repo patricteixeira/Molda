@@ -65,13 +65,25 @@ function categorizedLayouts(): LayoutSpec[] {
   })
 }
 
-it("lista os layouts com nome PT e thumbnail renderizado pela biblioteca real", async () => {
-  const getKit = vi.fn(async () => [fakeStatementLayout(), fakeQuoteLayout()])
+it("lista os layouts com nomes leigos e thumbnail renderizado pela biblioteca real", async () => {
+  const statement = fakeStatementLayout()
+  statement.namePt = "BRUTALISMO TIPOGRÁFICO MONUMENTAL"
+  statement.templateRef = {
+    packageId: "typographic-brutalist",
+    version: "1.0.0",
+    compositionId: statement.id,
+    sceneSchemaVersion: "2.0.0",
+  }
+  const getKit = vi.fn(async () => [statement, fakeQuoteLayout()])
   renderKit(fakeClient({ getKit }))
   const cards = await screen.findAllByTestId("kit-card")
   expect(cards).toHaveLength(2)
-  expect(screen.getByText("Frase de impacto")).toBeInTheDocument()
+  expect(screen.getByText("Texto de grande impacto")).toBeInTheDocument()
   expect(screen.getByText("Citação sobre foto")).toBeInTheDocument()
+  expect(screen.queryByText("BRUTALISMO TIPOGRÁFICO MONUMENTAL")).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole("link", { name: /BRUTALISMO TIPOGRÁFICO MONUMENTAL/i }),
+  ).not.toBeInTheDocument()
   await waitFor(() => expect(mounts).toHaveLength(2))
   expect(mounts[0].payloads[0].assetsBaseUrl).toBe(
     "/v1/brand-revisions/brandrev_x/assets",
@@ -83,7 +95,7 @@ it("mostra a biblioteca antes dos fluxos adicionais", async () => {
   renderKit(fakeClient({ getKit: vi.fn(async () => [fakeStatementLayout()]) }))
 
   const libraryHeading = await screen.findByRole("heading", {
-    name: "Todos os modelos disponíveis.",
+    name: "Escolha pela função da peça.",
   })
   const workflowHeading = screen.getByRole("heading", {
     name: "Outros formatos",
@@ -250,10 +262,10 @@ it("coloca famílias editáveis primeiro e usa nomes compreensíveis", async () 
   const cards = await screen.findAllByTestId("kit-card")
   expect(cards[0]).toHaveAttribute("data-layout-id", editorial.id)
   expect(screen.getAllByText("Texto em destaque").length).toBeGreaterThan(0)
-  expect(screen.getAllByText("Tipografia de impacto").length).toBeGreaterThan(0)
+  expect(screen.getAllByText("Texto de grande impacto").length).toBeGreaterThan(0)
   expect(screen.getAllByText("Grade precisa").length).toBeGreaterThan(0)
   expect(screen.getAllByText("Formas geométricas").length).toBeGreaterThan(0)
-  expect(screen.getAllByText("Ritmo tipográfico").length).toBeGreaterThan(0)
+  expect(screen.getAllByText("Texto com ritmo").length).toBeGreaterThan(0)
   expect(screen.getAllByText("Blocos em tensão").length).toBeGreaterThan(0)
   expect(screen.getAllByText("Imagem editorial").length).toBeGreaterThan(0)
   expect(screen.getAllByText("Espaço e precisão").length).toBeGreaterThan(0)
@@ -273,9 +285,6 @@ it("prioriza sugestões explicadas e mantém o catálogo inteiro disponível", a
   const other = fakeQuoteLayout()
   renderKit(fakeClient({ getKit: vi.fn(async () => [other, recommended]) }))
 
-  await userEvent.click(
-    await screen.findByRole("button", { name: /Sugestões para a marca/ }),
-  )
   const cards = await screen.findAllByTestId("kit-card")
   expect(cards).toHaveLength(2)
   expect(cards.some((card) => card.getAttribute("data-layout-id") === recommended.id)).toBe(true)
@@ -285,7 +294,7 @@ it("prioriza sugestões explicadas e mantém o catálogo inteiro disponível", a
   expect(await screen.findAllByTestId("kit-card")).toHaveLength(2)
 })
 
-it("usa o briefing sem esconder modelos de outros tamanhos", async () => {
+it("usa o briefing para mostrar apenas modelos do tamanho escolhido", async () => {
   const square = fakeStatementLayout()
   square.profile = "post-1x1"
   const portrait = fakeQuoteLayout()
@@ -298,21 +307,18 @@ it("usa o briefing sem esconder modelos de outros tamanhos", async () => {
   )
 
   const cards = await screen.findAllByTestId("kit-card")
-  expect(cards).toHaveLength(2)
-  expect(cards.map((card) => card.getAttribute("data-layout-id"))).toEqual(
-    expect.arrayContaining([square.id, portrait.id]),
-  )
+  expect(cards).toHaveLength(1)
+  expect(cards[0]).toHaveAttribute("data-layout-id", portrait.id)
   expect(screen.getByText("Instagram · Feed vertical · Explicar ou ensinar")).toBeInTheDocument()
-  expect(
-    screen.getByText("1 modelo tem o tamanho escolhido. Os outros formatos continuam visíveis."),
-  ).toBeInTheDocument()
+  expect(screen.getByText("1 modelo disponível")).toBeInTheDocument()
+  expect(screen.queryByTestId(square.id)).not.toBeInTheDocument()
   expect(screen.getByRole("link", { name: "Mudar respostas" })).toHaveAttribute(
     "href",
     "/marcas/brandrev_x/criar",
   )
 })
 
-it("mantém a biblioteca visível quando a dimensão do briefing ainda não existe", async () => {
+it("mostra somente formatos sociais alternativos quando a dimensão ainda não existe", async () => {
   const square = fakeStatementLayout()
   const document = fakeQuoteLayout()
   document.profile = "doc-a4"
@@ -323,17 +329,15 @@ it("mantém a biblioteca visível quando a dimensão do briefing ainda não exis
   )
 
   const cards = await screen.findAllByTestId("kit-card")
-  expect(cards).toHaveLength(2)
-  expect(cards.map((card) => card.getAttribute("data-layout-id"))).toEqual(
-    expect.arrayContaining([square.id, document.id]),
-  )
+  expect(cards).toHaveLength(1)
+  expect(cards[0]).toHaveAttribute("data-layout-id", square.id)
   expect(screen.getByRole("status")).toHaveTextContent(
-    "0 modelos têm o tamanho escolhido",
+    "Exibindo outros formatos disponíveis",
   )
-  expect(screen.getByText(/catálogo completo continua disponível/i)).toBeInTheDocument()
+  expect(screen.getByText(/Mostramos os outros tamanhos disponíveis/i)).toBeInTheDocument()
 })
 
-it("mantém um catálogo grande visível quando o briefing pede quadrado", async () => {
+it("não deixa modelos verticais ignorarem a escolha pelo formato quadrado", async () => {
   const square = fakeStatementLayout()
   square.profile = "post-1x1"
   const authored = Array.from({ length: 210 }, (_, index) => {
@@ -355,24 +359,18 @@ it("mantém um catálogo grande visível quando o briefing pede quadrado", async
     "/marcas/brandrev_x/kit?objective=brand&piece=individual&channel=instagram&profile=post-1x1&action=none&visual=either",
   )
 
-  expect(await screen.findAllByTestId("kit-card")).toHaveLength(24)
-  expect(screen.getByText("211 modelos disponíveis")).toBeInTheDocument()
-  expect(screen.getByText("Mostrando 24 de 211 modelos")).toBeInTheDocument()
-  expect(screen.getAllByTestId("kit-card")[0]).toHaveAttribute(
-    "data-layout-id",
-    "authorial-post-4x5-001",
-  )
+  const cards = await screen.findAllByTestId("kit-card")
+  expect(cards).toHaveLength(1)
+  expect(cards[0]).toHaveAttribute("data-layout-id", square.id)
+  expect(screen.getByText("1 modelo disponível")).toBeInTheDocument()
 })
 
-it("orienta a escolha com três opções para abrir, explicar e encerrar", async () => {
+it("abre orientando a escolha com três capas, três conteúdos e três fechamentos", async () => {
   renderKit(fakeClient({ getKit: vi.fn(async () => categorizedLayouts()) }))
 
-  await userEvent.click(
-    await screen.findByRole("button", { name: /Sugestões para a marca/ }),
-  )
-  const cover = await screen.findByRole("region", { name: "Abrir a mensagem" })
-  const content = screen.getByRole("region", { name: "Explicar" })
-  const closing = screen.getByRole("region", { name: "Encerrar" })
+  const cover = await screen.findByRole("region", { name: "Capa" })
+  const content = screen.getByRole("region", { name: "Conteúdo" })
+  const closing = screen.getByRole("region", { name: "Fechamento" })
 
   expect(within(cover).getAllByTestId("kit-card")).toHaveLength(3)
   expect(within(content).getAllByTestId("kit-card")).toHaveLength(3)
@@ -389,6 +387,9 @@ it("carrega catálogos grandes em blocos e permite buscar qualquer modelo", asyn
   })
   renderKit(fakeClient({ getKit: vi.fn(async () => layouts) }))
 
+  await userEvent.click(
+    await screen.findByRole("button", { name: /Todos os modelos/ }),
+  )
   expect(await screen.findAllByTestId("kit-card")).toHaveLength(24)
   expect(screen.getByText("Mostrando 24 de 30 modelos")).toBeInTheDocument()
 

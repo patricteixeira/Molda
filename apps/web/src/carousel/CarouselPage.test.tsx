@@ -136,7 +136,9 @@ it("abre em um formato disponível quando o briefing pede uma dimensão sem mode
   )
 
   await userEvent.click(screen.getByRole("button", { name: /Todos/ }))
-  expect(screen.getByRole("button", { name: "Usar Frase de impacto" })).toBeInTheDocument()
+  expect(
+    screen.getByRole("button", { name: "Usar Frase de impacto, opção 1" }),
+  ).toBeInTheDocument()
 })
 
 it("troca o formato localmente sem baixar o kit outra vez", async () => {
@@ -199,11 +201,16 @@ it("mostra os modelos individuais compatíveis e permite escolher um por slide",
   await user.click(await screen.findByRole("button", { name: /Todos/ }))
   await screen.findByRole("heading", { name: "Escolha qualquer modelo disponível" })
   expect(screen.getByText(/2 modelos neste formato/)).toBeInTheDocument()
-  expect(screen.getByRole("button", { name: "Usar Registro editorial" })).toBeInTheDocument()
-  const secondChoice = screen.getByRole("button", { name: "Usar Monumento tipográfico" })
+  expect(
+    screen.getByRole("button", { name: "Usar Texto em destaque, opção 1" }),
+  ).toBeInTheDocument()
+  const secondChoice = screen.getByRole("button", {
+    name: "Usar Texto em destaque, opção 2",
+  })
   await user.click(secondChoice)
   expect(secondChoice).toHaveAttribute("aria-pressed", "true")
   expect(screen.getAllByText("Texto em destaque").length).toBeGreaterThan(0)
+  expect(screen.queryByText("Monumento tipográfico")).not.toBeInTheDocument()
 })
 
 it("mostra somente capas, corpos ou fechamentos conforme o slide ativo", async () => {
@@ -241,7 +248,7 @@ it("usa escolha automática por padrão e permite retomá-la depois de uma escol
   const automatic = await screen.findByRole("button", { name: "Usar escolha automática" })
   expect(automatic).toHaveAttribute("aria-pressed", "true")
 
-  const manual = screen.getByRole("button", { name: "Usar Editorial claro" })
+  const manual = screen.getByRole("button", { name: "Usar Editorial claro, opção 1" })
   await user.click(manual)
   expect(manual).toHaveAttribute("aria-pressed", "true")
   expect(automatic).toHaveAttribute("aria-pressed", "false")
@@ -255,7 +262,9 @@ it("mostra o modelo completo ao passar o mouse ou focar o cartão", async () => 
   const user = userEvent.setup()
   renderCarousel(fakeClient())
 
-  const choice = await screen.findByRole("button", { name: "Usar Editorial claro" })
+  const choice = await screen.findByRole("button", {
+    name: "Usar Editorial claro, opção 1",
+  })
   await user.hover(choice)
 
   expect(

@@ -2,10 +2,10 @@ import type { LayoutSpec } from "../api/types"
 
 export const TEMPLATE_FAMILY_LABELS: Record<string, string> = {
   "typographic-editorial": "Texto em destaque",
-  "typographic-brutalist": "Tipografia de impacto",
+  "typographic-brutalist": "Texto de grande impacto",
   "swiss-system": "Grade precisa",
   "geometric-modernism": "Formas geométricas",
-  "kinetic-typography": "Ritmo tipográfico",
+  "kinetic-typography": "Texto com ritmo",
   "constructivist-dynamics": "Blocos em tensão",
   "fashion-editorial": "Imagem editorial",
   "minimal-luxury": "Espaço e precisão",
@@ -45,4 +45,9 @@ export function templateFamilyKey(layout: LayoutSpec): string {
 
 export function templateFamilyLabel(packageId: string): string {
   return TEMPLATE_FAMILY_LABELS[packageId] ?? packageId.replaceAll("-", " ")
+}
+
+export function templateDisplayName(layout: LayoutSpec): string {
+  if (layout.templateRef == null) return layout.namePt
+  return templateFamilyLabel(layout.templateRef.packageId)
 }

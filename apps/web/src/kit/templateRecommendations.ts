@@ -17,18 +17,18 @@ const PURPOSE_META: Record<
   Omit<TemplateRecommendationGroup, "purpose" | "layouts">
 > = {
   cover: {
-    label: "Abrir a mensagem",
-    eyebrow: "01 · Primeiro contato",
-    description: "Apresente o assunto com clareza.",
+    label: "Capa",
+    eyebrow: "01 · Início",
+    description: "Apresente o assunto.",
   },
   content: {
-    label: "Explicar",
-    eyebrow: "02 · Informação",
-    description: "Organize detalhes, argumentos ou etapas.",
+    label: "Conteúdo",
+    eyebrow: "02 · Desenvolvimento",
+    description: "Use mais texto para explicar.",
   },
   closing: {
-    label: "Encerrar",
-    eyebrow: "03 · Próxima ação",
+    label: "Fechamento",
+    eyebrow: "03 · Final",
     description: "Conclua a mensagem e indique o que fazer.",
   },
 }

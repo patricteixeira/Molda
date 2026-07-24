@@ -14,6 +14,7 @@ import { materializeContentLayout } from "../editor/contentLayout"
 import { Preview } from "../render/Preview"
 import { placeholderContent } from "./placeholder"
 import {
+  templateDisplayName,
   templateFamilyKey,
   templateFamilyLabel,
 } from "./templateFamilies"
@@ -65,7 +66,7 @@ export function KitPage(): JSX.Element {
   const [kit, setKit] = useState<KitState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
-  const [catalogMode, setCatalogMode] = useState<TemplateCatalogMode>("all")
+  const [catalogMode, setCatalogMode] = useState<TemplateCatalogMode>("recommended")
   const [previewText, setPreviewText] = useState("")
   const [familyFilter, setFamilyFilter] = useState("all")
   const [catalogQuery, setCatalogQuery] = useState("")
@@ -150,11 +151,6 @@ export function KitPage(): JSX.Element {
   const assetsBaseUrl = api.revisionAssetsBaseUrl(activeRevisionId)
   const layoutSelection = selectLayoutsForCreationBrief(kit.layouts, creationBrief)
   const formatFallback = layoutSelection.match === "fallback"
-  const matchingProfileCount = creationBrief.profile
-    ? kit.layouts.filter((layout) => layout.profile === creationBrief.profile).length
-    : null
-  const catalogIncludesOtherProfiles =
-    matchingProfileCount !== null && matchingProfileCount < kit.layouts.length
   const orderedLayouts = [...layoutSelection.layouts].sort(
     (left, right) => Number(right.templateRef != null) - Number(left.templateRef != null),
   )
@@ -179,7 +175,7 @@ export function KitPage(): JSX.Element {
     ? familyLayouts.filter((layout) => {
         const searchable = [
           layout.id,
-          layout.namePt,
+          templateDisplayName(layout),
           templateFamilyLabel(templateFamilyKey(layout)),
         ]
           .join(" ")
@@ -211,7 +207,12 @@ export function KitPage(): JSX.Element {
     )
   }
 
-  function renderLayoutCard(layout: LayoutSpec, showReason: boolean): JSX.Element {
+  function renderLayoutCard(
+    layout: LayoutSpec,
+    showReason: boolean,
+    optionNumber: number,
+    purposeLabel?: string,
+  ): JSX.Element {
     const sample = applyPreviewText(
       layout,
       placeholderContent(layout, activeRevisionId, brandIr),
@@ -220,6 +221,10 @@ export function KitPage(): JSX.Element {
     const headlineQuery = previewText.trim()
       ? `?headline=${encodeURIComponent(previewText.trim())}`
       : ""
+    const displayName = templateDisplayName(layout)
+    const choiceLabel = purposeLabel
+      ? `${purposeLabel}, opção ${optionNumber}`
+      : `${displayName}, opção ${optionNumber}`
     return (
       <Link
         key={layout.id}
@@ -227,7 +232,7 @@ export function KitPage(): JSX.Element {
         to={`/marcas/${encodeURIComponent(activeRevisionId)}/editor/${encodeURIComponent(layout.id)}${headlineQuery}`}
         data-layout-id={layout.id}
         data-testid="kit-card"
-        aria-label={`Usar ${layout.namePt}`}
+        aria-label={`Usar ${choiceLabel}`}
       >
         <span className="kit-proof">
           <Preview
@@ -240,12 +245,16 @@ export function KitPage(): JSX.Element {
         </span>
         <span className="kit-card-caption">
           <span>
-            {layout.templateRef ? (
+            {purposeLabel ? (
+              <span className="kit-card-family">
+                {purposeLabel} · opção {optionNumber}
+              </span>
+            ) : layout.templateRef ? (
               <span className="kit-card-family">
                 {templateFamilyLabel(layout.templateRef.packageId)}
               </span>
             ) : null}
-            <span>{layout.namePt}</span>
+            <span>{displayName}</span>
             {showReason && layout.recommendationReasonPt ? (
               <span className="kit-card-reason">{layout.recommendationReasonPt}</span>
             ) : null}
@@ -272,20 +281,21 @@ export function KitPage(): JSX.Element {
           <p className="kit-intro">
             {briefSummary
               ? formatFallback
-                ? "Ainda não há um modelo no tamanho escolhido. O catálogo completo continua disponível."
-                : "O catálogo completo está disponível. Confira o tamanho em cada cartão."
+                ? "Ainda não há um modelo no tamanho escolhido. Mostramos os outros tamanhos disponíveis."
+                : "Os modelos abaixo têm o tamanho escolhido e estão ordenados pelas suas respostas."
               : "Teste seu texto nas prévias e escolha uma opção para editar."}
           </p>
           {briefSummary ? <p className="creation-brief-summary">{briefSummary}</p> : null}
-          {catalogIncludesOtherProfiles ? (
+          {formatFallback ? (
             <p className="creation-format-notice" role="status">
-              {matchingProfileCount === 1
-                ? "1 modelo tem o tamanho escolhido."
-                : `${matchingProfileCount} modelos têm o tamanho escolhido.`}{" "}
-              Os outros formatos continuam visíveis.
+              Exibindo outros formatos disponíveis. O tamanho real aparece em cada cartão.
             </p>
           ) : null}
-          <p className="kit-count">{orderedLayouts.length} modelos disponíveis</p>
+          <p className="kit-count">
+            {orderedLayouts.length === 1
+              ? "1 modelo disponível"
+              : `${orderedLayouts.length} modelos disponíveis`}
+          </p>
           <div className="kit-heading-actions">
             <Link className="text-action" to="/">
               Instalar outra marca
@@ -337,7 +347,7 @@ export function KitPage(): JSX.Element {
               {catalogMode === "recommended"
                 ? brandLedRecommendations
                   ? "As primeiras opções combinam a estrutura do modelo com os dados da marca."
-                  : "As sugestões estão separadas em abrir, explicar e encerrar."
+                  : "As sugestões estão separadas em capa, conteúdo e fechamento."
                 : "Use o filtro para reduzir a lista."}
             </p>
             <div className="template-catalog-switch" aria-label="Abrangência do catálogo">
@@ -424,7 +434,9 @@ export function KitPage(): JSX.Element {
                     data-layout-count={group.layouts.length}
                     aria-label={`Modelos de ${group.label.toLocaleLowerCase("pt-BR")}`}
                   >
-                    {group.layouts.map((layout) => renderLayoutCard(layout, true))}
+                    {group.layouts.map((layout, index) =>
+                      renderLayoutCard(layout, true, index + 1, group.label),
+                    )}
                   </div>
                 </section>
               ))}
@@ -437,7 +449,9 @@ export function KitPage(): JSX.Element {
                   data-layout-count={visibleLayouts.length}
                   aria-label="Todos os modelos disponíveis"
                 >
-                  {visibleLayouts.map((layout) => renderLayoutCard(layout, false))}
+                  {visibleLayouts.map((layout, index) =>
+                    renderLayoutCard(layout, false, index + 1),
+                  )}
                 </div>
               ) : (
                 <div className="kit-catalog-empty" role="status">

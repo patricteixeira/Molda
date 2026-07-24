@@ -128,11 +128,13 @@ O catálogo de vinte texturas recomenda opções pela direção confirmada sem
 esconder nenhuma alternativa. Sua portabilidade e seus limites estão no
 [`ADR 0016`](docs/adr/0016-catalogo-aberto-de-texturas-procedurais.md).
 
-O mesmo princípio organiza o catálogo autoral de composições. Kit e Carrossel
-abrem com oito sugestões explicadas, escolhidas localmente a partir de energia,
-formalidade, densidade, geometria, superfície e contraste confirmados da marca.
-A pessoa pode alternar para todos os modelos a qualquer momento; recomendação é
-um ponto de partida, não uma restrição.
+O mesmo princípio organiza o catálogo autoral de composições. Depois da
+instalação, um briefing curto pergunta objetivo, tipo de peça, canal, formato,
+ação esperada e uso de imagem. Só então Kit e Carrossel mostram as recomendações.
+O Kit abre com três capas, três modelos de conteúdo e três fechamentos. A pessoa
+pode alternar para todos os modelos a qualquer momento; recomendação é um ponto
+de partida, não uma restrição. Esse contrato está no
+[`ADR 0021`](docs/adr/0021-fluxo-guiado-de-criacao.md).
 
 ## Fluxos recorrentes
 
@@ -142,8 +144,8 @@ trabalho semanal:
 - **Modo Carrossel:** a pessoa escolhe de 3 a 20 slides e constrói uma sequência
   com capa, conteúdo e fechamento. Cada slide pode usar qualquer composição
   compatível, ser editado por inteiro e voltar à sequência sem perder ajustes.
-  As mesmas oito sugestões do Kit aparecem primeiro, e a família melhor
-classificada inicia a sequência.
+  Cada posição abre com três sugestões compatíveis com sua função, e a família
+  melhor classificada inicia a sequência.
 
 Novos modelos entram primeiro num laboratório isolado de referências. O
 Template Corpus registra autoria e licença, valida os bytes, aponta estruturas

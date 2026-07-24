@@ -25,7 +25,11 @@ import {
 } from "../logoAssets"
 import { Preview } from "../render/Preview"
 import { placeholderContent } from "../kit/placeholder"
-import { templateFamilyKey, templateFamilyLabel } from "../kit/templateFamilies"
+import {
+  templateDisplayName,
+  templateFamilyKey,
+  templateFamilyLabel,
+} from "../kit/templateFamilies"
 import {
   recommendationIsBrandLed,
   recommendedTemplateGroups,
@@ -864,8 +868,9 @@ export function CarouselPage(): JSX.Element {
               </span>
             </button>
             <div className="carousel-template-grid" aria-label="Modelos disponíveis">
-              {visibleLayouts.map((layout) => {
+              {visibleLayouts.map((layout, index) => {
                 const selected = activeSlide.layoutId === layout.id
+                const displayName = templateDisplayName(layout)
                 const sample = selected
                   ? carouselTemplateContent(layout, activeSlide, revisionId, brandIr, signature)
                   : carouselCatalogContent(layout, revisionId, brandIr)
@@ -874,7 +879,7 @@ export function CarouselPage(): JSX.Element {
                     key={layout.id}
                     type="button"
                     className="carousel-template-card"
-                    aria-label={`Usar ${layout.namePt}`}
+                    aria-label={`Usar ${displayName}, opção ${index + 1}`}
                     aria-pressed={selected}
                     data-active={selected || undefined}
                     onClick={() => updateSlide({ layoutId: layout.id })}
@@ -897,8 +902,12 @@ export function CarouselPage(): JSX.Element {
                       />
                     </span>
                     <span className="carousel-template-caption">
-                      <strong>{layout.namePt}</strong>
-                      <small>{templateFamilyLabel(templateFamilyKey(layout))}</small>
+                      <strong>{displayName}</strong>
+                      <small>
+                        {catalogMode === "recommended"
+                          ? `${activePurposeLabel} · opção ${index + 1}`
+                          : `Opção ${index + 1}`}
+                      </small>
                       {catalogMode === "recommended" && layout.recommendationReasonPt ? (
                         <small className="carousel-template-reason">
                           {layout.recommendationReasonPt}
@@ -913,7 +922,7 @@ export function CarouselPage(): JSX.Element {
               <aside
                 className="carousel-template-hover-preview"
                 data-testid="carousel-template-hover-preview"
-                aria-label={`Prévia ampliada de ${templateHoverPreview.layout.namePt}`}
+                aria-label={`Prévia ampliada de ${templateDisplayName(templateHoverPreview.layout)}`}
                 style={{
                   left: `${templateHoverPreview.left}px`,
                   top: `${templateHoverPreview.top}px`,
@@ -929,10 +938,7 @@ export function CarouselPage(): JSX.Element {
                   />
                 </span>
                 <span className="carousel-template-hover-caption">
-                  <strong>{templateHoverPreview.layout.namePt}</strong>
-                  <small>
-                    {templateFamilyLabel(templateFamilyKey(templateHoverPreview.layout))}
-                  </small>
+                  <strong>{templateDisplayName(templateHoverPreview.layout)}</strong>
                   {templateHoverPreview.layout.recommendationReasonPt ? (
                     <small>{templateHoverPreview.layout.recommendationReasonPt}</small>
                   ) : null}
@@ -941,7 +947,10 @@ export function CarouselPage(): JSX.Element {
             ) : null}
             <div className="carousel-template-actions">
               <p>
-                Selecionado: <strong>{activeLayout?.namePt ?? "Escolha automática"}</strong>
+                Selecionado:{" "}
+                <strong>
+                  {activeLayout ? templateDisplayName(activeLayout) : "Escolha automática"}
+                </strong>
               </p>
               <button
                 type="button"

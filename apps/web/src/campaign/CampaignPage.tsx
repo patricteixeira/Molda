@@ -12,6 +12,7 @@ import type {
   LayoutSpec,
 } from "../api/types"
 import { brandThemeStyle } from "../brandTheme"
+import { templateDisplayName } from "../kit/templateFamilies"
 import { Preview } from "../render/Preview"
 
 interface CampaignData {
@@ -151,7 +152,7 @@ function CampaignPieceCard({
       </div>
       <div className="campaign-piece-copy">
         <p className="product-kicker">{profileName(layout.profile)}</p>
-        <h3>{layout.namePt}</h3>
+        <h3>{templateDisplayName(layout)}</h3>
         {blockers.length ? (
           <div className="campaign-piece-warning campaign-piece-blocked" role="alert">
             <strong>Peça incompleta — exportação bloqueada</strong>
@@ -291,7 +292,7 @@ export function CampaignPage(): JSX.Element {
       .find((layout) => layout && layoutRequiresImage(layout) && !hasImage)
     if (incompatible) {
       setError(
-        `O modelo “${incompatible.namePt}” precisa de uma imagem. Envie uma foto ou escolha um modelo sem imagem.`,
+        `O modelo “${templateDisplayName(incompatible)}” precisa de uma imagem. Envie uma foto ou escolha um modelo sem imagem.`,
       )
       return
     }
@@ -574,7 +575,7 @@ export function CampaignPage(): JSX.Element {
                       onChange={changeLayout}
                     />
                     <span>
-                      {layout.namePt}
+                      {templateDisplayName(layout)}
                       <small>
                         {profileName(layout.profile)}
                         {layoutRequiresImage(layout) && !hasCampaignImage

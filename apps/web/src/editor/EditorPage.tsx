@@ -14,6 +14,7 @@ import type {
 } from "../api/types"
 import { brandThemeStyle } from "../brandTheme"
 import { placeholderContent } from "../kit/placeholder"
+import { templateDisplayName } from "../kit/templateFamilies"
 import { Preview } from "../render/Preview"
 import { ExportControls } from "./ExportControls"
 import { LayerPanel } from "./LayerPanel"
@@ -719,7 +720,7 @@ export function EditorPage({ pollIntervalMs = 1000 }: EditorPageProps): JSX.Elem
             <span>
               {data.carousel
                 ? `${data.carousel.name} · slide ${String(data.carousel.position).padStart(2, "0")}`
-                : layout.namePt}
+                : templateDisplayName(layout)}
             </span>
           </div>
         </div>

@@ -58,12 +58,27 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
   await page.getByTestId("wizard-brand-name").fill("ACME")
   await page.getByTestId("wizard-publicar").click()
 
-  await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/kit/)
-  await expect.poll(async () => page.getByTestId("kit-card").count()).toBeGreaterThanOrEqual(20)
+  await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/criar/)
+  await page.getByRole("radio", { name: /Explicar ou ensinar/ }).check()
+  await page.getByRole("radio", { name: /Peça individual/ }).check()
+  await page.getByRole("button", { name: "Escolher formato" }).click()
+  await page.getByRole("button", { name: "Definir conteúdo" }).click()
+  await page.getByRole("button", { name: "Ver modelos" }).click()
+
+  await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/kit\?/)
+  const coverGroup = page.getByRole("region", { name: "Capa" })
+  const contentGroup = page.getByRole("region", { name: "Conteúdo" })
+  const closingGroup = page.getByRole("region", { name: "Fechamento" })
+  await expect(coverGroup.getByTestId("kit-card")).toHaveCount(3)
+  await expect(contentGroup.getByTestId("kit-card")).toHaveCount(3)
+  await expect(closingGroup.getByTestId("kit-card")).toHaveCount(3)
+
   const allModelsButton = page.getByRole("button", { name: /Todos os modelos/ })
   await expect
     .poll(async () => Number(await allModelsButton.locator("span").textContent()))
     .toBeGreaterThan(200)
+  await allModelsButton.click()
+  await expect.poll(async () => page.getByTestId("kit-card").count()).toBeGreaterThanOrEqual(20)
   const modelSearch = page.getByLabel("Buscar modelo")
   await modelSearch.fill("ritmo-editorial-closing-post-4x5")
   await expect(
