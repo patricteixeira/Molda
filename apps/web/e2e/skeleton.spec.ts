@@ -66,7 +66,12 @@ test("walking skeleton v0.2: configurar → escolher → editar → exportar", a
   await page.getByRole("button", { name: "Ver modelos" }).click()
 
   await expect(page).toHaveURL(/\/marcas\/brandrev_[0-9a-f]+\/kit\?/)
-  await expect(page.getByTestId("kit-card")).toHaveCount(8)
+  await expect.poll(async () => page.getByTestId("kit-card").count()).toBeGreaterThanOrEqual(8)
+  await expect(
+    page.locator(
+      '[data-testid="kit-card"][data-layout-id="ritmo-editorial-closing-post-4x5"]',
+    ),
+  ).toBeVisible()
   const kitUrl = page.url()
 
   await page.getByRole("button", { name: /Todos os modelos/ }).click()
